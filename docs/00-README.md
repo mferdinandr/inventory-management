@@ -1,11 +1,11 @@
 # SIMASET — Sistem Inventaris & Pelacakan Aset Rumah Sakit
 
-Dokumentasi perencanaan lengkap untuk membangun sistem pelacakan aset berbasis QR Code
-untuk lingkungan rumah sakit.
+Dokumentasi perencanaan lengkap untuk membangun produk SaaS pelacakan aset berbasis QR Code
+bagi rumah sakit.
 
-Versi dokumen: **1.0**
-Tanggal: **19 September 2026**
-Status: **Disetujui untuk mulai implementasi v1**
+Versi dokumen: **2.0**
+Tanggal: **22 September 2026**
+Status: **Disetujui untuk mulai implementasi MVP**
 
 ---
 
@@ -32,24 +32,50 @@ Kalau Anda akan mempresentasikan ke manajemen RS: baca **01 → 05 → 10**.
 Kalau Anda sedang mengevaluasi risiko: baca **07 → 11**.
 Kalau Anda perlu mengumpulkan informasi dari pihak RS: pakai **11 bagian C** sebagai lembar kerja.
 
+## Bentuk produk
+
+**SIMASET adalah produk SaaS multi-tenant**, bukan sistem pesanan untuk satu rumah sakit.
+Satu aplikasi dan satu basis data melayani banyak rumah sakit, dipisahkan oleh
+`organization_id` dan Row Level Security. Pemilik platform membuat organisasi baru secara
+manual lewat panel operator; tidak ada pendaftaran mandiri di v1.
+
+Sasarannya tetap khusus rumah sakit. Kalibrasi alat medis, sertifikat, dan istilah instalasi
+adalah pembeda produk ini — bukan beban yang perlu digeneralisasi.
+
 ## Ringkasan keputusan yang mengikat
 
-Keputusan berikut sudah final untuk v1 dan menjadi dasar seluruh dokumen.
-Mengubahnya berarti merevisi ERD.
+Keputusan berikut menjadi dasar seluruh dokumen. Mengubahnya berarti merevisi ERD.
 
-1. **Lingkup: aset per-unit saja.** Barang habis pakai (stok kuantitas) tidak masuk v1,
+1. **Produk SaaS multi-tenant.** Satu instans, satu basis data, banyak rumah sakit.
+2. **Lingkup: aset per-unit saja.** Barang habis pakai (stok kuantitas) tidak masuk,
    tetapi skema menyiapkan ruang untuk itu.
-2. **Satu rumah sakit, skema siap multi-RS.** Semua tabel utama membawa `organization_id`
-   sejak hari pertama.
 3. **Riwayat bersifat append-only.** Tidak ada edit, tidak ada hapus. Koreksi dilakukan
    melalui entri baru bertipe `CORRECTION`.
-4. **Peminjaman tanpa approval.** Peminjam boleh bukan pengguna sistem — cukup nama,
+4. **Penghapusan aset dapat dibatalkan 30 hari.** Setelah itu final, tetapi barisnya tetap
+   tersimpan selamanya.
+5. **Peminjaman tanpa approval.** Peminjam boleh bukan pengguna sistem — cukup nama,
    nomor HP, dan keperluan. Tanggal jatuh tempo bersifat opsional.
-5. **Kalibrasi & pemeliharaan versi ringkas.** Jadwal berikutnya, unggah sertifikat,
+6. **Kalibrasi & pemeliharaan versi ringkas.** Jadwal berikutnya, unggah sertifikat,
    dashboard jatuh tempo. Bukan modul work order penuh.
-6. **Halaman hasil scan QR publik, data terbatas.** Tanpa login hanya tampil informasi
-   non-sensitif.
-7. **Online-only.** Tidak ada sinkronisasi offline di v1.
-8. **Notifikasi lewat email.**
-9. **Skala kecil:** di bawah 2.000 aset dan 50 pengguna.
-10. **Deploy di VPS sendiri** dengan Docker Compose, foto di MinIO.
+7. **Halaman hasil scan QR publik, data terbatas.** Satu domain bersama untuk semua
+   pelanggan, dengan `public_id` acak yang unik global.
+8. **Online-only.** Tidak ada sinkronisasi offline di v1.
+9. **Notifikasi lewat email.**
+10. **Kuota per organisasi:** 2.000 aset, 20 GB, 50 pengguna. Dapat dinaikkan per pelanggan.
+11. **Deploy di VPS sendiri** dengan Docker Compose. Foto di Cloudflare R2 untuk produksi,
+    MinIO untuk pengembangan lokal.
+12. **Onboarding manual.** Pemilik platform membuat organisasi lewat panel operator.
+    Penagihan diurus di luar sistem.
+
+## Rencana rilis
+
+**MVP, 6 minggu** — fondasi multi-tenant, master data, panel operator, aset, QR dan label,
+halaman publik, riwayat dengan foto, dan peminjaman. Untuk demo dan uji internal saja.
+
+**v1.1, sekitar 3 minggu berikutnya** — kalibrasi, dashboard, laporan, notifikasi email,
+impor massal, 2FA, dan pengerasan keamanan. **Data pelanggan sungguhan baru boleh masuk
+setelah tahap ini.**
+
+Skema basis data dibangun **lengkap sejak minggu pertama**, termasuk tabel untuk fitur yang
+ditunda. Yang mahal bukan menulis tabelnya, melainkan menambahkannya ke basis data yang
+sudah berisi data pelanggan.

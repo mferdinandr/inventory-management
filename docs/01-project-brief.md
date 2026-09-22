@@ -1,5 +1,26 @@
 # 01 — Project Brief
 
+## 0. Bentuk Produk
+
+SIMASET dibangun sebagai **produk SaaS multi-tenant untuk rumah sakit**, dijalankan dan
+dimiliki sendiri, bukan sistem pesanan untuk satu rumah sakit tertentu.
+
+| Aspek | Keputusan |
+|---|---|
+| Model | Satu instans, satu basis data, banyak rumah sakit |
+| Isolasi | `organization_id` pada setiap tabel, ditambah Row Level Security |
+| Onboarding | Pemilik platform membuat organisasi lewat panel operator; tidak ada pendaftaran mandiri |
+| Penagihan | Di luar sistem. Organisasi cukup ditandai aktif atau tidak aktif |
+| Sasaran pasar | Khusus rumah sakit — kalibrasi dan istilah instalasi adalah pembeda, bukan beban |
+| Alamat publik | Satu domain bersama untuk semua pelanggan |
+
+**Mengapa khusus rumah sakit.** Aplikasi inventaris umum sudah banyak dan sulit dibedakan.
+Yang membuat produk ini punya alasan untuk dibeli adalah hal-hal yang hanya dimengerti oleh
+orang rumah sakit: kalibrasi alat medis yang jatuh tempo, sertifikat yang dicari auditor
+akreditasi, dan pertanyaan "alat ini terakhir dipegang siapa" yang tidak pernah terjawab.
+
+---
+
 ## 1. Latar Belakang
 
 Rumah sakit menyimpan aset bernilai tinggi yang tersebar di puluhan ruangan dan berpindah
@@ -64,7 +85,8 @@ Tiga pilar:
 
 | Peran | Siapa | Kebutuhan utama |
 |---|---|---|
-| **Super Admin** | IT / pengelola sistem | Kelola pengguna, master data, konfigurasi |
+| **Platform Owner** | Anda, pemilik SIMASET | Membuat organisasi pelanggan, mengatur kuota, mendukung troubleshooting |
+| **Super Admin** | IT / pengelola sistem di RS pelanggan | Kelola pengguna, master data, konfigurasi organisasinya |
 | **Admin** | IPSRS, Bagian Umum, Bagian Aset | Lihat dan ubah seluruh aset lintas ruangan, laporan, penghapusan aset |
 | **PIC Ruangan** | Kepala ruangan / penanggung jawab instalasi | Kelola aset di ruangannya, catat peminjaman dan pengecekan |
 | **Teknisi** | Teknisi elektromedik / IT / maintenance | Catat perbaikan dan kalibrasi lintas ruangan |
@@ -73,21 +95,36 @@ Tiga pilar:
 
 ## 6. Ruang Lingkup v1
 
-### Termasuk
+### MVP — 6 minggu
 
-- Master data: organisasi, lokasi berjenjang, kategori, vendor, pengguna
+- Fondasi multi-tenant: `organization_id`, Row Level Security, pemilihan organisasi
+- Panel operator: membuat organisasi pelanggan, mengatur kuota, masuk sebagai organisasi
+- Master data: lokasi berjenjang, kategori, pengguna
 - CRUD aset dengan data perolehan dan sumber dana
 - Generate, cetak, dan cetak ulang QR Code (label tunggal dan lembar A4)
 - Halaman publik hasil scan dengan data terbatas
+- Pemindai QR dari dalam aplikasi
 - Pencatatan riwayat append-only dengan lampiran foto
+- Mutasi antar ruangan, penghapusan aset dengan pembatalan 30 hari
 - Peminjaman dan pengembalian, termasuk peminjam non-pengguna
-- Mutasi/transfer aset antar ruangan
+- Autentikasi berbasis undangan, RBAC dengan pembatasan ruangan
+
+### v1.1 — sekitar 3 minggu berikutnya
+
+Wajib selesai **sebelum data pelanggan sungguhan masuk**.
+
 - Jadwal kalibrasi dan pemeliharaan ringkas, dengan unggah sertifikat
 - Dashboard: jatuh tempo, peminjaman berjalan, aset bermasalah
 - Notifikasi email untuk jatuh tempo dan peminjaman yang belum kembali
 - Ekspor Excel/CSV per ruangan dan per kategori
-- Autentikasi berbasis undangan, RBAC dengan pembatasan ruangan
-- Audit log untuk aksi non-aset
+- Impor massal dari Excel
+- Vendor / penyedia
+- Autentikasi dua faktor opsional
+- Audit log lengkap, pembatasan laju, pengerasan keamanan, uji pemulihan cadangan
+
+**Skema basis data dibangun lengkap sejak minggu pertama**, termasuk tabel untuk fitur
+v1.1. Menambah tabel ke basis data kosong itu murah; menambahkannya setelah ada data
+pelanggan tidak.
 
 ### Tidak termasuk (dan alasannya)
 
@@ -102,21 +139,31 @@ Tiga pilar:
 | Penyusutan dan nilai buku akuntansi | Ranah sistem akuntansi, bukan pelacakan fisik |
 | Notifikasi WhatsApp | Butuh WABA berbayar dan verifikasi; email dulu |
 | Aplikasi mobile native | Web responsif sudah menjawab kebutuhan scan |
+| Pendaftaran mandiri organisasi | Onboarding manual sudah cukup sampai ada beberapa pelanggan |
+| Penagihan dan langganan otomatis | Diurus di luar sistem lewat invoice biasa |
+| Custom domain per pelanggan | Satu domain bersama; custom domain menyisakan masalah label yang terlanjur tercetak |
 
 ## 7. Batasan dan Asumsi
 
 **Batasan:**
 
-- Dijalankan di satu VPS milik sendiri. Kapasitas disk dan backup adalah tanggung jawab tim.
-- Wajib HTTPS — kamera browser untuk memindai QR tidak berjalan di HTTP.
-- Perlu sinyal internet di titik pencatatan. Ruang tanpa sinyal harus diidentifikasi sejak awal.
+- Dijalankan di satu VPS milik sendiri: 2 vCPU, 8 GB RAM, 100 GB NVMe.
+  Cadangan adalah tanggung jawab pemilik platform.
+- Foto pelanggan disimpan di Cloudflare R2, bukan di disk VPS. Disk 100 GB hanya untuk
+  aplikasi dan basis data.
+- Wajib HTTPS di produksi — kamera peramban untuk memindai QR tidak berjalan di HTTP.
+  Di lokal, `localhost` dikecualikan oleh peramban sehingga pengembangan tetap lancar.
+- Perlu sinyal internet di titik pencatatan. Ruang tanpa sinyal perlu diidentifikasi
+  saat onboarding tiap pelanggan.
 - Label harus tahan desinfektan; kertas stiker biasa tidak akan bertahan.
 
 **Asumsi:**
 
-- Volume awal di bawah 2.000 aset dan 50 pengguna.
-- Satu rumah sakit, satu zona waktu (WIB), satu bahasa (Indonesia).
+- Kuota bawaan tiap organisasi: 2.000 aset, 20 GB penyimpanan, 50 pengguna.
+- Antarmuka satu bahasa (Indonesia). Zona waktu diatur per organisasi, sehingga pelanggan
+  di WITA dan WIT melihat waktu yang benar.
 - Tidak ada data pasien di dalam sistem ini.
+- Jumlah pelanggan pada tahun pertama masih di bawah sepuluh organisasi.
 
 ## 8. Risiko Utama
 
@@ -129,9 +176,16 @@ Tiga pilar:
 | Halaman publik membocorkan data | Risiko keamanan/informasi | Data publik dibatasi ketat, ID acak tidak bisa ditebak, rate limiting |
 | Ruangan tanpa sinyal | Pencatatan tertunda atau tidak dilakukan | Survei sinyal saat onboarding; pertimbangkan akses Wi-Fi atau mode offline di v2 |
 
-## 9. Definisi Selesai untuk v1
+## 9. Definisi Selesai
 
-v1 dianggap selesai ketika satu instalasi (misalnya Instalasi Radiologi) dapat:
-seluruh asetnya terdata dan berlabel, setiap peminjaman dan perbaikan selama satu bulan
-tercatat di sistem tanpa buku manual, jatuh tempo kalibrasi muncul otomatis di dashboard
-dan terkirim lewat email, dan laporan aset ruangan tersebut dapat diekspor dalam satu klik.
+**MVP dianggap selesai ketika** dua organisasi contoh dapat dibuat dari panel operator,
+masing-masing dengan strukturnya sendiri; sebuah aset dapat didaftarkan, dicetak labelnya,
+ditempel, dipindai dengan ponsel sungguhan, dan halaman publiknya terbuka tanpa login;
+peminjaman dan pengembaliannya tercatat; riwayatnya tidak dapat diubah; dan **pengguna
+organisasi pertama sama sekali tidak dapat melihat data organisasi kedua** — dibuktikan
+lewat pengujian, bukan asumsi.
+
+**v1.1 dianggap selesai ketika** jatuh tempo kalibrasi muncul otomatis di dashboard dan
+terkirim lewat email, laporan aset per ruangan dapat diekspor dalam satu klik, dan seluruh
+daftar periksa go-live di [09-deployment-ops.md](09-deployment-ops.md) tercentang.
+Sebelum titik ini, data pelanggan sungguhan tidak boleh masuk.

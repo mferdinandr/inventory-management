@@ -9,10 +9,10 @@
 | Basis data | **PostgreSQL 16** | Butuh transaksi, constraint parsial unik, JSONB, dan pencarian teks penuh |
 | ORM | **Prisma** | Migrasi yang jelas dan tipe otomatis. Kueri berat memakai SQL mentah lewat `$queryRaw` |
 | Autentikasi | **Auth.js v5**, provider kredensial | Cukup untuk model undangan; tidak ada kebutuhan OAuth |
-| Penyimpanan objek | **MinIO** di VPS, diakses lewat `@aws-sdk/client-s3` | Kompatibel S3, sehingga pindah ke Cloudflare R2 nanti hanya mengubah variabel lingkungan |
+| Penyimpanan objek | **Cloudflare R2** di produksi, **MinIO** di Docker untuk pengembangan lokal | Keduanya kompatibel S3, sehingga perbedaannya hanya variabel lingkungan. R2 tanpa biaya egress dan tanpa batas disk, sehingga VPS 100 GB tidak menjadi langit-langit pertumbuhan pelanggan |
 | Validasi | **Zod** | Satu skema dipakai untuk form dan untuk validasi sisi server |
 | Tugas terjadwal | **pg-boss** | Antrean di dalam PostgreSQL yang sama; tidak perlu Redis pada skala ini |
-| Email | **Nodemailer** ke SMTP | Netral terhadap penyedia; dapat memakai SMTP RS atau layanan luar |
+| Email | **Nodemailer** ke SMTP, atau Resend | Email dikirim dari domain SIMASET sendiri untuk seluruh pelanggan, sehingga SPF dan DKIM cukup disiapkan satu kali |
 | QR | `qrcode` (server, SVG) + `@zxing/browser` (pemindai) | Pembuatan di server agar konsisten; pemindaian memakai WebAssembly yang andal di peramban ponsel |
 | Reverse proxy | **Caddy** | HTTPS dan pembaruan sertifikat otomatis, konfigurasi beberapa baris |
 | Orkestrasi | **Docker Compose** | Sesuai untuk satu VPS |
@@ -20,7 +20,7 @@
 
 ### Mengapa bukan pilihan lain
 
-- **Bukan backend terpisah.** Pada skala 2.000 aset dan 50 pengguna, memisahkan API menambah
+- **Bukan backend terpisah.** Pada skala beberapa pelanggan dengan masing-masing di bawah 2.000 aset, memisahkan API menambah
   kerja penyebaran dan autentikasi tanpa manfaat nyata. Bila integrasi SIMRS datang,
   route handler Next.js sudah merupakan REST API yang dapat dibuka ke luar.
 - **Bukan Laravel.** Alur kritis produk ini adalah pemindaian kamera, kompresi gambar di
@@ -41,31 +41,32 @@ flowchart TB
         PUB["Pengunjung<br/>memindai QR"]
     end
 
-    subgraph VPS["VPS — Docker Compose"]
+    subgraph VPS["VPS — Docker Compose (2 vCPU / 8 GB / 100 GB)"]
         CADDY["Caddy<br/>HTTPS, reverse proxy"]
         APP["Next.js<br/>web + API + worker"]
-        PG[("PostgreSQL 16")]
-        MINIO[("MinIO<br/>penyimpanan objek")]
+        PG[("PostgreSQL 16<br/>semua tenant, RLS aktif")]
         BACKUP["Tugas cadangan<br/>pg_dump + rclone"]
     end
 
+    R2[("Cloudflare R2<br/>foto seluruh pelanggan")]
     SMTP["SMTP<br/>pengiriman email"]
 
     HP --> CADDY
     PC --> CADDY
     PUB --> CADDY
     CADDY --> APP
-    CADDY --> MINIO
     APP --> PG
-    APP --> MINIO
     APP --> SMTP
+    HP -.->|"unggah & unduh langsung<br/>lewat URL bertanda tangan"| R2
+    PC -.-> R2
+    APP -->|"menerbitkan URL<br/>bertanda tangan"| R2
     BACKUP --> PG
-    BACKUP --> MINIO
 ```
 
-Unggahan dan pengunduhan lampiran berjalan **langsung antara peramban dan MinIO** melalui
-URL bertanda tangan. Aplikasi hanya menerbitkan URL tersebut, tidak pernah menyalurkan
-isi berkas. Ini yang menjaga penggunaan memori dan bandwidth aplikasi tetap rendah.
+Unggahan dan pengunduhan lampiran berjalan **langsung antara peramban dan penyimpanan
+objek** melalui URL bertanda tangan. Aplikasi hanya menerbitkan URL tersebut, tidak pernah
+menyalurkan isi berkas. Ini yang menjaga memori dan bandwidth VPS tetap rendah berapa pun
+jumlah pelanggan, dan yang membuat disk 100 GB tidak menjadi batas pertumbuhan.
 
 ---
 
@@ -100,6 +101,13 @@ isi berkas. Ini yang menjaga penggunaan memori dan bandwidth aplikasi tetap rend
 │   │   │   ├── maintenance/
 │   │   │   ├── reports/
 │   │   │   └── settings/                   # lokasi, kategori, vendor, pengguna
+│   │   ├── (platform)/                      # hanya PLATFORM_OWNER
+│   │   │   └── operator/
+│   │   │       ├── page.tsx                # daftar organisasi + pemakaian kuota
+│   │   │       ├── new/                    # buat organisasi pelanggan
+│   │   │       └── [orgId]/
+│   │   │           ├── page.tsx            # detail, kuota, status langganan
+│   │   │           └── impersonate/        # masuk sebagai organisasi ini
 │   │   ├── print/
 │   │   │   ├── label/[id]/page.tsx         # label tunggal, tata letak cetak
 │   │   │   └── sheet/page.tsx              # lembar A4
@@ -112,7 +120,10 @@ isi berkas. Ini yang menjaga penggunaan memori dan bandwidth aplikasi tetap rend
 │   │       └── qr/[publicId]/              # SVG QR
 │   ├── server/
 │   │   ├── auth/                           # konfigurasi sesi, guard
-│   │   ├── db.ts                           # klien Prisma
+│   │   ├── db.ts                           # klien Prisma, menetapkan app.current_org
+│   │   ├── db-platform.ts                  # koneksi khusus operator, melewati RLS
+│   │   ├── tenant.ts                       # resolusi organisasi aktif dari sesi
+│   │   ├── quota.ts                        # pemeriksaan kuota aset, storage, pengguna
 │   │   ├── storage.ts                      # klien S3, presign
 │   │   ├── mailer.ts
 │   │   ├── jobs/                           # definisi pg-boss
@@ -144,6 +155,11 @@ servis. Khususnya, hanya `event.service.ts` yang boleh menulis ke `asset_events`
 `status-machine.ts` yang boleh mengubah `assets.status`. Aturan ini yang membuat jaminan
 append-only bertahan seiring bertambahnya fitur.
 
+**Aturan tenant:** `db.ts` adalah satu-satunya tempat koneksi basis data dibuka untuk
+pengguna biasa, dan ia selalu menetapkan `app.current_org` dari sesi sebelum kueri apa pun
+berjalan. `db-platform.ts` yang melewati RLS hanya boleh diimpor oleh berkas di bawah
+`app/(platform)/` — ditegakkan dengan aturan lint agar tidak pernah bocor ke tempat lain.
+
 ---
 
 ## 4. Alur Teknis Kunci
@@ -158,7 +174,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     U->>B: Pindai QR dengan kamera
-    B->>B: Baca URL https://inv.rs/a/x7Kp92mQr4Lt
+    B->>B: Baca URL https://simaset.id/a/x7Kp92mQr4Lt
     B->>N: GET /a/x7Kp92mQr4Lt
     N->>N: Periksa sesi
     alt Ada sesi dan berwenang
@@ -180,7 +196,7 @@ Kolom sensitif tidak pernah meninggalkan basis data.
 sequenceDiagram
     participant B as Peramban
     participant N as Next.js
-    participant S as MinIO
+    participant S as R2 / MinIO
     participant DB as PostgreSQL
 
     B->>B: Pengguna memilih foto
@@ -189,7 +205,7 @@ sequenceDiagram
     N->>N: Validasi izin, jenis, ukuran
     N->>S: Buat URL PUT bertanda tangan (berlaku 5 menit)
     N-->>B: URL + objectKey
-    B->>S: PUT langsung ke MinIO
+    B->>S: PUT langsung ke penyimpanan objek
     S-->>B: 200
     B->>N: POST /api/events (data + daftar objectKey)
     N->>DB: BEGIN
@@ -224,8 +240,8 @@ pesan "Aset ini baru saja dipinjam orang lain".
 | `recompute-due` | Harian 06:00 WIB | Hitung ulang `next_due_at`, tandai jadwal yang terlewat |
 | `daily-digest` | Harian 07:00 WIB | Susun dan kirim email ringkasan ke Admin dan PIC terkait |
 | `consistency-check` | Harian 02:00 WIB | Cari ketidaksesuaian antara status aset dan peminjaman aktif, laporkan lewat log dan email ke Super Admin |
-| `orphan-cleanup` | Mingguan | Hapus objek penyimpanan tanpa baris `attachments` |
-| `backup` | Harian 01:00 WIB | `pg_dump` terkompresi dan cermin MinIO ke penyimpanan luar |
+| `orphan-cleanup` | Mingguan | Hapus objek penyimpanan tanpa baris `attachments`, lalu hitung ulang `used_storage_bytes` tiap organisasi |
+| `backup` | Harian 01:00 WIB | `pg_dump` terkompresi ke penyimpanan luar. Objek R2 tidak perlu dicermin karena sudah tereplikasi oleh Cloudflare |
 
 Worker berjalan **di dalam proses Next.js yang sama** pada skala ini, diaktifkan lewat
 variabel lingkungan `ENABLE_WORKER=true` sehingga dapat dipisahkan menjadi kontainer
@@ -267,15 +283,18 @@ berubah terpisah, cepat atau lambat keduanya akan berbeda.
 **Keputusan.** Berkas tidak pernah melewati proses aplikasi.
 
 **Alasan.** VPS kecil akan cepat kehabisan memori bila menyalurkan unggahan foto. Presigned
-URL memindahkan pekerjaan itu ke MinIO, dan pola yang sama akan langsung bekerja bila
-penyimpanan dipindahkan ke R2.
+URL memindahkan pekerjaan itu ke penyimpanan objek. Pola yang sama berjalan tanpa perubahan
+kode baik terhadap MinIO di lingkungan lokal maupun Cloudflare R2 di produksi.
 
-### ADR-05 — `organization_id` sejak hari pertama
+### ADR-05 — `organization_id` di seluruh tabel sejak migrasi pertama
 
-**Keputusan.** Seluruh tabel utama membawa kolom organisasi meskipun v1 hanya satu rumah sakit.
+**Keputusan.** Seluruh tabel utama membawa kolom organisasi sejak migrasi pertama, dan seed
+membuat dua organisasi contoh, bukan satu.
 
 **Alasan.** Menambahkan isolasi tenant ke basis data yang sudah berisi data produksi berarti
-menyentuh setiap tabel, setiap kueri, dan setiap indeks. Menyiapkannya sekarang hampir tanpa biaya.
+menyentuh setiap tabel, setiap kueri, dan setiap indeks. Dan isolasi yang hanya diuji dengan
+satu tenant sebenarnya tidak pernah diuji sama sekali — kebocoran baru terlihat ketika ada
+tenant kedua untuk membocorkannya.
 
 ### ADR-06 — Jalur lokasi disimpan sebagai `path`
 
@@ -285,6 +304,40 @@ menyentuh setiap tabel, setiap kueri, dan setiap indeks. Menyiapkannya sekarang 
 `parent_id` saja memerlukan CTE rekursif pada setiap permintaan. Jalur terwujud mengubahnya
 menjadi satu pencocokan awalan berindeks. Biayanya adalah pembaruan jalur seluruh anak ketika
 sebuah lokasi dipindahkan — peristiwa yang sangat jarang.
+
+### ADR-08 — Multi-tenant dalam satu basis data, dijaga Row Level Security
+
+**Keputusan.** Seluruh pelanggan berbagi satu aplikasi dan satu basis data, dipisahkan
+`organization_id` dan kebijakan RLS pada setiap tabel bertenant. Bukan database terpisah
+per pelanggan, bukan pula instans terpisah.
+
+**Alasan.** Pada skala yang direncanakan — di bawah sepuluh pelanggan pada tahun pertama —
+satu deployment berarti satu proses pembaruan, satu cadangan, dan satu tempat memeriksa
+ketika ada yang bermasalah. Database terpisah per pelanggan mengalikan seluruh pekerjaan itu
+tanpa memberi keuntungan yang terasa sebelum ada tuntutan isolasi dari pelanggan besar.
+
+**Risiko yang diterima.** Satu kueri yang lupa memfilter organisasi akan membocorkan data
+antar rumah sakit. Ini risiko yang tidak dapat ditoleransi, maka penanganannya berlapis:
+`organization_id` wajib di setiap kueri, RLS aktif sebagai jaring pengaman di tingkat basis
+data, dan satu pengujian otomatis di CI yang mencoba membaca data tenant lain dan memastikan
+hasilnya kosong.
+
+**Konsekuensi.** `app.current_org` ditetapkan di awal tiap transaksi dari sesi pengguna,
+tidak pernah dari parameter permintaan. Panel operator memakai koneksi basis data terpisah
+yang melewati RLS, dan hanya itu satu-satunya jalan melewatinya.
+
+### ADR-09 — Satu domain bersama untuk seluruh pelanggan
+
+**Keputusan.** Halaman publik hasil pemindaian berada di satu domain untuk semua pelanggan,
+misalnya `simaset.id/a/{public_id}`. Tidak ada subdomain maupun custom domain per pelanggan.
+
+**Alasan.** URL itu tercetak permanen pada label fisik. Subdomain per pelanggan berarti
+nama rumah sakit ikut tercetak, sehingga perubahan nama, merger, atau restrukturisasi
+subdomain mengharuskan pencetakan ulang seluruh label pelanggan tersebut. `public_id` sudah
+unik global, jadi satu domain bersama tidak menimbulkan tabrakan sama sekali.
+
+**Konsekuensi.** Halaman publik harus menampilkan nama dan logo rumah sakit pemilik aset,
+karena domainnya sendiri tidak lagi memberi petunjuk itu.
 
 ### ADR-07 — Penghapusan aset memiliki masa pembatalan, bukan penghapusan fisik
 
@@ -339,8 +392,9 @@ Pada 2.000 aset target performa tercapai tanpa upaya khusus, asalkan:
 
 | Lapisan | Cakupan minimal |
 |---|---|
-| Unit | `status-machine` seluruh transisi sah dan tidak sah; pembuat `asset_code` dan `public_id`; matriks izin |
-| Integrasi | Servis peminjaman dengan basis data sungguhan, termasuk dua permintaan bersamaan pada satu aset; penegakan append-only; penghitungan ulang jadwal |
+| **Isolasi tenant** | **Wajib, dijalankan di CI.** Pengguna organisasi A mencoba membaca, mengubah, dan menghapus aset organisasi B lewat setiap endpoint — seluruhnya harus gagal atau mengembalikan kosong. Termasuk percobaan menebak `public_id` dan mengakses lampiran milik tenant lain |
+| Unit | `status-machine` seluruh transisi sah dan tidak sah; pembuat `asset_code` dan `public_id`; matriks izin; pemeriksaan kuota |
+| Integrasi | Servis peminjaman dengan basis data sungguhan, termasuk dua permintaan bersamaan pada satu aset; penegakan append-only; penghitungan ulang jadwal; penolakan saat kuota terlampaui |
 | End-to-end | Daftarkan aset → cetak label → buka halaman publik → catat peminjaman → kembalikan; batas akses halaman publik |
 | Manual | Pemindaian kamera pada ponsel Android dan iOS sungguhan, di bawah pencahayaan ruangan rumah sakit |
 
@@ -350,8 +404,10 @@ Pada 2.000 aset target performa tercapai tanpa upaya khusus, asalkan:
 
 ```bash
 # Aplikasi
-APP_URL=https://inventaris.rs-contoh.co.id
-NODE_ENV=production
+# Lokal: http://localhost:3000 — nilai ini yang masuk ke dalam QR.
+# JANGAN mencetak label sungguhan selama APP_URL belum menunjuk domain produksi final.
+APP_URL=http://localhost:3000
+NODE_ENV=development
 AUTH_SECRET=                      # 32 byte acak
 SESSION_MAX_AGE_HOURS=12          # sesi biasa
 SESSION_REMEMBER_ME_DAYS=7        # bila "Ingat saya" dipilih
@@ -362,23 +418,25 @@ DISPOSAL_REVERT_DAYS=30           # masa pembatalan penghapusan aset
 DATABASE_URL=postgresql://simaset:***@postgres:5432/simaset
 
 # Penyimpanan objek (kompatibel S3)
-S3_ENDPOINT=http://minio:9000
-S3_PUBLIC_ENDPOINT=https://berkas.rs-contoh.co.id
-S3_REGION=us-east-1
+# Lokal  : MinIO di Docker
+# Produksi: Cloudflare R2
+S3_ENDPOINT=http://minio:9000                 # R2: https://<account>.r2.cloudflarestorage.com
+S3_PUBLIC_ENDPOINT=http://localhost:9000      # R2: domain publik bucket
+S3_REGION=auto                                # R2 memakai "auto"
 S3_BUCKET=simaset
 S3_ACCESS_KEY=
 S3_SECRET_KEY=
-S3_FORCE_PATH_STYLE=true          # wajib true untuk MinIO
+S3_FORCE_PATH_STYLE=true          # true untuk MinIO, false untuk R2
 UPLOAD_MAX_BYTES=10485760
 PRESIGN_PUT_TTL_SECONDS=300
 PRESIGN_GET_TTL_SECONDS=900
 
 # Email
-SMTP_HOST=
+SMTP_HOST=                        # atau Resend / Amazon SES
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
-MAIL_FROM="SIMASET <inventaris@rs-contoh.co.id>"
+MAIL_FROM="SIMASET <noreply@simaset.id>"
 
 # Pekerjaan terjadwal
 ENABLE_WORKER=true
@@ -386,4 +444,10 @@ TZ=Asia/Jakarta
 
 # Pembatasan laju halaman publik
 PUBLIC_RATE_LIMIT_PER_MINUTE=60
+
+# Multi-tenant
+DATABASE_URL_PLATFORM=            # koneksi terpisah untuk panel operator, melewati RLS
+DEFAULT_QUOTA_ASSETS=2000
+DEFAULT_QUOTA_STORAGE_BYTES=21474836480   # 20 GB
+DEFAULT_QUOTA_USERS=50
 ```

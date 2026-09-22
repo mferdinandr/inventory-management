@@ -4,22 +4,63 @@ Dokumen ini mendefinisikan **apa** yang dibangun. Bagaimana membangunnya ada di
 [04-technical-architecture.md](04-technical-architecture.md).
 
 Penomoran kebutuhan: `FR-xx` fungsional, `NFR-xx` non-fungsional.
-Prioritas: **P0** wajib v1, **P1** sebaiknya v1, **P2** v2.
+
+Prioritas:
+- **P0** — masuk MVP (6 minggu)
+- **P1** — masuk v1.1, wajib selesai sebelum data pelanggan sungguhan masuk
+- **P2** — v2
+
+SIMASET adalah produk SaaS multi-tenant. Seluruh kebutuhan di bawah ini berlaku
+**di dalam satu organisasi**, kecuali FR-01, FR-01b, dan FR-01c yang mengatur lapisan
+platform itu sendiri.
 
 ---
 
 ## A. Master Data
 
-### FR-01 — Organisasi (P0)
+### FR-01 — Organisasi dan Isolasi Tenant (P0)
 
-Sistem menyimpan satu organisasi (rumah sakit) berisi nama, alamat, logo, dan zona waktu.
-Seluruh data lain terikat ke organisasi ini. v1 hanya menampilkan satu organisasi di UI,
-tetapi struktur data dan setiap query sudah memfilter berdasarkan organisasi.
+Setiap rumah sakit pelanggan adalah satu organisasi berisi nama, kode, alamat, logo,
+zona waktu, status langganan, dan kuota. Seluruh data lain terikat ke organisasi.
 
 **Acceptance criteria**
-- Admin dapat mengubah profil organisasi.
-- Logo organisasi muncul di label QR yang dicetak dan di halaman publik.
-- Tidak ada satu pun query aset yang berjalan tanpa filter organisasi.
+- Admin organisasi dapat mengubah profil dan zona waktu organisasinya.
+- Zona waktu ditetapkan per organisasi, sehingga pelanggan di WITA dan WIT melihat waktu
+  yang benar. Waktu tetap disimpan dalam UTC.
+- Logo dan nama organisasi muncul di label QR yang dicetak dan di halaman publik.
+- **Tidak ada satu pun kueri yang berjalan tanpa filter organisasi**, dan Row Level
+  Security aktif sebagai jaring pengaman di tingkat basis data.
+- Pengguna sebuah organisasi tidak dapat membaca, mengubah, atau bahkan mengetahui
+  keberadaan data organisasi lain — dibuktikan lewat pengujian otomatis di CI.
+- Organisasi berstatus `SUSPENDED` hanya dapat membaca. Halaman publik hasil pemindaian
+  tetap berfungsi, agar label yang sudah tertempel tidak mati karena urusan langganan.
+
+### FR-01b — Panel Operator (P0)
+
+Halaman khusus `PLATFORM_OWNER` untuk mengelola pelanggan.
+
+**Acceptance criteria**
+- Menampilkan daftar organisasi beserta pemakaian kuota aset, penyimpanan, dan pengguna.
+- Dapat membuat organisasi baru: nama, kode, zona waktu, kuota, dan data admin pertamanya.
+- Membuat organisasi otomatis menyalin kategori bawaan dan mengirim undangan `SUPERADMIN`
+  pertama.
+- Dapat mengubah kuota dan status organisasi.
+- Dapat masuk sebagai organisasi tertentu untuk dukungan teknis. Setiap sesi semacam itu
+  menulis `audit_logs` bertindakan `platform.impersonate` yang **terlihat oleh pelanggan**,
+  dan antarmuka menampilkan penanda tetap selama sesi berlangsung.
+- Panel ini memakai koneksi basis data terpisah yang melewati RLS. Koneksi tersebut tidak
+  boleh dapat diakses dari bagian aplikasi mana pun selain panel operator.
+
+### FR-01c — Kuota (P0)
+
+**Acceptance criteria**
+- Kuota bawaan tiap organisasi: **2.000 aset, 20 GB penyimpanan, 50 pengguna**.
+- Pendaftaran aset ditolak dengan pesan yang jelas bila kuota aset tercapai.
+- Penerbitan URL unggah ditolak bila kuota penyimpanan terlampaui.
+- Undangan pengguna ditolak bila kuota pengguna tercapai.
+- Pemakaian penyimpanan diperbarui setiap kali lampiran ditambahkan, dan dihitung ulang
+  oleh tugas pembersih mingguan.
+- Admin organisasi dapat melihat pemakaian kuotanya sendiri.
 
 ### FR-02 — Lokasi Berjenjang (P0)
 
@@ -42,7 +83,7 @@ Penanda ini yang mengaktifkan kewajiban kalibrasi.
 - Kategori medis memiliki `default_calibration_interval_months` yang mengisi otomatis saat aset dibuat.
 - Contoh kategori: Elektromedik, Alat Penunjang, Furnitur, Perangkat IT, Kendaraan, Alat Rumah Tangga.
 
-### FR-04 — Vendor / Penyedia (P1)
+### FR-04 — Vendor / Penyedia (P1 — v1.1)
 
 Menyimpan data penyedia barang dan penyedia jasa servis/kalibrasi: nama, kontak, alamat,
 jenis (penyedia barang, jasa servis, lembaga kalibrasi).
@@ -58,7 +99,7 @@ kata sandi melalui tautan undangan.
 - Menonaktifkan pengguna tidak menghapus riwayat yang pernah dicatatnya.
 - Undangan kedaluwarsa dalam 7 hari dan dapat dikirim ulang.
 
-### FR-05b — Sesi dan Autentikasi Dua Faktor (P1)
+### FR-05b — Sesi dan Autentikasi Dua Faktor (P0 sesi, P1 dua faktor)
 
 **Acceptance criteria**
 - Sesi login bertahan **12 jam** secara bawaan, kira-kira satu shift kerja.
@@ -266,7 +307,7 @@ Jenis entri: `CREATED`, `INSPECTION`, `MAINTENANCE`, `REPAIR`, `CALIBRATION`, `L
 
 ## F. Pemeliharaan dan Kalibrasi
 
-### FR-21 — Jadwal (P0)
+### FR-21 — Jadwal (P1 — v1.1)
 
 **Acceptance criteria**
 - Satu aset dapat memiliki beberapa jadwal bertipe `CALIBRATION` atau `PREVENTIVE`.
@@ -274,7 +315,7 @@ Jenis entri: `CREATED`, `INSPECTION`, `MAINTENANCE`, `REPAIR`, `CALIBRATION`, `L
 - Jatuh tempo berikutnya dihitung otomatis dari tanggal pelaksanaan terakhir ditambah interval,
   tetapi dapat ditimpa manual (mengikuti tanggal yang tertera pada sertifikat).
 
-### FR-22 — Pencatatan Pelaksanaan (P0)
+### FR-22 — Pencatatan Pelaksanaan (P1 — v1.1)
 
 **Acceptance criteria**
 - Mencatat pelaksanaan kalibrasi memerlukan tanggal pelaksanaan, pelaksana (vendor atau internal),
@@ -284,7 +325,7 @@ Jenis entri: `CREATED`, `INSPECTION`, `MAINTENANCE`, `REPAIR`, `CALIBRATION`, `L
   bahwa alat tidak boleh digunakan.
 - Menghasilkan entri riwayat `CALIBRATION` atau `MAINTENANCE`.
 
-### FR-23 — Dashboard Jatuh Tempo (P0)
+### FR-23 — Dashboard Jatuh Tempo (P1 — v1.1)
 
 **Acceptance criteria**
 - Pengelompokan: sudah lewat, jatuh tempo 7 hari ke depan, 30 hari ke depan, 90 hari ke depan.
@@ -325,13 +366,13 @@ seluruh lampiran foto, isi catatan lengkap, identitas dan nomor HP peminjam, nam
 
 ## H. Dashboard, Laporan, Notifikasi
 
-### FR-26 — Dashboard (P0)
+### FR-26 — Dashboard (P1 — v1.1)
 
 Menampilkan: total aset per status, aset per instalasi, kalibrasi jatuh tempo, peminjaman
 aktif dan yang telat, aset dalam perbaikan, dan aktivitas terakhir.
 Pengguna `PIC_ROOM` hanya melihat cakupan ruangannya.
 
-### FR-27 — Laporan dan Ekspor (P1)
+### FR-27 — Laporan dan Ekspor (P1 — v1.1)
 
 - Daftar aset per ruangan (berita acara inventaris ruangan)
 - Riwayat aset lengkap untuk satu aset (dapat dicetak)
@@ -341,16 +382,17 @@ Pengguna `PIC_ROOM` hanya melihat cakupan ruangannya.
 
 Format ekspor: Excel (XLSX) dan CSV.
 
-### FR-28 — Notifikasi Email (P0)
+### FR-28 — Notifikasi Email (P1 — v1.1)
 
 **Acceptance criteria**
-- Ringkasan harian pukul 07:00 WIB ke Admin dan PIC terkait berisi jatuh tempo kalibrasi
-  dalam 30 hari dan peminjaman yang telah melewati ambang.
+- Ringkasan harian pukul 07:00 **menurut zona waktu masing-masing organisasi**, ke Admin
+  dan PIC terkait, berisi jatuh tempo kalibrasi dalam 30 hari dan peminjaman yang telah
+  melewati ambang.
 - Email undangan pengguna dan email atur ulang kata sandi.
 - Email tidak dikirim bila tidak ada isi yang perlu dilaporkan.
 - Setiap pengiriman tercatat pada log agar kegagalan dapat ditelusuri.
 
-### FR-29 — Impor Massal (P1)
+### FR-29 — Impor Massal (P1 — v1.1)
 
 **Acceptance criteria**
 - Unggah Excel/CSV dengan templat yang disediakan.
@@ -374,7 +416,7 @@ Format ekspor: Excel (XLSX) dan CSV.
 | NFR-08 | Audit | Seluruh aksi tulis tercatat dengan pelaku dan waktu |
 | NFR-09 | Responsif | Berfungsi penuh pada lebar layar 360 px |
 | NFR-10 | Aksesibilitas | Kontras memenuhi WCAG AA, seluruh form dapat dioperasikan dengan keyboard |
-| NFR-11 | Bahasa dan waktu | Antarmuka Bahasa Indonesia, seluruh waktu disimpan UTC dan ditampilkan WIB |
+| NFR-11 | Bahasa dan waktu | Antarmuka Bahasa Indonesia; waktu disimpan UTC dan ditampilkan menurut zona waktu organisasi |
 | NFR-12 | Retensi lampiran | Foto disimpan selama asetnya masih tercatat, termasuk setelah dihapuskan; tidak ada penghapusan otomatis |
 
 ## J. Metrik Keberhasilan Produk

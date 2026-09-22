@@ -11,8 +11,17 @@ mahal untuk diperbaiki belakangan — memperbaikinya berarti mengunjungi kembali
 QR memuat **satu URL absolut** dan tidak lebih:
 
 ```
-https://inventaris.rs-contoh.co.id/a/x7Kp92mQr4Lt
+https://simaset.id/a/x7Kp92mQr4Lt
 ```
+
+Satu domain dipakai bersama seluruh pelanggan. `public_id` unik secara global sehingga tidak
+ada tabrakan antar rumah sakit, dan label tidak terikat pada nama rumah sakit mana pun —
+penting karena nama dan struktur organisasi bisa berubah, sedangkan label sudah menempel.
+
+> **Selama pengembangan, `APP_URL` bernilai `http://localhost:3000`.** QR yang dihasilkan
+> hanya berlaku di mesin sendiri. Jangan mencetak label sungguhan sebelum domain produksi
+> ditetapkan — ini satu-satunya kesalahan dalam proyek ini yang biaya perbaikannya bersifat
+> fisik dan berlipat sesuai jumlah aset.
 
 **Mengapa URL, bukan data aset.** Data aset berubah — ruangan pindah, PIC berganti, status
 bergerak. Kalau data ada di dalam QR, setiap perubahan menuntut cetak ulang. URL bersifat
@@ -87,7 +96,7 @@ Isi label:
 | `asset_code` | ✅ | Ukuran huruf minimal 8 pt, font monospace agar tidak salah baca |
 | Nama aset | ✅ | Dipotong pada 24 karakter |
 | Nama ruangan | ⬜ | Membantu mengembalikan barang yang ditemukan tercecer |
-| Nama atau logo RS | ✅ | Penanda kepemilikan; mengurangi kemungkinan barang terbawa keluar |
+| Nama atau logo RS | ✅ | Penanda kepemilikan, sekaligus penunjuk rumah sakit mana — karena domainnya dipakai bersama seluruh pelanggan |
 | "Jangan dilepas" | ⬜ | Dianjurkan pada label alat bernilai tinggi |
 
 ### Label mini 25 × 15 mm

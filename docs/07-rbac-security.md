@@ -4,7 +4,8 @@
 
 | Peran | Cakupan | Ringkasan |
 |---|---|---|
-| `SUPERADMIN` | Seluruh organisasi | Pengelola sistem. Konfigurasi, pengguna, master data, seluruh aset |
+| `PLATFORM_OWNER` | Lintas organisasi | Pemilik SaaS. Membuat organisasi pelanggan, mengatur kuota dan status, serta dapat masuk sebagai organisasi mana pun untuk dukungan teknis |
+| `SUPERADMIN` | Satu organisasi | Pengelola sistem di RS pelanggan. Konfigurasi, pengguna, master data, seluruh aset organisasinya |
 | `ADMIN` | Seluruh organisasi | Pengelola aset. Seluruh aset lintas ruangan, laporan, penghapusan aset |
 | `PIC_ROOM` | Lokasi yang ditugaskan, termasuk seluruh sublokasinya | Mengelola aset di ruangannya |
 | `TECHNICIAN` | Seluruh organisasi, terbatas jenis tindakan | Mencatat perbaikan dan kalibrasi di mana pun |
@@ -14,11 +15,33 @@
 **Cakupan lokasi** bekerja menurun. Pengguna `PIC_ROOM` yang ditugaskan pada Instalasi
 Radiologi memperoleh akses ke seluruh ruangan di bawahnya, tanpa perlu didaftarkan satu per satu.
 
+**Batas organisasi berada di atas segalanya.** Seluruh peran selain `PLATFORM_OWNER`
+terkurung di dalam satu organisasi, dan itu ditegakkan oleh Row Level Security di tingkat
+basis data — bukan hanya oleh pemeriksaan di kode aplikasi. Seorang `SUPERADMIN` di sebuah
+rumah sakit tidak memiliki kewenangan apa pun terhadap rumah sakit lain.
+
+### Akses pemilik platform
+
+`PLATFORM_OWNER` memiliki akses penuh ke data seluruh pelanggan untuk keperluan dukungan
+teknis. Agar kemampuan itu tetap dapat dipertanggungjawabkan:
+
+- Setiap kali pemilik platform masuk sebagai sebuah organisasi, sistem menulis baris
+  `audit_logs` bertindakan `platform.impersonate`.
+- Catatan tersebut **dapat dilihat oleh pelanggan** di halaman audit log organisasinya.
+- Selama sesi itu berlangsung, antarmuka menampilkan penanda tetap bahwa sesi sedang
+  berjalan atas nama organisasi tersebut.
+
+Ini tidak mengurangi kemampuan apa pun, tetapi memberi jawaban yang jujur ketika calon
+pelanggan bertanya siapa saja yang dapat melihat data aset mereka.
+
 ---
 
 ## 2. Matriks Izin
 
 Legenda: ✅ boleh · 🔶 boleh dalam cakupan lokasinya · ❌ tidak boleh
+
+Tabel ini berlaku **di dalam satu organisasi**. `PLATFORM_OWNER` tidak dicantumkan karena
+kewenangannya berada di lapisan berbeda; lihat tabel terpisah di bawah.
 
 | Kemampuan | SUPERADMIN | ADMIN | PIC_ROOM | TECHNICIAN | VIEWER | Anonim |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -49,7 +72,19 @@ Legenda: ✅ boleh · 🔶 boleh dalam cakupan lokasinya · ❌ tidak boleh
 | Konfigurasi organisasi | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Lain-lain** |
 | Laporan dan ekspor | ✅ | ✅ | 🔶 | ❌ | ✅ | ❌ |
-| Audit log | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Audit log organisasinya, termasuk akses pemilik platform | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+### Kewenangan pemilik platform
+
+| Kemampuan | PLATFORM_OWNER |
+|---|:--:|
+| Membuat organisasi pelanggan baru | ✅ |
+| Mengubah kuota aset, penyimpanan, dan pengguna | ✅ |
+| Mengubah status organisasi: aktif, uji coba, ditangguhkan | ✅ |
+| Melihat pemakaian kuota seluruh pelanggan | ✅ |
+| Masuk sebagai sebuah organisasi, tercatat di audit log pelanggan | ✅ |
+| Mengubah atau menghapus riwayat aset pelanggan | ❌ tidak ada yang bisa |
+| Diberikan kepada pengguna pelanggan | ❌ tidak pernah |
 
 Catatan yang mudah terlewat: `TECHNICIAN` tidak melihat nilai perolehan. Teknisi perlu tahu
 alat apa dan riwayat teknisnya, bukan berapa harganya.
@@ -83,7 +118,8 @@ setiap kali ada kolom baru ditambahkan.
 
 ## 4. Autentikasi
 
-- **Tidak ada pendaftaran mandiri.** Akun hanya lahir dari undangan Admin.
+- **Tidak ada pendaftaran mandiri**, baik untuk pengguna maupun untuk organisasi. Organisasi
+  dibuat oleh pemilik platform; pengguna lahir dari undangan Admin organisasinya.
 - Kata sandi minimal 10 karakter, di-hash dengan **Argon2id**.
 - Token undangan dan atur ulang kata sandi: 32 byte acak, disimpan sebagai hash,
   berlaku 7 hari untuk undangan dan 1 jam untuk atur ulang, sekali pakai.
@@ -111,7 +147,9 @@ setiap kali ada kolom baru ditambahkan.
 | Penghapusan bukti oleh pelaku internal | Rendah | Tinggi | Append-only ditegakkan di basis data; hak `UPDATE`/`DELETE` dicabut dari peran aplikasi |
 | Unggahan berkas berbahaya | Rendah | Sedang | Daftar putih jenis berkas, batas ukuran, kunci objek ditentukan server, bucket tidak pernah melayani HTML, `Content-Disposition: attachment` |
 | Lampiran bocor lewat tautan | Sedang | Sedang | Bucket privat, URL bertanda tangan berumur 15 menit, pemeriksaan wewenang sebelum penerbitan |
-| Data lintas organisasi terbaca | Rendah | Tinggi | `organization_id` pada setiap kueri, Row Level Security sebagai jaring pengaman |
+| **Data lintas organisasi terbaca** | Sedang | **Sangat tinggi** | `organization_id` pada setiap kueri, RLS wajib di tingkat basis data, koneksi operator terpisah, dan pengujian isolasi otomatis di CI. Pada produk SaaS ini adalah kegagalan yang paling sulit dipulihkan reputasinya |
+| Kuota storage disalahgunakan satu pelanggan | Sedang | Sedang | Batas 20 GB per organisasi, penolakan presign saat terlampaui, pemantauan pemakaian di panel operator |
+| Pelanggan mempertanyakan akses pemilik platform | Sedang | Sedang | Setiap sesi atas nama organisasi tercatat di audit log yang dapat dilihat pelanggan |
 | Pengambilalihan akun | Rendah | Tinggi | Pembatasan login, kata sandi kuat, sesi pendek, pencabutan sesi, 2FA opsional bagi yang mengaktifkan |
 | Ponsel dinas dipakai bergantian | Sedang | Sedang | Sesi bawaan 12 jam, "Ingat saya" tidak aktif secara bawaan, daftar perangkat aktif dapat dilihat dan dikeluarkan sendiri |
 | Aset dihapuskan karena salah klik | Sedang | Rendah | Masa pembatalan 30 hari dengan pemulihan ke status semula |

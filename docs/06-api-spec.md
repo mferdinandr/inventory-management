@@ -71,6 +71,8 @@ Versi JSON dari halaman publik. Tanpa autentikasi, dibatasi laju yang sama.
   "data": {
     "publicId": "x7Kp92mQr4Lt",
     "assetCode": "RSXX-RAD-2026-0012",
+    "organizationName": "RS Contoh Sejahtera",
+    "organizationLogoUrl": "https://...",
     "name": "Ventilator Dewasa",
     "category": "Elektromedik",
     "brand": "Contoh",
@@ -91,6 +93,9 @@ Versi JSON dari halaman publik. Tanpa autentikasi, dibatasi laju yang sama.
 
 Respons ini **tidak pernah** memuat nomor seri, nilai perolehan, sumber dana, vendor,
 lampiran, isi catatan, identitas peminjam, maupun nama pencatat.
+
+Nama dan logo rumah sakit disertakan karena seluruh pelanggan berbagi satu domain — tanpa
+itu, orang yang memindai tidak tahu label tersebut milik rumah sakit mana.
 
 ### `GET /api/qr/{publicId}?format=svg&size=512`
 
@@ -374,7 +379,7 @@ Respons:
 {
   "ok": true,
   "data": {
-    "uploadUrl": "https://berkas.rs-contoh.co.id/simaset/...?X-Amz-Signature=...",
+    "uploadUrl": "https://<bucket>.r2.cloudflarestorage.com/...?X-Amz-Signature=...",
     "objectKey": "org/assets/.../a1b2c3.jpg",
     "expiresIn": 300
   }
@@ -435,6 +440,53 @@ Tidak ada `DELETE` pada satu pun sumber daya di atas. Penonaktifan dilakukan den
 `is_active` atau `status`.
 
 ---
+
+## 9b. Panel Operator
+
+Seluruh endpoint di bawah ini hanya dapat diakses oleh `PLATFORM_OWNER`, memakai koneksi
+basis data terpisah yang melewati Row Level Security.
+
+```
+GET    /api/platform/organizations                 # daftar + pemakaian kuota
+POST   /api/platform/organizations                 # buat organisasi pelanggan baru
+GET    /api/platform/organizations/{id}
+PATCH  /api/platform/organizations/{id}            # kuota, status, narahubung
+POST   /api/platform/organizations/{id}/impersonate # masuk sebagai organisasi ini
+```
+
+Membuat organisasi baru:
+
+```json
+{
+  "name": "RS Contoh Sejahtera",
+  "code": "RSCS",
+  "timezone": "Asia/Makassar",
+  "status": "TRIAL",
+  "showGovernmentFields": true,
+  "contactName": "Budi Santoso",
+  "contactEmail": "budi@rs-contoh.co.id",
+  "adminEmail": "admin@rs-contoh.co.id",
+  "adminName": "Siti Aminah",
+  "quotaAssets": 2000,
+  "quotaStorageBytes": 21474836480,
+  "quotaUsers": 50
+}
+```
+
+Efek: membuat organisasi, menyalin kategori bawaan ke dalamnya, dan mengirim undangan
+`SUPERADMIN` pertama ke `adminEmail`.
+
+`POST .../impersonate` menulis baris `audit_logs` bertindakan `platform.impersonate` pada
+organisasi tersebut — dan baris itu terlihat oleh pelanggan.
+
+### Kode error kuota
+
+| Kode | HTTP | Arti |
+|---|---|---|
+| `QUOTA_ASSETS_EXCEEDED` | 402 | Jumlah aset sudah mencapai batas organisasi |
+| `QUOTA_STORAGE_EXCEEDED` | 402 | Pemakaian penyimpanan sudah melewati batas |
+| `QUOTA_USERS_EXCEEDED` | 402 | Jumlah pengguna aktif sudah mencapai batas |
+| `ORGANIZATION_SUSPENDED` | 403 | Organisasi ditangguhkan; hanya operasi baca yang diizinkan |
 
 ## 10. Laporan
 

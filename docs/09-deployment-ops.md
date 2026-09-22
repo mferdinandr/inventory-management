@@ -6,29 +6,34 @@ Target: satu VPS milik sendiri, dijalankan dengan Docker Compose.
 
 ## 1. Spesifikasi Server
 
-| Komponen | Minimal | Anjuran |
+| Komponen | Yang dipakai | Catatan |
 |---|---|---|
-| CPU | 2 vCPU | 4 vCPU |
-| RAM | 4 GB | 8 GB |
-| Disk | 60 GB SSD | 160 GB SSD |
-| Sistem operasi | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
-| Lokasi | Indonesia atau Singapura | Indonesia, untuk latensi terendah |
+| CPU | 2 vCPU | Cukup; beban terberat adalah kueri basis data, bukan pemrosesan berkas |
+| RAM | 8 GB | Lapang untuk Next.js dan PostgreSQL pada skala ini |
+| Disk | 100 GB NVMe | Hanya untuk aplikasi, basis data, dan cadangan lokal |
+| Sistem operasi | Ubuntu 24.04 LTS | |
+| Lokasi | Indonesia atau Singapura | |
 
-**Perhitungan kebutuhan disk.** Dengan 2.000 aset, rata-rata 12 entri riwayat per aset per
-tahun, rata-rata 1,5 foto per entri, dan sekitar 400 KB per foto setelah kompresi:
+**Mengapa disk 100 GB cukup.** Foto seluruh pelanggan berada di Cloudflare R2, bukan di
+disk VPS. Yang tersisa di sini hanya basis data dan cadangan.
 
-```
-2.000 × 12 × 1,5 × 400 KB ≈ 14 GB per tahun
-```
+Perkiraan per organisasi dengan 2.000 aset: sekitar 24.000 entri riwayat per tahun
+menghasilkan basis data di bawah 500 MB. Sepuluh pelanggan pun masih di bawah 5 GB.
+Fotonya — sekitar 14 GB per pelanggan per tahun — seluruhnya ke R2 dan tidak menyentuh
+disk ini sama sekali.
 
-Basis data itu sendiri di bawah 1 GB. Disk 160 GB memberi ruang sekitar lima tahun sekaligus
-menampung salinan cadangan lokal.
+Inilah alasan R2 dipakai sejak awal, bukan menunggu disk penuh: memindahkan puluhan giga
+foto milik pelanggan aktif jauh lebih merepotkan daripada menyiapkannya dari hari pertama.
 
 ---
 
 ## 2. Docker Compose
 
+Produksi tidak menjalankan MinIO — foto berada di Cloudflare R2. MinIO hanya hadir di
+`docker-compose.dev.yml` untuk pengembangan lokal.
+
 ```yaml
+# docker-compose.yml — produksi
 services:
   caddy:
     image: caddy:2-alpine
@@ -38,7 +43,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [app, minio]
+    depends_on: [app]
 
   app:
     build: .
@@ -46,7 +51,6 @@ services:
     env_file: .env
     depends_on:
       postgres: { condition: service_healthy }
-      minio:    { condition: service_healthy }
     expose: ["3000"]
 
   postgres:
@@ -66,24 +70,6 @@ services:
       retries: 5
     # tanpa pemetaan porta: hanya dapat dicapai dari jaringan Docker
 
-  minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER_FILE: /run/secrets/minio_user
-      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
-    volumes:
-      - miniodata:/data
-    secrets: [minio_user, minio_password]
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    expose: ["9000", "9001"]
-    # konsol 9001 tidak diekspos ke internet; akses lewat terowongan SSH
-
   backup:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -95,21 +81,38 @@ services:
 
 volumes:
   pgdata:
-  miniodata:
   backups:
   caddy_data:
   caddy_config:
 
 secrets:
-  pg_password:    { file: ./secrets/pg_password }
-  minio_user:     { file: ./secrets/minio_user }
-  minio_password: { file: ./secrets/minio_password }
+  pg_password: { file: ./secrets/pg_password }
 ```
+
+```yaml
+# docker-compose.dev.yml — hanya pengembangan lokal
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: simaset
+      MINIO_ROOT_PASSWORD: simaset-dev-only
+    volumes:
+      - miniodata:/data
+    ports: ["9000:9000", "9001:9001"]
+
+volumes:
+  miniodata:
+```
+
+Di lokal, `APP_URL` bernilai `http://localhost:3000`. Peramban mengecualikan `localhost`
+dari keharusan HTTPS, sehingga kamera pemindai QR tetap dapat diuji tanpa sertifikat.
 
 ## 3. Caddyfile
 
 ```caddy
-inventaris.rs-contoh.co.id {
+simaset.id {
     encode gzip zstd
 
     header {
@@ -128,13 +131,10 @@ inventaris.rs-contoh.co.id {
     reverse_proxy app:3000
 }
 
-berkas.rs-contoh.co.id {
-    encode gzip
-    # Hanya melayani objek; bucket bersifat privat dan diakses lewat URL bertanda tangan
-    header Content-Disposition "attachment"
-    reverse_proxy minio:9000
-}
 ```
+
+Hanya satu blok domain: seluruh pelanggan berbagi domain ini, dan berkas dilayani langsung
+oleh Cloudflare R2 sehingga tidak melewati Caddy sama sekali.
 
 Caddi mengurus sertifikat Let's Encrypt dan perpanjangannya tanpa konfigurasi tambahan.
 Modul `rate_limit` perlu disertakan saat membangun citra Caddy dengan xcaddy.
@@ -157,9 +157,8 @@ curl -fsSL https://get.docker.com | sh
 git clone <repo> /opt/simaset && cd /opt/simaset
 mkdir -p secrets
 openssl rand -base64 32 > secrets/pg_password
-openssl rand -base64 32 > secrets/minio_password
-echo "simaset-admin" > secrets/minio_user
 chmod 600 secrets/*
+# Bucket R2 dan kuncinya dibuat lewat dasbor Cloudflare, lalu diisikan ke .env
 cp .env.example .env && $EDITOR .env
 
 # 4. Jalankan
@@ -168,8 +167,9 @@ docker compose up -d --build
 # 5. Siapkan basis data dan bucket
 docker compose exec app npx prisma migrate deploy
 docker compose exec app npx prisma db seed
-docker compose exec minio mc mb local/simaset
-docker compose exec minio mc anonymous set none local/simaset   # pastikan privat
+
+# 6. Pastikan bucket R2 tidak dapat diakses anonim, lalu buat organisasi
+#    pelanggan pertama lewat panel operator di /operator
 ```
 
 ---
@@ -186,8 +186,8 @@ STAMP=$(date +%Y%m%d-%H%M)
 # Basis data
 pg_dump -h postgres -U simaset simaset | gzip > "/backups/db-$STAMP.sql.gz"
 
-# Objek penyimpanan
-mc mirror --overwrite --remove local/simaset "/backups/objects/"
+# Foto tidak perlu dicadangkan di sini: R2 sudah tereplikasi oleh Cloudflare.
+# Yang tidak tergantikan adalah basis data, karena di situlah kunci objek tersimpan.
 
 # Kirim ke penyimpanan luar server
 rclone sync /backups remote:simaset-backup --transfers 4
@@ -216,6 +216,8 @@ Pada skala ini, pemantauan sederhana sudah memadai:
 | Keberhasilan cadangan | Skrip mengirim email saat gagal | Setiap kegagalan |
 | Galat aplikasi | Log Pino, opsional Sentry | Lonjakan tak wajar |
 | Konsistensi data | Tugas `consistency-check` harian | Setiap ketidaksesuaian |
+| Pemakaian kuota pelanggan | Panel operator dan ringkasan mingguan | Organisasi melewati 80% kuota |
+| Biaya R2 | Dasbor Cloudflare | Lonjakan tak wajar dari satu organisasi |
 
 Endpoint `/api/health` memeriksa koneksi basis data dan penyimpanan objek, lalu
 mengembalikan `{ "status": "ok", "db": "ok", "storage": "ok", "version": "..." }`.
@@ -231,7 +233,7 @@ git pull
 docker compose build app
 docker compose exec app npx prisma migrate deploy
 docker compose up -d app
-curl -sf https://inventaris.rs-contoh.co.id/api/health
+curl -sf https://simaset.id/api/health
 ```
 
 Waktu henti sekitar 10–20 detik. Pada skala ini hal tersebut dapat diterima; lakukan di luar
@@ -257,11 +259,14 @@ docker compose restart app
 
 ### Disk penuh
 
-1. `docker system prune -a` untuk membersihkan citra lama.
-2. Hapus berkas cadangan lokal yang sudah tersalin ke luar.
-3. Jalankan tugas `orphan-cleanup` untuk menghapus objek yatim.
-4. Bila tetap penuh, ini saatnya memindahkan penyimpanan objek ke Cloudflare R2 —
-   cukup mengubah variabel lingkungan `S3_*` dan menyalin isi bucket.
+Karena foto berada di R2, disk hanya terisi oleh basis data, cadangan lokal, dan citra Docker.
+
+1. `docker system prune -a` untuk membersihkan citra lama — biasanya ini saja sudah cukup.
+2. Hapus berkas cadangan lokal yang sudah tersalin ke penyimpanan luar.
+3. Periksa pertumbuhan basis data per organisasi; pertumbuhan tak wajar biasanya berarti
+   ada yang salah, bukan sekadar pemakaian normal.
+4. Bila basis data benar-benar melampaui disk, saatnya menaikkan ukuran VPS — bukan
+   memindahkan data, karena yang tersisa di sini memang tidak dapat dipindahkan.
 
 ### Basis data tidak mau hidup
 
@@ -293,9 +298,10 @@ Perbaikan dilakukan melalui layanan aplikasi agar tetap meninggalkan jejak riway
 
 ### Foto tidak dapat dibuka
 
-1. Periksa kesehatan MinIO: `docker compose exec minio mc ready local`.
-2. Pastikan `S3_PUBLIC_ENDPOINT` cocok dengan domain berkas pada Caddyfile.
+1. Periksa status Cloudflare R2 dan kebenaran kredensial di `.env`.
+2. Pastikan `S3_PUBLIC_ENDPOINT` menunjuk domain publik bucket R2.
 3. Periksa jam sistem — URL bertanda tangan gagal bila jam server menyimpang jauh.
+4. Di lokal, periksa kontainer MinIO: `docker compose -f docker-compose.dev.yml ps`.
 
 ---
 
@@ -312,5 +318,8 @@ Perbaikan dilakukan melalui layanan aplikasi agar tetap meninggalkan jejak riway
 - [ ] Pemantauan aktif dan mengirim peringatan ke alamat yang benar
 - [ ] Zona waktu server disetel `Asia/Jakarta`
 - [ ] Pemindaian QR diuji pada ponsel Android dan iOS sungguhan, di dalam gedung RS
-- [ ] Bucket MinIO dipastikan **tidak** dapat diakses anonim
-- [ ] Konsol MinIO dan porta PostgreSQL dipastikan tidak terekspos ke internet
+- [ ] Bucket R2 dipastikan **tidak** dapat diakses anonim
+- [ ] Porta PostgreSQL dipastikan tidak terekspos ke internet
+- [ ] Row Level Security aktif dan diuji: pengguna organisasi A tidak dapat membaca data organisasi B
+- [ ] Koneksi operator yang melewati RLS memakai kredensial terpisah dari koneksi aplikasi
+- [ ] Kuota bawaan terisi pada setiap organisasi yang dibuat

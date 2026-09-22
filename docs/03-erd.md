@@ -55,7 +55,8 @@ erDiagram
 ```sql
 -- Peran pengguna
 CREATE TYPE user_role AS ENUM (
-  'SUPERADMIN',   -- pengelola sistem, akses penuh termasuk konfigurasi
+  'PLATFORM_OWNER', -- pemilik SaaS, lintas organisasi. Tidak terikat satu organisasi
+  'SUPERADMIN',   -- pengelola sistem di organisasi pelanggan, akses penuh termasuk konfigurasi
   'ADMIN',        -- pengelola aset lintas ruangan
   'PIC_ROOM',     -- penanggung jawab ruangan, terbatas pada cakupannya
   'TECHNICIAN',   -- teknisi, boleh mencatat perbaikan/kalibrasi lintas ruangan
@@ -102,6 +103,13 @@ CREATE TYPE vendor_type AS ENUM ('SUPPLIER', 'SERVICE', 'CALIBRATION');
 CREATE TYPE disposal_reason AS ENUM ('RUSAK_TOTAL', 'HILANG', 'DIHIBAHKAN', 'DIJUAL', 'KEDALUWARSA', 'LAINNYA');
 
 CREATE TYPE print_reason AS ENUM ('FIRST_PRINT', 'LABEL_DAMAGED', 'LABEL_LOST', 'LABEL_FADED', 'RELOCATED');
+
+-- Status organisasi pelanggan
+CREATE TYPE organization_status AS ENUM (
+  'ACTIVE',     -- berlangganan, dapat dipakai penuh
+  'SUSPENDED',  -- tunggakan atau dihentikan sementara: hanya baca
+  'TRIAL'       -- masa uji coba
+);
 ```
 
 ---
@@ -110,25 +118,44 @@ CREATE TYPE print_reason AS ENUM ('FIRST_PRINT', 'LABEL_DAMAGED', 'LABEL_LOST', 
 
 ### 3.1 `organizations`
 
-Akar multi-tenant. v1 hanya berisi satu baris, tetapi setiap query tetap memfilter dengannya.
+Akar multi-tenant: satu baris per rumah sakit pelanggan. Setiap kueri memfilter dengannya.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | `id` | uuid PK | |
 | `name` | text NOT NULL | Nama rumah sakit |
-| `code` | text NOT NULL UNIQUE | Kode pendek untuk `asset_code`, mis. `RSXX` |
+| `code` | text NOT NULL UNIQUE | Kode pendek untuk `asset_code`, mis. `RSXX`. Unik lintas pelanggan |
+| `status` | organization_status NOT NULL DEFAULT 'TRIAL' | |
 | `address` | text | |
 | `logo_object_key` | text | Kunci objek di penyimpanan |
-| `timezone` | text NOT NULL DEFAULT 'Asia/Jakarta' | |
+| `timezone` | text NOT NULL DEFAULT 'Asia/Jakarta' | Ditetapkan per pelanggan: WIB, WITA, atau WIT |
 | `loan_overdue_threshold_days` | int NOT NULL DEFAULT 7 | Ambang peringatan pinjam tanpa jatuh tempo |
+| `quota_assets` | int NOT NULL DEFAULT 2000 | Batas jumlah aset aktif |
+| `quota_storage_bytes` | bigint NOT NULL DEFAULT 21474836480 | 20 GB |
+| `quota_users` | int NOT NULL DEFAULT 50 | |
+| `used_storage_bytes` | bigint NOT NULL DEFAULT 0 | Diperbarui saat lampiran ditambah |
+| `show_government_fields` | boolean NOT NULL DEFAULT true | Menyembunyikan sumber dana dan nomor dokumen bagi RS swasta |
+| `contact_name` / `contact_email` / `contact_phone` | text | Narahubung pelanggan, untuk keperluan operator |
+| `notes_internal` | text | Catatan pemilik platform; tidak terlihat oleh pelanggan |
 | `created_at` / `updated_at` | timestamptz | |
+
+**Aturan kuota:**
+- Pendaftaran aset ditolak bila jumlah aset dengan status selain `DISPOSED` sudah mencapai
+  `quota_assets`.
+- Penerbitan presigned URL ditolak bila `used_storage_bytes` sudah melewati
+  `quota_storage_bytes`.
+- Undangan pengguna ditolak bila jumlah pengguna aktif sudah mencapai `quota_users`.
+- Organisasi berstatus `SUSPENDED` hanya dapat membaca; seluruh operasi tulis ditolak,
+  tetapi halaman publik hasil pemindaian tetap berfungsi agar label yang sudah tertempel
+  tidak mati.
+- Seluruh batas dapat dinaikkan per organisasi dari panel operator.
 
 ### 3.2 `users`
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | `id` | uuid PK | |
-| `organization_id` | uuid FK → organizations | |
+| `organization_id` | uuid FK → organizations NULL | NULL hanya untuk `PLATFORM_OWNER` |
 | `email` | citext NOT NULL | Unik per organisasi |
 | `name` | text NOT NULL | |
 | `phone` | text | |
@@ -149,8 +176,15 @@ Akar multi-tenant. v1 hanya berisi satu baris, tetapi setiap query tetap memfilt
 CREATE UNIQUE INDEX users_org_email_uq ON users (organization_id, email);
 ```
 
-**Aturan:** pengguna tidak pernah dihapus, hanya di-`DISABLED`, agar riwayat yang pernah
-dicatatnya tetap memiliki pelaku yang valid.
+**Aturan:**
+- Pengguna tidak pernah dihapus, hanya di-`DISABLED`, agar riwayat yang pernah dicatatnya
+  tetap memiliki pelaku yang valid.
+- `PLATFORM_OWNER` adalah satu-satunya peran dengan `organization_id` bernilai NULL, dan
+  satu-satunya yang berada di luar Row Level Security. Peran ini tidak pernah diberikan
+  kepada pengguna pelanggan.
+- Ketika `PLATFORM_OWNER` masuk sebagai sebuah organisasi untuk troubleshooting, setiap
+  sesi semacam itu menulis baris `audit_logs` bertindakan `platform.impersonate` yang
+  **dapat dilihat oleh pelanggan tersebut**.
 
 ### 3.3 `user_locations`
 
@@ -566,9 +600,24 @@ stateDiagram-v2
 
 ## 5. Aturan Integritas Lintas Tabel
 
-1. **Isolasi organisasi.** Setiap kueri dari aplikasi wajib menyertakan `organization_id`.
-   Disarankan mengaktifkan Row Level Security pada tabel utama sebagai jaring pengaman,
-   dengan `current_setting('app.current_org')` ditetapkan per transaksi.
+1. **Isolasi organisasi — aturan terpenting dalam skema ini.** Setiap kueri dari aplikasi
+   wajib menyertakan `organization_id`, dan **Row Level Security wajib aktif** pada seluruh
+   tabel bertenant sebagai jaring pengaman. Ini bukan anjuran: satu kueri yang lupa
+   difilter berarti data sebuah rumah sakit terlihat oleh rumah sakit lain, dan sebuah
+   produk SaaS tidak pulih dari kejadian semacam itu.
+
+   ```sql
+   ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY assets_tenant_isolation ON assets
+     USING (organization_id = current_setting('app.current_org')::uuid);
+   ```
+
+   `app.current_org` ditetapkan di awal setiap transaksi dari sesi pengguna, bukan dari
+   parameter permintaan. Peran basis data `PLATFORM_OWNER` memakai koneksi terpisah yang
+   melewati RLS, dan hanya dipakai oleh panel operator.
+
+   Pengujian wajib: satu kasus uji yang mencoba membaca aset milik organisasi lain dan
+   memastikan hasilnya kosong — dijalankan di CI, bukan sekali saja saat pengembangan.
 2. **Aset hanya pada ruangan.** Ditegakkan lewat pemeriksaan aplikasi ditambah trigger
    yang memastikan `locations.type = 'ROOM'`.
 3. **Konsistensi peminjaman.** `assets.status = 'ON_LOAN'` bila dan hanya bila terdapat
@@ -584,11 +633,19 @@ stateDiagram-v2
 
 Perlu disiapkan sebagai bagian instalasi:
 
-- Satu organisasi dengan kode RS.
-- Satu pengguna `SUPERADMIN`.
-- Kategori dasar: Elektromedik (medis, interval kalibrasi 12 bulan), Alat Penunjang Medis
-  (medis, 12 bulan), Furnitur, Perangkat IT, Alat Rumah Tangga, Kendaraan.
-- Struktur lokasi contoh satu gedung, satu lantai, satu instalasi, beberapa ruangan.
+- Satu pengguna `PLATFORM_OWNER` dengan `organization_id` bernilai NULL.
+- **Dua organisasi contoh** untuk pengembangan, bukan satu. Isolasi antar tenant hanya
+  dapat diuji bila ada tenant kedua, dan bug isolasi yang ditemukan di minggu pertama jauh
+  lebih murah daripada yang ditemukan setelah ada pelanggan.
+- Satu `SUPERADMIN` pada masing-masing organisasi contoh.
+- Kategori dasar per organisasi: Elektromedik (medis, interval kalibrasi 12 bulan),
+  Alat Penunjang Medis (medis, 12 bulan), Furnitur, Perangkat IT, Alat Rumah Tangga, Kendaraan.
+- Struktur lokasi contoh: satu gedung, satu lantai, satu instalasi, beberapa ruangan.
+- Beberapa aset contoh pada masing-masing organisasi, agar pengujian isolasi punya bahan.
+
+**Templat kategori.** Karena tiap pelanggan baru membutuhkan kategori yang hampir sama,
+sediakan satu fungsi seed yang menyalin kategori bawaan ke organisasi baru saat dibuat dari
+panel operator. Tanpa itu, setiap onboarding dimulai dari layar kosong.
 
 ---
 
@@ -599,7 +656,8 @@ Skema sudah menyiapkan tempat untuk pengembangan berikut tanpa migrasi besar:
 | Rencana v2 | Cara masuk ke skema saat ini |
 |---|---|
 | Stok barang habis pakai | Tabel baru `stock_items` dan `stock_movements`, terpisah dari `assets` |
-| Multi rumah sakit | Sudah ada `organization_id` di semua tabel; tinggal buka UI dan pemilih organisasi |
+| Pendaftaran mandiri organisasi | Menambah status `PENDING_APPROVAL` pada `organization_status` |
+| Penagihan berlangganan | Tabel `plans` dan `subscriptions` yang menunjuk `organizations` |
 | Work order penuh | Tabel `work_orders` yang menunjuk `maintenance_records` |
 | Mode offline | Menambahkan `client_generated_id` unik pada `asset_events` untuk idempotensi sinkronisasi |
 | Tanda tangan digital | Kolom `signature_object_key` pada `loans` |

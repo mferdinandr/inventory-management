@@ -22,19 +22,30 @@ flowchart LR
 
 ---
 
-## 2. Onboarding Awal (satu kali)
+## 2. Onboarding Pelanggan Baru (satu kali per rumah sakit)
 
-Dilakukan sebelum sistem dipakai harian. Inilah tahap yang paling menentukan apakah sistem
-akan dipakai atau ditinggalkan.
+Dilakukan setiap kali sebuah rumah sakit menjadi pelanggan. Inilah tahap yang paling
+menentukan apakah sistem akan dipakai atau ditinggalkan.
 
-1. **Super Admin** menyiapkan organisasi: nama RS, kode RS, logo.
-2. Menyusun struktur lokasi: gedung, lantai, instalasi, ruangan, lengkap dengan kode instalasi.
-3. Menyusun kategori dan menandai mana yang alat medis beserta interval kalibrasinya.
-4. Mengundang pengguna dan menetapkan peran. PIC Ruangan dikaitkan dengan ruangannya.
-5. **Pendataan per ruangan, bukan serentak.** Ambil satu instalasi sebagai percontohan.
+**Dikerjakan oleh pemilik platform:**
+
+1. Buat organisasi dari panel operator: nama RS, kode RS, zona waktu, kuota, dan status.
+   Kategori bawaan tersalin otomatis.
+2. Undang `SUPERADMIN` pertama rumah sakit tersebut lewat email.
+
+**Dikerjakan oleh rumah sakit:**
+
+3. Super Admin melengkapi profil organisasi: alamat dan logo.
+4. Menyusun struktur lokasi: gedung, lantai, instalasi, ruangan, lengkap dengan kode instalasi.
+5. Menyesuaikan kategori bawaan dan menandai interval kalibrasi yang sesuai alatnya.
+6. Mengundang pengguna dan menetapkan peran. PIC Ruangan dikaitkan dengan ruangannya.
+7. **Pendataan per ruangan, bukan serentak.** Ambil satu instalasi sebagai percontohan.
    Data dapat diinput satu per satu atau diimpor massal dari Excel.
-6. Cetak seluruh label instalasi tersebut sekaligus, tempel dalam satu sesi.
-7. Jalankan satu bulan penuh di instalasi itu sebelum melebar ke instalasi berikutnya.
+8. Cetak seluruh label instalasi tersebut sekaligus, tempel dalam satu sesi.
+9. Jalankan satu bulan penuh di instalasi itu sebelum melebar ke instalasi berikutnya.
+
+Daftar informasi yang perlu dikumpulkan dari pelanggan ada di
+[11-open-questions.md bagian C.2](11-open-questions.md#c2-daftar-periksa-onboarding-pelanggan).
 
 > Kesalahan yang paling sering terjadi adalah mencoba mendata seluruh rumah sakit sekaligus.
 > Pendataan menjadi pekerjaan berbulan-bulan, tidak ada yang memakai sistemnya, dan data
@@ -299,5 +310,6 @@ perbaikan tetap diperlukan sebagai bukti audit jauh setelah alatnya tidak dipaka
 | **PIC Ruangan** | Mencatat peminjaman dan pengembalian di ruangannya, menanggapi jatuh tempo yang muncul di dashboard, mencatat temuan pengecekan |
 | **Teknisi** | Membuka daftar aset rusak, mencatat perbaikan dan kalibrasi beserta bukti foto |
 | **Admin** | Meninjau peminjaman yang telat, memantau kepatuhan kalibrasi, mendaftarkan aset baru dari pengadaan, mengekspor laporan |
-| **Super Admin** | Mengelola pengguna dan master data, memantau cadangan dan kesehatan sistem |
+| **Super Admin** | Mengelola pengguna dan master data organisasinya, memantau pemakaian kuota |
 | **Manajemen** | Membuka dashboard dan laporan, tanpa perlu mengubah apa pun |
+| **Platform Owner** | Memantau pemakaian kuota seluruh pelanggan, menanggapi permintaan dukungan, membuat organisasi baru saat ada pelanggan |

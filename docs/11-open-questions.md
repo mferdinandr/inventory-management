@@ -27,16 +27,16 @@ merevisi ERD dan sebagian besar dokumen lain.
 | # | Keputusan |
 |---|---|
 | 1 | Lingkup v1 adalah aset per-unit saja. Barang habis pakai tidak termasuk |
-| 2 | Satu rumah sakit, tetapi skema menyimpan `organization_id` sejak awal |
+| 2 | ~~Satu rumah sakit, skema siap multi~~ — **digantikan keputusan 18** |
 | 3 | Riwayat bersifat append-only; koreksi lewat entri baru |
 | 4 | Peminjaman tanpa persetujuan; peminjam luar cukup nama, nomor HP, dan keperluan |
 | 5 | Kalibrasi versi ringkas: jadwal, sertifikat, dashboard jatuh tempo |
 | 6 | Halaman hasil pemindaian bersifat publik dengan data terbatas |
 | 7 | Online-only; tidak ada sinkronisasi offline di v1 |
 | 8 | Notifikasi lewat email |
-| 9 | Skala di bawah 2.000 aset dan 50 pengguna |
-| 10 | Dijalankan di VPS sendiri dengan Docker Compose, foto di MinIO |
-| 11 | Stack Next.js, PostgreSQL, Prisma, Auth.js, MinIO, Caddy |
+| 9 | Skala per organisasi di bawah 2.000 aset dan 50 pengguna — menjadi kuota bawaan, lihat keputusan 25 |
+| 10 | Dijalankan di VPS sendiri dengan Docker Compose — penyimpanan foto digantikan keputusan 26 |
+| 11 | Stack Next.js, PostgreSQL, Prisma, Auth.js, Caddy |
 
 Ditambahkan dari diskusi lanjutan, 22 September 2026:
 
@@ -48,6 +48,25 @@ Ditambahkan dari diskusi lanjutan, 22 September 2026:
 | 15 | Sesi 12 jam, dengan pilihan "Ingat saya" 7 hari |
 | 16 | Autentikasi dua faktor tersedia sebagai pilihan, tidak diwajibkan |
 | 17 | Foto disimpan selama asetnya masih tercatat, tanpa penghapusan otomatis |
+
+Perubahan arah produk, 22 September 2026 — **SIMASET adalah produk SaaS, bukan sistem
+pesanan untuk satu rumah sakit**:
+
+| # | Keputusan |
+|---|---|
+| 18 | Multi-tenant sungguhan: satu instans, satu basis data, banyak rumah sakit, dijaga Row Level Security |
+| 19 | Peran `PLATFORM_OWNER` lintas organisasi, dengan panel operator minimal |
+| 20 | Onboarding manual oleh pemilik platform; tidak ada pendaftaran mandiri |
+| 21 | Penagihan diurus di luar sistem; organisasi cukup bertanda aktif, uji coba, atau ditangguhkan |
+| 22 | Sasaran tetap khusus rumah sakit; kalibrasi adalah pembeda, bukan beban |
+| 23 | Satu domain bersama untuk seluruh pelanggan, karena URL tercetak permanen di label |
+| 24 | Pemilik platform berakses penuh untuk dukungan teknis, tetapi setiap aksesnya tercatat di audit log yang terlihat pelanggan |
+| 25 | Kuota bawaan per organisasi: 2.000 aset, 20 GB, 50 pengguna |
+| 26 | Foto di Cloudflare R2 untuk produksi, MinIO hanya untuk pengembangan lokal |
+| 27 | Zona waktu ditetapkan per organisasi; antarmuka tetap satu bahasa, Indonesia |
+| 28 | Field aset pemerintah tetap ada dan bersifat opsional, dapat disembunyikan per organisasi |
+| 29 | Rilis dua tahap: MVP 6 minggu untuk demo, v1.1 3 minggu berikutnya sebelum data pelanggan masuk |
+| 30 | VPS 2 vCPU / 8 GB / 100 GB NVMe milik sendiri |
 
 ---
 
@@ -99,11 +118,12 @@ Isi kolom **Status** dengan ✅ atau ❌. Bila ❌, tuliskan yang dikehendaki di
 | # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
 | AS-17 | Ukuran label bawaan 50 × 30 mm, dengan varian mini 25 × 15 mm | ⬜ | Rendah |
-| AS-18 | Antarmuka satu bahasa (Indonesia) dan satu zona waktu (WIB) | ⬜ | Sedang |
+| AS-18 | Antarmuka satu bahasa (Indonesia); zona waktu ditetapkan per organisasi | ✅ | Sedang |
 | AS-19 | Laporan dibuat langsung saat diminta, tanpa antrean latar belakang | ⬜ | Rendah |
 
-AS-17 sebaiknya menunggu jawaban Q-12 tentang printer, karena ukuran label mengikuti
-perangkat yang tersedia.
+AS-17 dan AS-19 dapat diputuskan belakangan: ukuran label mengikuti printer yang kelak
+dipakai pelanggan, dan laporan sinkron baru terasa menghambat bila ekspor melewati sekitar
+5.000 baris.
 
 > Catatan bila ada yang tidak disetujui:
 >
@@ -112,16 +132,25 @@ perangkat yang tersedia.
 
 ## C. Pertanyaan yang Perlu Dijawab
 
-Tidak satu pun menghambat dimulainya M0, tetapi masing-masing punya tenggat.
-Bagian **C.1** untuk tim pengembang, bagian **C.2** untuk pihak rumah sakit.
+**Tidak satu pun menghambat dimulainya M0.** Pengembangan berjalan di lokal dengan
+`APP_URL` menunjuk `localhost`.
+
+Bagian **C.1** adalah pertanyaan platform yang perlu Anda jawab sendiri.
+Bagian **C.2** berubah sifat sejak SIMASET menjadi produk SaaS: ia bukan lagi syarat
+sebelum coding, melainkan **daftar periksa onboarding yang diisi ulang untuk setiap
+rumah sakit pelanggan**. Bagian itu dapat diteruskan apa adanya kepada pelanggan baru.
 
 ---
 
-### C.1 Untuk Tim Pengembang
+### C.1 Pertanyaan Platform
 
-#### Q-01 · Domain produksi ⬜
+#### Q-01 · Domain produksi 🟡 ditunda
 
-**Dibutuhkan sebelum:** M2 selesai — **paling mendesak dari seluruh daftar ini**
+**Dibutuhkan sebelum:** label sungguhan pertama dicetak — **bukan sebelum coding**
+
+**Keputusan sementara:** fokus pengembangan lokal dulu. `APP_URL` bernilai
+`http://localhost:3000`, dan QR yang dihasilkan selama pengembangan hanya berlaku di mesin
+sendiri. Domain ditetapkan setelah aplikasi berjalan.
 
 **Pertanyaan:** Apa nama domain final yang akan dipakai sistem ini?
 
@@ -142,24 +171,47 @@ bersifat fisik dan berlipat sesuai jumlah aset.
 
 ---
 
-#### Q-02 · VPS ⬜
+#### Q-02 · VPS ✅
 
-**Dibutuhkan sebelum:** M0 selesai
+**Terjawab:** VPS sudah tersedia — 2 vCPU, 8 GB RAM, 100 GB NVMe, bandwidth 8 TB.
 
-**Pertanyaan:** Di mana VPS akan disewa, dan dengan spesifikasi apa?
+Cukup untuk aplikasi dan basis data seluruh pelanggan pada skala yang direncanakan, karena
+foto berada di Cloudflare R2 dan tidak menyentuh disk ini.
 
-**Mengapa penting:** VPS perlu hidup sejak awal, bukan menjelang penyebaran. Halaman hasil
-pemindaian harus dapat diuji dari ponsel sungguhan di dalam gedung RS sebelum label dicetak
-massal. Menguji di laptop pengembang tidak membuktikan apa pun tentang sinyal dan kamera
-di lapangan.
+#### Q-02b · Akun Cloudflare R2 ⬜
 
-**Anjuran:** 4 vCPU, 8 GB RAM, 160 GB SSD, Ubuntu 24.04 LTS, lokasi Indonesia atau Singapura.
+**Dibutuhkan sebelum:** M3, saat unggah foto mulai dikerjakan
+
+Pengembangan lokal memakai MinIO di Docker sehingga tidak terhambat. Yang dibutuhkan
+menjelang M3: satu bucket R2, kunci akses, dan domain publik bucket.
 
 > Jawaban:
-> - Penyedia:
-> - Spesifikasi:
-> - Lokasi server:
-> - Sudah aktif sejak:
+> - Akun Cloudflare:
+> - Nama bucket:
+> - Domain publik bucket:
+
+---
+
+#### Q-11 · Layanan pengirim email ⬜
+
+**Dibutuhkan sebelum:** M6
+
+**Pertanyaan:** Lewat layanan apa SIMASET mengirim email ke seluruh pelanggan?
+
+**Mengapa penting:** Sistem mengirim undangan pengguna dan ringkasan harian berisi jatuh
+tempo kalibrasi. Sebagai SaaS, email dikirim dari domain SIMASET sendiri — bukan dari
+domain masing-masing rumah sakit — sehingga cukup satu kali penyiapan untuk semua pelanggan.
+
+Domain pengirim memerlukan SPF, DKIM, dan DMARC. Tanpa ketiganya, email undangan akan
+berakhir di folder spam, dan pelanggan baru tidak pernah berhasil masuk pertama kali.
+
+**Pilihan yang umum:** Resend, Amazon SES, Postmark, atau SMTP biasa. Ketiga yang pertama
+menangani reputasi pengirim dengan lebih baik daripada SMTP sendiri.
+
+> Jawaban:
+> - Layanan:
+> - Alamat pengirim:
+> - SPF, DKIM, DMARC sudah disiapkan:
 
 ---
 
@@ -199,9 +251,17 @@ sampai terjadi kehilangan data.
 
 ---
 
-### C.2 Untuk Pihak Rumah Sakit
+### C.2 Daftar Periksa Onboarding Pelanggan
 
-Bagian ini dapat diteruskan langsung kepada bagian aset, IPSRS, atau manajemen RS.
+Sejak SIMASET menjadi produk SaaS, pertanyaan-pertanyaan berikut **tidak lagi menghambat
+pengembangan**. Ia menjadi daftar periksa yang diisi ulang setiap kali sebuah rumah sakit
+menjadi pelanggan baru, dan dapat diteruskan apa adanya kepada bagian aset, IPSRS, atau
+manajemen RS tersebut.
+
+Salin bagian ini ke berkas tersendiri per pelanggan saat onboarding dimulai.
+
+**Yang wajib terisi sebelum organisasi dibuat:** Q-07 struktur lokasi dan Q-14 daftar
+pengguna awal. Sisanya dapat menyusul sambil berjalan.
 
 ---
 
@@ -358,24 +418,6 @@ naik dari rencana jangka panjang menjadi kebutuhan mendesak.
 
 ---
 
-#### Q-11 · Email pengirim notifikasi ⬜
-
-**Dibutuhkan sebelum:** M6
-
-**Pertanyaan:** Apakah rumah sakit memiliki server email sendiri, dan alamat apa yang akan
-dipakai sebagai pengirim notifikasi?
-
-**Mengapa ditanyakan:** Sistem mengirim ringkasan harian berisi jatuh tempo kalibrasi dan
-barang yang belum kembali. Email yang dikirim atas nama domain rumah sakit memerlukan
-penyiapan teknis singkat oleh pengelola domain, agar tidak berakhir di folder spam.
-
-> Jawaban:
-> - Alamat pengirim yang diinginkan:
-> - Ada server email sendiri:
-> - Pengelola domain email:
-
----
-
 #### Q-12 · Printer dan label ⬜
 
 **Dibutuhkan sebelum:** M8
@@ -489,13 +531,22 @@ tandanya muncul, penyebabnya langsung dikenali.
 
 ## F. Ringkasan Tenggat
 
+### Platform
+
 | Tenggat | Yang harus sudah dijawab |
 |---|---|
-| **Sebelum M0 selesai** | Q-02 VPS, Q-13 kebijakan IT |
-| **Sebelum M1 selesai** | Q-07 struktur lokasi |
-| **Sebelum M2 selesai** | **Q-01 domain (paling mendesak)**, Q-05 status RS |
-| **Sebelum M5 selesai** | Q-08 kategori dan kalibrasi |
-| **Sebelum M6 selesai** | Q-06 daftar aset, Q-11 email |
-| **Sebelum M8 dimulai** | Q-09 instalasi percontohan, Q-10 survei sinyal, Q-12 printer, Q-14 pengguna |
-| **Sebelum go-live** | Q-03 cadangan, Q-04 kepemilikan sistem |
-| **Kapan saja, makin cepat makin baik** | Seluruh Bagian B |
+| **Sekarang** | Tidak ada. M0 dapat dimulai hari ini |
+| **Sebelum M3** | Q-02b akun dan bucket Cloudflare R2 |
+| **Sebelum M7** | Q-01 domain produksi, Q-03 tujuan cadangan, Q-11 SMTP pengirim |
+| **Sebelum label sungguhan pertama dicetak** | **Q-01 domain — tidak dapat ditawar** |
+| **Sebelum pelanggan pertama** | Q-04 kepemilikan dan pemeliharaan sistem |
+
+### Per pelanggan, saat onboarding
+
+| Tahap | Yang dibutuhkan |
+|---|---|
+| Sebelum organisasi dibuat | Q-07 struktur lokasi, Q-14 daftar pengguna awal |
+| Saat pendataan dimulai | Q-05 status RS, Q-06 daftar aset yang ada, Q-08 kategori dan interval kalibrasi |
+| Sebelum label dicetak | Q-12 printer dan bahan label |
+| Sebelum pemakaian harian | Q-10 survei sinyal, Q-09 instalasi percontohan |
+| Bila diminta pihak RS | Q-13 kebijakan IT rumah sakit |
