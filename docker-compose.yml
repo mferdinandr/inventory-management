@@ -1,0 +1,60 @@
+# docker-compose.yml — produksi (docs/09-deployment-ops.md bab 2
+# Lokal: merge dengan docker-compose.dev.yml untuk menyalakan MinIO juga.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose: ["3000"]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: simaset
+      POSTGRES_USER: simaset
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    secrets: [pg_password]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simaset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c", "crond -f -l 2"]
+    # TODO: custom image — citra baku postgres-alpine belum memuat rclone,
+    # dibutuhkan untuk mengirim cadangan ke penyimpanan luar.
+
+volumes:
+  pgdata:
+  backups:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  pg_password:
+    file: ./secrets/pg_password

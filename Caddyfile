@@ -1,0 +1,18 @@
+simaset.id {
+    encode gzip zstd
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+    }
+
+    # Pembatasan laju halaman publik hasil pemindaian
+    @public path /a/* /api/public/*
+    rate_limit @public {
+        zone public { key {remote_host}  events 60  window 1m }
+    }
+
+    reverse_proxy app:3000
+}

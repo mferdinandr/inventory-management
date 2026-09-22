@@ -1,0 +1,37 @@
+# docker-compose.dev.yml — hanya untuk pengembangan lokal (docs/09-deployment-ops.md bab 2)
+# Merge bersama docker-compose.yml untuk stack penuh, atau jalankan mandiri:
+# untuk postgres + minio saja: docker compose -f docker-compose.dev.yml up -d postgres minio
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: simaset
+      POSTGRES_USER: simaset
+      POSTGRES_PASSWORD: simaset-dev-only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simaset"]
+      interval: 10s
+      timeout: 5s
+      retries:  5
+  minio:
+    image: quay.io/minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: simaset
+      MINIO_ROOT_PASSWORD: simaset-dev-only
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+volumes:
+  pgdata:
+  miniodata:
