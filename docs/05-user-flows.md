@@ -229,8 +229,11 @@ disimpan di sistem, bukan hanya nomornya.
 1. Buka aset, pilih **Mutasi**.
 2. Pilih ruangan tujuan, isi alasan dan tanggal kejadian.
 3. PIC aset otomatis mengikuti PIC ruangan tujuan, dan dapat diubah manual.
-4. Bila aset memiliki aset anak, sistem menawarkan memindahkan seluruhnya.
-5. Entri riwayat `TRANSFER` tercatat lengkap dengan ruangan asal dan tujuan.
+4. Entri riwayat `TRANSFER` tercatat lengkap dengan ruangan asal dan tujuan.
+
+Kode aset **tidak berubah** saat mutasi. Ventilator berkode `RSXX-RAD-2026-0012` yang pindah
+ke ICU tetap membawa kode itu, sehingga label tidak perlu dicetak ulang dan dokumen lama
+tetap menunjuk kode yang sama.
 
 Mutasi berbeda dari peminjaman: mutasi bersifat permanen dan mengubah siapa yang bertanggung
 jawab, peminjaman bersifat sementara dan menuntut pengembalian. Barang yang sedang dipinjam
@@ -259,9 +262,33 @@ dihapus tidak bernilai sebagai bukti.
 1. Buka aset, pilih **Hapuskan Aset**.
 2. Pilih alasan: rusak total, hilang, dihibahkan, dijual, atau kedaluwarsa.
 3. Isi tanggal dan nomor dokumen penghapusan bila ada.
-4. Status menjadi `DISPOSED`, aset keluar dari daftar aktif.
+4. Status menjadi `DISPOSED`, aset keluar dari daftar, pencarian, dan dashboard.
 5. Halaman publiknya tetap dapat dibuka dan menampilkan penanda bahwa aset telah dihapuskan,
    sehingga label yang masih menempel tetap memberi jawaban yang benar.
+
+### Membatalkan penghapusan
+
+Selama **30 hari** sejak dihapuskan, aset masih dapat dipulihkan.
+
+```mermaid
+flowchart TD
+    A["Aset dihapuskan"] --> B["Muncul di halaman<br/>Aset Dihapuskan<br/>dengan sisa hari"]
+    B --> C{"Dalam 30 hari?"}
+    C -->|Ya| D["Admin menekan Batalkan Penghapusan"]
+    D --> E["Status kembali ke keadaan<br/>sebelum dihapuskan"]
+    E --> F["Tercatat sebagai entri koreksi"]
+    C -->|Tidak| G["Tombol pembatalan hilang<br/>penghapusan menjadi final"]
+    G --> H["Data tetap tersimpan:<br/>QR tetap menjawab,<br/>laporan tetap lengkap"]
+```
+
+Pemulihan mengembalikan status ke keadaan **sebelum** dihapuskan, bukan selalu ke
+`AVAILABLE` — alat yang rusak lalu keliru dihapuskan akan kembali berstatus `DAMAGED`.
+
+**Yang perlu dipahami:** setelah 30 hari, aset tidak dihapus dari basis data. Ia hanya
+tidak lagi dapat dipulihkan. Barisnya tetap ada karena tiga alasan: label QR masih menempel
+pada barang yang dihibahkan atau dijual dan pemindaiannya harus tetap menjawab, laporan
+penghapusan aset tahunan membutuhkan daftar lengkapnya, dan riwayat kalibrasi serta
+perbaikan tetap diperlukan sebagai bukti audit jauh setelah alatnya tidak dipakai lagi.
 
 ---
 

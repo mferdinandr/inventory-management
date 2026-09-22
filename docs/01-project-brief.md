@@ -96,6 +96,7 @@ Tiga pilar:
 | Stok barang habis pakai | Model data berbeda; menggandakan kompleksitas v1 |
 | Mode offline / sinkronisasi | Effort besar; ditunda sampai terbukti benar-benar menghambat di lapangan |
 | Approval peminjaman | Diputuskan memperlambat alur tanpa manfaat sepadan |
+| Hubungan aset induk dan anak | Setiap aset berdiri sendiri di v1; komponen dicatat di kolom catatan |
 | Tanda tangan digital serah terima | Foto dan pencatat sudah cukup untuk pertanggungjawaban v1 |
 | Integrasi SIMRS / SIMDA | Belum ada spesifikasi; ditangani lewat ekspor Excel dulu |
 | Penyusutan dan nilai buku akuntansi | Ranah sistem akuntansi, bukan pelacakan fisik |

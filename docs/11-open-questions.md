@@ -38,59 +38,72 @@ merevisi ERD dan sebagian besar dokumen lain.
 | 10 | Dijalankan di VPS sendiri dengan Docker Compose, foto di MinIO |
 | 11 | Stack Next.js, PostgreSQL, Prisma, Auth.js, MinIO, Caddy |
 
+Ditambahkan dari diskusi lanjutan, 22 September 2026:
+
+| # | Keputusan |
+|---|---|
+| 12 | Kode aset tidak pernah berubah, termasuk saat aset dimutasi antar instalasi |
+| 13 | Penghapusan aset dapat dibatalkan selama 30 hari; setelah itu final, tetapi barisnya tetap tersimpan |
+| 14 | Aset induk dan anak tidak dibangun di v1 |
+| 15 | Sesi 12 jam, dengan pilihan "Ingat saya" 7 hari |
+| 16 | Autentikasi dua faktor tersedia sebagai pilihan, tidak diwajibkan |
+| 17 | Foto disimpan selama asetnya masih tercatat, tanpa penghapusan otomatis |
+
 ---
 
 ## B. Asumsi yang Perlu Dikonfirmasi
 
-Butir-butir berikut tidak dibahas secara eksplisit. Saya memutuskannya agar perencanaan
-dapat selesai. Semuanya masih dapat diubah pada tahap ini — kolom terakhir menunjukkan
-seberapa mahal perubahannya bila dilakukan nanti.
+Butir-butir berikut awalnya saya putuskan sendiri agar perencanaan dapat selesai.
+Sebagian sudah dibahas dan dikonfirmasi pada 22 September 2026; sisanya masih terbuka.
 
-Isi kolom **Setuju** dengan ✅ atau ❌. Bila ❌, tuliskan yang dikehendaki di bawah tabel.
+Isi kolom **Status** dengan ✅ atau ❌. Bila ❌, tuliskan yang dikehendaki di bawah tabel.
 
 ### B.1 Peminjaman
 
-| # | Asumsi | Setuju | Biaya ubah |
+| # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
-| AS-01 | Peminjaman tidak memerlukan persetujuan siapa pun — langsung berlaku saat dicatat | ⬜ | Sedang |
-| AS-02 | Tanggal jatuh tempo boleh dikosongkan, tetapi barang yang dipinjam lebih dari 7 hari muncul sebagai perlu ditinjau | ⬜ | Rendah |
-| AS-03 | Peminjam dari luar cukup diisi nama, nomor HP, dan keperluan | ⬜ | Rendah |
+| AS-01 | Peminjaman tidak memerlukan persetujuan siapa pun — langsung berlaku saat dicatat | ✅ | Sedang |
+| AS-02 | Tanggal jatuh tempo boleh dikosongkan, tetapi barang yang dipinjam lebih dari 7 hari muncul sebagai perlu ditinjau | ✅ | Rendah |
+| AS-03 | Peminjam dari luar cukup diisi nama, nomor HP, dan keperluan | ✅ | Rendah |
 
 ### B.2 Riwayat dan Data
 
-| # | Asumsi | Setuju | Biaya ubah |
+| # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
-| AS-04 | Riwayat tidak dapat dihapus atau diubah oleh siapa pun, termasuk admin. Kesalahan diperbaiki lewat catatan koreksi, dan keduanya tetap terlihat | ⬜ | **Tinggi** |
-| AS-05 | Setiap catatan riwayat dapat memuat maksimal 5 foto, masing-masing maksimal 10 MB | ⬜ | Rendah |
-| AS-06 | Foto bukti disimpan minimal 5 tahun | ⬜ | Rendah |
-| AS-07 | Permintaan penghapusan data pribadi dipenuhi dengan menganonimkan nama peminjam, bukan menghapus entri riwayatnya | ⬜ | Rendah |
+| AS-04 | Riwayat tidak dapat dihapus atau diubah oleh siapa pun, termasuk admin. Kesalahan diperbaiki lewat catatan koreksi, dan keduanya tetap terlihat | ✅ | **Tinggi** |
+| AS-05 | Setiap catatan riwayat dapat memuat maksimal 5 foto, masing-masing maksimal 10 MB | ✅ | Rendah |
+| AS-06 | Foto bukti disimpan selama asetnya masih tercatat, termasuk setelah dihapuskan. Tidak ada penghapusan otomatis berdasarkan umur | ✅ | Rendah |
+| AS-07 | Prosedur permintaan penghapusan data pribadi **belum diatur di v1**; ditangani manual bila muncul | ✅ | Rendah |
 
 ### B.3 Penomoran dan Struktur Aset
 
-| # | Asumsi | Setuju | Biaya ubah |
+| # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
-| AS-08 | Kode aset berpola `{KODE_RS}-{KODE_INSTALASI}-{TAHUN}-{URUTAN}`, contoh `RSXX-RAD-2026-0012` | ⬜ | Rendah sekarang, **tinggi setelah label dicetak** |
-| AS-09 | Kode aset tidak berubah ketika barang dimutasi ke instalasi lain | ⬜ | Sedang |
-| AS-10 | Hubungan aset induk dan anak dibatasi satu tingkat | ⬜ | Sedang |
-| AS-11 | Barang yang sudah dihapuskan dari daftar aset tidak dapat diaktifkan kembali | ⬜ | Sedang |
+| AS-08 | Kode aset berpola `{KODE_RS}-{KODE_INSTALASI}-{TAHUN}-{URUTAN}`, contoh `RSXX-RAD-2026-0012` | ✅ | Rendah sekarang, **tinggi setelah label dicetak** |
+| AS-09 | Kode aset tidak berubah ketika barang dimutasi ke instalasi lain | ✅ | Sedang |
+| AS-10 | Hubungan aset induk dan anak **tidak dibangun di v1**; setiap aset berdiri sendiri | ✅ | Rendah, cukup menambah satu kolom nullable |
+| AS-11 | Penghapusan aset dapat dibatalkan selama **30 hari**. Setelah itu final, tetapi barisnya tetap tersimpan di basis data — tidak pernah dihapus secara fisik | ✅ | Sedang |
 
 ### B.4 Akses dan Keamanan
 
-| # | Asumsi | Setuju | Biaya ubah |
+| # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
-| AS-12 | Orang yang memindai QR tanpa login melihat nama barang, ruangan, status, penanggung jawab, dan riwayat ringkas — tetapi tidak melihat harga, nomor seri, foto, maupun identitas peminjam | ⬜ | Rendah |
-| AS-13 | Teknisi tidak dapat melihat nilai perolehan barang | ⬜ | Rendah |
-| AS-14 | Akun hanya lahir dari undangan admin; tidak ada pendaftaran mandiri | ⬜ | Rendah |
-| AS-15 | Sesi login berumur 12 jam, setelah itu perlu masuk kembali | ⬜ | Rendah |
-| AS-16 | Tidak ada autentikasi dua faktor di v1 | ⬜ | Rendah |
+| AS-12 | Orang yang memindai QR tanpa login melihat nama barang, ruangan, status, penanggung jawab, dan riwayat ringkas — tetapi tidak melihat harga, nomor seri, foto, maupun identitas peminjam | ✅ | Rendah |
+| AS-13 | Teknisi tidak dapat melihat nilai perolehan barang | ✅ | Rendah |
+| AS-14 | Akun hanya lahir dari undangan admin; tidak ada pendaftaran mandiri | ✅ | Rendah |
+| AS-15 | Sesi login berumur **12 jam**, atau **7 hari** bila pengguna memilih "Ingat saya" | ✅ | Rendah |
+| AS-16 | Autentikasi dua faktor tersedia dan **opsional** — setiap pengguna dapat mengaktifkannya sendiri, tidak diwajibkan peran mana pun | ✅ | Rendah |
 
 ### B.5 Operasional
 
-| # | Asumsi | Setuju | Biaya ubah |
+| # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
 | AS-17 | Ukuran label bawaan 50 × 30 mm, dengan varian mini 25 × 15 mm | ⬜ | Rendah |
 | AS-18 | Antarmuka satu bahasa (Indonesia) dan satu zona waktu (WIB) | ⬜ | Sedang |
 | AS-19 | Laporan dibuat langsung saat diminta, tanpa antrean latar belakang | ⬜ | Rendah |
+
+AS-17 sebaiknya menunggu jawaban Q-12 tentang printer, karena ukuran label mengikuti
+perangkat yang tersedia.
 
 > Catatan bila ada yang tidak disetujui:
 >
@@ -449,6 +462,7 @@ Bukan karena terlupa, melainkan karena diputuskan berada di luar batas sistem in
 | Penyusutan dan nilai buku | Ranah sistem akuntansi. Sistem ini melacak keberadaan fisik, bukan nilai finansial |
 | Pengadaan dan tender | Sistem berbeda. Aset masuk ke sini setelah diterima |
 | Manajemen suku cadang | Bagian dari stok, bukan aset per-unit |
+| Hubungan aset induk dan anak | Diputuskan tidak perlu di v1; komponen dicatat di kolom catatan |
 | Penjadwalan pemakaian alat | Menyerupai sistem pemesanan ruang, kebutuhan yang berbeda |
 | Pelacakan lokasi waktu nyata (RFID, BLE) | Biaya perangkat jauh melampaui manfaatnya pada skala ini |
 | Data dan rekam medis pasien | Sepenuhnya di luar lingkup. Tidak ada data pasien di sistem ini |

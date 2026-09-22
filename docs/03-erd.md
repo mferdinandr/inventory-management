@@ -27,7 +27,6 @@ erDiagram
     VENDORS ||--o{ ASSETS : "memasok"
     VENDORS ||--o{ MAINTENANCE_RECORDS : "melaksanakan"
 
-    ASSETS ||--o{ ASSETS : "induk dari"
     ASSETS ||--o{ ASSET_EVENTS : "riwayat"
     ASSETS ||--o{ LOANS : "dipinjam"
     ASSETS ||--o{ MAINTENANCE_SCHEDULES : "dijadwalkan"
@@ -140,6 +139,9 @@ Akar multi-tenant. v1 hanya berisi satu baris, tetapi setiap query tetap memfilt
 | `job_title` | text | |
 | `invite_token_hash` | text | |
 | `invite_expires_at` | timestamptz | |
+| `totp_secret` | text NULL | Terenkripsi. NULL berarti 2FA tidak aktif |
+| `totp_enabled_at` | timestamptz NULL | |
+| `recovery_codes` | text[] NULL | Di-hash satu per satu, dihapus dari larik setelah dipakai |
 | `last_login_at` | timestamptz | |
 | `created_at` / `updated_at` | timestamptz | |
 
@@ -229,7 +231,6 @@ Tabel inti.
 | `name` | text NOT NULL | |
 | `category_id` | uuid FK → categories | |
 | `location_id` | uuid FK → locations | Wajib bertipe `ROOM` |
-| `parent_asset_id` | uuid FK → assets NULL | Aset induk, maksimal satu tingkat |
 | `status` | asset_status NOT NULL DEFAULT 'AVAILABLE' | |
 | `condition` | asset_condition NOT NULL DEFAULT 'GOOD' | |
 | `brand` | text | |
@@ -247,7 +248,10 @@ Tabel inti.
 | `primary_photo_key` | text NULL | Foto utama aset |
 | `notes` | text | |
 | `disposal_reason` | disposal_reason NULL | Terisi saat status `DISPOSED` |
-| `disposed_at` | date NULL | |
+| `disposed_at` | date NULL | Tanggal penghapusan menurut dokumen |
+| `disposed_recorded_at` | timestamptz NULL | Waktu tombol hapuskan ditekan; dasar hitungan masa pembatalan |
+| `disposal_revert_until` | timestamptz NULL | `disposed_recorded_at` + 30 hari. Lewat dari ini, pembatalan tidak mungkin |
+| `status_before_disposal` | asset_status NULL | Status yang dipulihkan bila penghapusan dibatalkan |
 | `qr_first_printed_at` | timestamptz NULL | |
 | `created_by` | uuid FK → users | |
 | `created_at` / `updated_at` | timestamptz | |
@@ -261,6 +265,10 @@ CREATE INDEX assets_category_idx ON assets (organization_id, category_id);
 CREATE INDEX assets_serial_idx   ON assets (organization_id, serial_number)
   WHERE serial_number IS NOT NULL;
 
+-- Daftar aset yang masih dalam masa pembatalan penghapusan
+CREATE INDEX assets_revertible_idx ON assets (organization_id, disposal_revert_until)
+  WHERE status = 'DISPOSED' AND disposal_revert_until IS NOT NULL;
+
 -- Pencarian teks bebas
 CREATE INDEX assets_search_idx ON assets USING GIN (
   to_tsvector('simple',
@@ -273,7 +281,15 @@ CREATE INDEX assets_search_idx ON assets USING GIN (
 - Aset tidak pernah dihapus secara fisik. Penghapusan berarti `status = 'DISPOSED'`.
 - `status` tidak boleh diubah langsung lewat UPDATE tanpa menulis `asset_events`;
   dijaga oleh satu fungsi layanan tunggal di aplikasi.
-- `parent_asset_id` tidak boleh menunjuk aset yang sendirinya sudah punya induk.
+- Penghapusan dapat dibatalkan selama `now() < disposal_revert_until`. Pembatalan
+  mengembalikan `status` ke nilai `status_before_disposal`, mengosongkan keempat kolom
+  penghapusan, dan menulis entri riwayat `CORRECTION`.
+- Setelah `disposal_revert_until` terlewat, pembatalan ditolak. Baris tetap disimpan
+  selamanya; tidak ada pekerjaan terjadwal yang menghapusnya.
+- Seluruh daftar, pencarian, dan dashboard memfilter `status <> 'DISPOSED'` secara bawaan,
+  sehingga dari sudut pandang pengguna aset tersebut memang hilang.
+- Tidak ada relasi aset induk dan anak di v1. Bila kelak diperlukan, tambahkan satu kolom
+  `parent_asset_id` yang nullable.
 
 ### 3.8 `asset_events`
 
@@ -482,6 +498,14 @@ perubahan konfigurasi.
 Mengikuti skema bawaan Auth.js: `sessions`, `verification_tokens`. Tidak ada tabel
 `accounts` karena v1 hanya memakai kredensial email dan kata sandi.
 
+Kolom tambahan pada `sessions`:
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `remembered` | boolean NOT NULL DEFAULT false | true bila pengguna memilih "Ingat saya" |
+| `expires_at` | timestamptz NOT NULL | 12 jam, atau 7 hari bila `remembered` |
+| `ip_address` / `user_agent` | inet / text | Untuk daftar perangkat aktif di halaman profil |
+
 ---
 
 ## 4. State Machine Status Aset
@@ -521,7 +545,10 @@ stateDiagram-v2
     DAMAGED --> DISPOSED: dihapuskan
     LOST --> DISPOSED: dihapuskan
     AVAILABLE --> DISPOSED: dihapuskan
-    DISPOSED --> [*]
+    DISPOSED --> AVAILABLE: pembatalan dalam 30 hari
+    DISPOSED --> DAMAGED: pembatalan dalam 30 hari
+    DISPOSED --> LOST: pembatalan dalam 30 hari
+    DISPOSED --> [*]: lewat 30 hari, final
 ```
 
 **Aturan penegakan:**
@@ -531,7 +558,7 @@ stateDiagram-v2
 | Transisi yang tidak tergambar ditolak | Mencegah status tidak masuk akal, mis. `DISPOSED` → `ON_LOAN` |
 | `ON_LOAN` hanya dapat dimasuki lewat pembuatan peminjaman | Status dan tabel peminjaman tidak boleh berbeda cerita |
 | `ON_LOAN` hanya dapat ditinggalkan lewat pengembalian atau pernyataan hilang | Sama seperti di atas |
-| `DISPOSED` bersifat final | Aset yang sudah dihapuskan tidak hidup kembali; bila ternyata keliru, catat `CORRECTION` dan daftarkan ulang sebagai aset baru yang menunjuk kode lama |
+| `DISPOSED` dapat dibatalkan selama 30 hari, sesudahnya final | Memaafkan salah klik tanpa membuat penghapusan terasa main-main. Pemulihan mengembalikan status ke nilai sebelum dihapuskan, bukan selalu ke `AVAILABLE` |
 | Aset `ON_LOAN` tidak dapat dimutasi | Lokasi fisik tidak diketahui selama dipinjam |
 | Setiap transisi menulis satu `asset_events` | Tidak ada perubahan status tanpa jejak |
 
@@ -577,3 +604,5 @@ Skema sudah menyiapkan tempat untuk pengembangan berikut tanpa migrasi besar:
 | Mode offline | Menambahkan `client_generated_id` unik pada `asset_events` untuk idempotensi sinkronisasi |
 | Tanda tangan digital | Kolom `signature_object_key` pada `loans` |
 | Integrasi SIMRS | Kolom `external_ref` bertipe jsonb pada `assets` |
+| Aset induk dan anak | Kolom `parent_asset_id` nullable pada `assets`, ditambahkan saat dibutuhkan |
+| Anonimisasi data peminjam | Kolom `anonymized_at` pada `loans`; nama dan nomor HP diganti, barisnya tetap |

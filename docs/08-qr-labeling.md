@@ -172,7 +172,7 @@ sebagian oleh kamera dan menghasilkan hasil yang membingungkan.
 |---|---|
 | Barang terlalu kecil untuk label | Pakai label mini, atau tempel pada wadah/dudukan tetapnya dan catat di deskripsi aset |
 | Alat steril yang diautoklaf | Label tidak akan bertahan. Tandai pada wadah atau troli penyimpanannya |
-| Barang dengan set komponen | Label pada aset induk, label tersendiri hanya untuk komponen yang bernilai dan bisa terpisah |
+| Barang dengan set komponen | Label pada alat utamanya. Komponen diberi label sendiri hanya bila bernilai dan benar-benar dapat terpisah — dan karena v1 tidak mengenal hubungan induk-anak, keterkaitannya dicatat di kolom catatan kedua aset |
 | Barang yang sudah punya label inventaris lama | Tempel label baru berdampingan; catat nomor lama pada kolom catatan agar rekonsiliasi dengan dokumen lama tetap mungkin |
 | Label ditemukan pada barang yang tidak dikenali | Pindai — halaman publik akan menunjukkan barang apa dan milik ruangan mana |
 

@@ -286,6 +286,27 @@ menyentuh setiap tabel, setiap kueri, dan setiap indeks. Menyiapkannya sekarang 
 menjadi satu pencocokan awalan berindeks. Biayanya adalah pembaruan jalur seluruh anak ketika
 sebuah lokasi dipindahkan — peristiwa yang sangat jarang.
 
+### ADR-07 — Penghapusan aset memiliki masa pembatalan, bukan penghapusan fisik
+
+**Keputusan.** Menghapuskan aset mengubah statusnya menjadi `DISPOSED` dan menyimpan batas
+waktu pembatalan 30 hari. Setelah batas itu lewat, pembatalan ditolak, tetapi barisnya
+tetap tersimpan selamanya. Tidak ada pekerjaan terjadwal yang menghapus baris aset.
+
+**Alasan.** Dua kebutuhan yang tampak bertentangan sebenarnya dapat dipenuhi bersamaan.
+Pengguna membutuhkan kelonggaran untuk memperbaiki salah klik — itu dijawab oleh masa 30 hari.
+Sistem membutuhkan data yang tidak berlubang — itu dijawab dengan menyimpan barisnya.
+
+Menghapus baris secara fisik akan merusak tiga hal sekaligus: label QR yang masih menempel
+pada barang yang dihibahkan atau dijual berhenti menjawab, laporan penghapusan aset tahunan
+kehilangan isinya, dan riwayat kalibrasi alat lenyap justru ketika auditor memintanya.
+
+Dari sudut pandang pengguna kedua pendekatan terlihat sama: aset hilang dari seluruh daftar,
+pencarian, dan dashboard. Perbedaannya hanya terasa pada dua tempat yang justru paling
+penting — hasil pemindaian dan laporan.
+
+**Konsekuensi.** Setiap kueri daftar wajib memfilter `status <> 'DISPOSED'` secara bawaan.
+Ini ditegakkan lewat satu fungsi pembangun kueri bersama, bukan diulang di tiap halaman.
+
 ---
 
 ## 6. Performa
@@ -332,7 +353,10 @@ Pada 2.000 aset target performa tercapai tanpa upaya khusus, asalkan:
 APP_URL=https://inventaris.rs-contoh.co.id
 NODE_ENV=production
 AUTH_SECRET=                      # 32 byte acak
-SESSION_MAX_AGE_HOURS=12
+SESSION_MAX_AGE_HOURS=12          # sesi biasa
+SESSION_REMEMBER_ME_DAYS=7        # bila "Ingat saya" dipilih
+TOTP_ENCRYPTION_KEY=              # 32 byte acak, untuk mengenkripsi secret 2FA
+DISPOSAL_REVERT_DAYS=30           # masa pembatalan penghapusan aset
 
 # Basis data
 DATABASE_URL=postgresql://simaset:***@postgres:5432/simaset

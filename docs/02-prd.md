@@ -58,6 +58,20 @@ kata sandi melalui tautan undangan.
 - Menonaktifkan pengguna tidak menghapus riwayat yang pernah dicatatnya.
 - Undangan kedaluwarsa dalam 7 hari dan dapat dikirim ulang.
 
+### FR-05b — Sesi dan Autentikasi Dua Faktor (P1)
+
+**Acceptance criteria**
+- Sesi login bertahan **12 jam** secara bawaan, kira-kira satu shift kerja.
+- Tersedia pilihan **"Ingat saya"** saat login yang memperpanjang sesi menjadi **7 hari**,
+  ditujukan untuk perangkat pribadi. Pilihan ini tidak aktif secara bawaan.
+- Setiap pengguna dapat **mengaktifkan autentikasi dua faktor** sendiri dari halaman profil,
+  memakai aplikasi authenticator berbasis TOTP. Sifatnya opsional, tidak diwajibkan peran mana pun.
+- Saat mengaktifkan 2FA, sistem menampilkan **kode pemulihan** sekali saja untuk dicatat
+  pengguna, agar ponsel yang hilang tidak mengunci akunnya.
+- Super Admin dapat menonaktifkan 2FA milik pengguna lain bila kode pemulihannya ikut hilang.
+  Tindakan ini tercatat di audit log.
+- Menonaktifkan pengguna langsung mencabut seluruh sesinya, termasuk sesi "Ingat saya".
+
 ---
 
 ## B. Manajemen Aset
@@ -68,8 +82,7 @@ Formulir pendaftaran aset baru.
 
 **Field wajib:** nama, kategori, lokasi (ruangan), kondisi awal, tanggal perolehan.
 **Field opsional:** merek, model, nomor seri, sumber dana, nilai perolehan, nomor dokumen
-perolehan, vendor, garansi berakhir, umur ekonomis, PIC perorangan, foto utama, catatan,
-aset induk.
+perolehan, vendor, garansi berakhir, umur ekonomis, PIC perorangan, foto utama, catatan.
 
 **Acceptance criteria**
 - Sistem menghasilkan `public_id` acak 12 karakter dan `asset_code` yang dapat dibaca manusia
@@ -81,14 +94,16 @@ aset induk.
 - Aset berkategori medis otomatis dibuatkan jadwal kalibrasi bila intervalnya tersedia.
 - Aset baru berstatus `AVAILABLE` kecuali dipilih lain.
 
-### FR-07 — Aset Induk dan Anak (P1)
+### FR-07 — Aset Induk dan Anak — *tidak masuk v1*
 
-Sebuah aset dapat memiliki aset induk (contoh: sirkuit dan troli milik satu ventilator).
+Hubungan induk dan anak antar aset (contoh: sirkuit dan troli milik satu ventilator)
+**tidak dibangun di v1**. Setiap aset berdiri sendiri.
 
-**Acceptance criteria**
-- Kedalaman maksimal satu tingkat pada v1 (induk tidak boleh punya induk).
-- Halaman aset induk menampilkan daftar aset anak.
-- Memindahkan aset induk ke ruangan lain menawarkan untuk memindahkan seluruh anaknya.
+Komponen yang menyatu dengan sebuah alat dicatat pada kolom catatan aset induknya, dan
+diberi label tersendiri hanya bila komponen itu bernilai dan benar-benar dapat terpisah.
+
+Dipindahkan ke rencana v2. Ketika dibangun nanti, cukup menambahkan satu kolom nullable
+pada tabel aset — tidak memerlukan migrasi besar.
 
 ### FR-08 — Pencarian dan Daftar Aset (P0)
 
@@ -107,7 +122,8 @@ Status yang berlaku: `AVAILABLE`, `IN_USE`, `ON_LOAN`, `UNDER_REPAIR`, `AT_VENDO
 **Acceptance criteria**
 - Perubahan status hanya melalui transisi yang sah (lihat [03-erd.md](03-erd.md) bagian State Machine).
 - Setiap perubahan status menghasilkan entri riwayat berisi status sebelum dan sesudah.
-- Aset berstatus `DISPOSED` tidak dapat dipinjam, dipindah, atau diubah; hanya dapat dibaca.
+- Aset berstatus `DISPOSED` tidak dapat dipinjam, dipindah, atau diubah; hanya dapat dibaca,
+  kecuali pembatalan penghapusan selama masa 30 hari (lihat FR-11).
 - Status `ON_LOAN` hanya boleh diubah melalui proses pengembalian, bukan pengubahan manual.
 
 ### FR-10 — Mutasi / Transfer Ruangan (P0)
@@ -122,13 +138,27 @@ Perpindahan permanen aset ke ruangan lain, berbeda dari peminjaman.
 
 ### FR-11 — Penghapusan Aset (P0)
 
-Aset tidak pernah benar-benar dihapus dari basis data.
+Aset tidak pernah benar-benar dihapus dari basis data. Penghapusan memiliki masa pembatalan
+**30 hari**, setelah itu menjadi final.
 
 **Acceptance criteria**
 - Hanya peran Admin dan Super Admin yang dapat menghapuskan aset.
 - Wajib mengisi alasan (rusak total, hilang, dihibahkan, dijual, kedaluwarsa) dan tanggal.
-- Status berubah menjadi `DISPOSED` dan aset hilang dari daftar default, tetapi halaman
-  publiknya tetap dapat diakses dan menampilkan penanda "Aset telah dihapuskan".
+- Status berubah menjadi `DISPOSED`. Aset hilang dari daftar, pencarian, dan dashboard.
+- **Selama 30 hari sejak penghapusan**, Admin dan Super Admin dapat membatalkannya.
+  Aset kembali ke status sebelum dihapuskan, dan pembatalan itu sendiri tercatat sebagai
+  entri riwayat bertipe `CORRECTION`.
+- Tersedia halaman "Aset Dihapuskan" berisi daftar aset yang masih dalam masa pembatalan,
+  lengkap dengan sisa harinya.
+- **Setelah 30 hari lewat**, pembatalan tidak lagi mungkin dan tombolnya hilang. Barisnya
+  tetap tersimpan di basis data — tidak pernah dihapus secara fisik.
+- Halaman publik aset yang dihapuskan tetap dapat diakses, baik selama maupun setelah masa
+  pembatalan, dan menampilkan penanda "Aset telah dihapuskan" beserta tanggalnya.
+
+**Mengapa barisnya tetap disimpan:** label QR masih menempel pada barang yang dihibahkan
+atau dijual, sehingga pemindaian tetap harus menjawab; laporan penghapusan aset tahunan
+membutuhkan seluruh daftarnya; dan riwayat kalibrasi serta perbaikan alat tetap diperlukan
+sebagai bukti audit jauh setelah alatnya sendiri tidak dipakai lagi.
 
 ---
 
@@ -197,6 +227,8 @@ Jenis entri: `CREATED`, `INSPECTION`, `MAINTENANCE`, `REPAIR`, `CALIBRATION`, `L
 - Unggahan langsung ke penyimpanan objek memakai presigned URL; berkas tidak melewati server aplikasi.
 - Basis data hanya menyimpan kunci objek dan metadata.
 - Lampiran hanya dapat dilihat setelah login, melalui URL bertanda tangan berumur pendek.
+- Lampiran disimpan selama asetnya masih tercatat, termasuk setelah aset dihapuskan.
+  Tidak ada penghapusan foto otomatis berdasarkan umur.
 
 ---
 
@@ -338,12 +370,12 @@ Format ekspor: Excel (XLSX) dan CSV.
 | NFR-04 | Cadangan basis data | Otomatis harian, disimpan 30 hari, diuji pulih tiap kuartal |
 | NFR-05 | Enkripsi transit | HTTPS wajib, HSTS aktif |
 | NFR-06 | Kata sandi | Minimal 10 karakter, di-hash dengan Argon2id |
-| NFR-07 | Sesi | Kedaluwarsa 12 jam, dapat dicabut dari sisi admin |
+| NFR-07 | Sesi | Kedaluwarsa 12 jam, atau 7 hari bila "Ingat saya" dipilih; dapat dicabut dari sisi admin |
 | NFR-08 | Audit | Seluruh aksi tulis tercatat dengan pelaku dan waktu |
 | NFR-09 | Responsif | Berfungsi penuh pada lebar layar 360 px |
 | NFR-10 | Aksesibilitas | Kontras memenuhi WCAG AA, seluruh form dapat dioperasikan dengan keyboard |
 | NFR-11 | Bahasa dan waktu | Antarmuka Bahasa Indonesia, seluruh waktu disimpan UTC dan ditampilkan WIB |
-| NFR-12 | Retensi lampiran | Foto disimpan minimal 5 tahun atau selama aset aktif |
+| NFR-12 | Retensi lampiran | Foto disimpan selama asetnya masih tercatat, termasuk setelah dihapuskan; tidak ada penghapusan otomatis |
 
 ## J. Metrik Keberhasilan Produk
 

@@ -43,6 +43,9 @@ Gagal:
 | `INVALID_STATUS_TRANSITION` | 409 | Transisi status tidak sah |
 | `LOAN_ALREADY_ACTIVE` | 409 | Aset sudah memiliki peminjaman aktif |
 | `ASSET_DISPOSED` | 409 | Aset telah dihapuskan dan tidak dapat diubah |
+| `DISPOSAL_REVERT_EXPIRED` | 409 | Masa pembatalan penghapusan 30 hari sudah lewat |
+| `TOTP_REQUIRED` | 401 | Akun mengaktifkan 2FA; kode dari aplikasi authenticator diperlukan |
+| `TOTP_INVALID` | 401 | Kode 2FA atau kode pemulihan tidak cocok |
 | `EVENT_IMMUTABLE` | 409 | Percobaan mengubah atau menghapus riwayat |
 | `UPLOAD_TOO_LARGE` | 413 | Berkas melebihi batas |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | Jenis berkas tidak diizinkan |
@@ -146,8 +149,8 @@ menyertakan `"confirmDuplicateSerial": true`.
 
 ### `GET /api/assets/{id}`
 
-Detail penuh termasuk lokasi, kategori, vendor, PIC, jadwal, peminjaman aktif, aset anak,
-dan ringkasan riwayat.
+Detail penuh termasuk lokasi, kategori, vendor, PIC, jadwal, peminjaman aktif, dan
+ringkasan riwayat.
 
 ### `PATCH /api/assets/{id}`
 
@@ -161,7 +164,6 @@ maupun `assetCode` — masing-masing punya endpoint tersendiri agar selalu menin
   "toLocationId": "...",
   "reason": "Realokasi ke Instalasi Bedah",
   "occurredAt": "2026-09-19T03:00:00Z",
-  "moveChildren": true,
   "newResponsibleUserId": "...",
   "attachmentKeys": []
 }
@@ -192,6 +194,27 @@ untuk memasuki atau meninggalkan `ON_LOAN`.
   "attachmentKeys": []
 }
 ```
+
+Respons menyertakan `revertUntil`, yaitu batas waktu pembatalan.
+
+### `POST /api/assets/{id}/undispose`
+
+Membatalkan penghapusan. Hanya untuk peran Admin dan Super Admin.
+
+```json
+{ "reason": "Salah pilih aset, yang dimaksud RSXX-RAD-2026-0015" }
+```
+
+Efek: status kembali ke `status_before_disposal`, seluruh kolom penghapusan dikosongkan,
+dan entri riwayat `CORRECTION` ditulis.
+
+Gagal dengan `DISPOSAL_REVERT_EXPIRED` (409) bila masa 30 hari sudah lewat. Pesannya
+menyebutkan tanggal kedaluwarsanya.
+
+### `GET /api/assets/disposed`
+
+Daftar aset yang dihapuskan. Parameter `revertible=true` menyaring yang masih dalam masa
+pembatalan, lengkap dengan sisa hari masing-masing.
 
 ### `POST /api/assets/import`
 
@@ -392,7 +415,21 @@ GET|POST        /api/vendors           PATCH /api/vendors/{id}
 GET|POST        /api/users             PATCH /api/users/{id}
 POST            /api/users/{id}/resend-invite
 POST            /api/users/{id}/disable
+POST            /api/users/{id}/disable-2fa      # hanya Super Admin, tercatat di audit log
 ```
+
+### Sesi dan dua faktor, untuk akun sendiri
+
+```
+POST   /api/auth/login                  # menerima { email, password, rememberMe, totpCode? }
+POST   /api/auth/2fa/setup              # mengembalikan secret dan QR untuk aplikasi authenticator
+POST   /api/auth/2fa/confirm            # verifikasi kode pertama, mengembalikan kode pemulihan
+POST   /api/auth/2fa/disable            # memerlukan kata sandi
+GET    /api/auth/sessions               # daftar perangkat yang sedang aktif
+DELETE /api/auth/sessions/{id}          # keluar dari satu perangkat
+```
+
+`rememberMe` bernilai true membuat sesi berumur 7 hari; bila tidak, 12 jam.
 
 Tidak ada `DELETE` pada satu pun sumber daya di atas. Penonaktifan dilakukan dengan
 `is_active` atau `status`.

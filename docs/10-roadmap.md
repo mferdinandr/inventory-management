@@ -29,6 +29,7 @@ sekitar 35%, tidak setengahnya, karena sebagian pekerjaan berurutan.
 - Skema Prisma lengkap dan migrasi pertama, termasuk enum dan seluruh indeks
 - Penegakan append-only di tingkat basis data: cabut hak, pasang rule
 - Auth.js dengan kredensial, alur undangan dan atur ulang kata sandi
+- Sesi 12 jam dengan pilihan "Ingat saya" 7 hari
 - Matriks izin di `lib/permissions.ts` beserta pengujian unitnya
 - Docker Compose berjalan di lokal
 - Skrip seed
@@ -82,10 +83,11 @@ dengan ponsel sungguhan, dan halaman publiknya terbuka.
 - Linimasa riwayat dengan penanda pencatatan mundur
 - Alur koreksi
 - Mutasi antar ruangan
-- Penghapusan aset
+- Penghapusan aset, halaman aset dihapuskan, dan pembatalan dalam 30 hari
 
-**Selesai bila:** riwayat dapat dicatat lengkap dengan foto, tidak dapat diubah, dan
-koreksi tampil berpasangan dengan entri aslinya.
+**Selesai bila:** riwayat dapat dicatat lengkap dengan foto, tidak dapat diubah, koreksi
+tampil berpasangan dengan entri aslinya, dan aset yang dihapuskan lalu dipulihkan kembali
+ke status yang benar — bukan selalu ke `AVAILABLE`.
 
 ---
 
@@ -134,6 +136,7 @@ dan impor 100 aset dari Excel berhasil beserta labelnya siap dicetak.
 
 - Pembatasan laju di seluruh titik yang ditetapkan
 - Header keamanan dan penyetelan CSP
+- Autentikasi dua faktor opsional: pengaturan, kode pemulihan, daftar perangkat aktif
 - Audit log lengkap
 - Penanganan galat dan pesan berbahasa Indonesia untuk seluruh kode error
 - Pengujian end-to-end untuk alur utama
@@ -200,10 +203,12 @@ Diurutkan menurut perkiraan nilai dibanding usahanya:
 | 2 | Mode offline (PWA dengan antrean) | Bila uji coba membuktikan ada ruangan yang benar-benar menghambat pencatatan |
 | 3 | Stok barang habis pakai | Permintaan yang hampir pasti muncul setelah aset berjalan |
 | 4 | Work order pemeliharaan penuh | Bila tim teknik ingin mengelola antrean pekerjaan di sistem yang sama |
-| 5 | Tanda tangan digital serah terima | Bila pertanggungjawaban peminjaman perlu diperkuat |
-| 6 | Integrasi SIMRS atau aplikasi aset daerah | Menunggu spesifikasi dari pihak terkait |
-| 7 | Autentikasi dua faktor untuk peran admin | Mengikuti kebijakan keamanan RS |
-| 8 | Multi rumah sakit aktif | Bila sistem akan dipakai lebih dari satu unit |
+| 5 | Aset induk dan anak | Bila alat dengan banyak komponen terpisah mulai terasa merepotkan dicatat satu-satu |
+| 6 | Tanda tangan digital serah terima | Bila pertanggungjawaban peminjaman perlu diperkuat |
+| 7 | Prosedur anonimisasi data peminjam | Bila permintaan penghapusan data pribadi benar-benar muncul |
+| 8 | Integrasi SIMRS atau aplikasi aset daerah | Menunggu spesifikasi dari pihak terkait |
+| 9 | Mewajibkan dua faktor untuk peran admin | 2FA sudah ada di v1 sebagai pilihan; ini soal mewajibkannya |
+| 10 | Multi rumah sakit aktif | Bila sistem akan dipakai lebih dari satu unit |
 
 ---
 

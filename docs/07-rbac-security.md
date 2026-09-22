@@ -30,6 +30,7 @@ Legenda: ✅ boleh · 🔶 boleh dalam cakupan lokasinya · ❌ tidak boleh
 | Mutasi antar ruangan | ✅ | ✅ | 🔶 asal dan tujuan | ❌ | ❌ | ❌ |
 | Mengubah status | ✅ | ✅ | 🔶 | 🔶 hanya terkait perbaikan | ❌ | ❌ |
 | Menghapuskan aset | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Membatalkan penghapusan dalam 30 hari | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Impor massal | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Riwayat** |
 | Melihat riwayat lengkap dan lampiran | ✅ | ✅ | 🔶 | ✅ | ✅ | ❌ |
@@ -86,12 +87,17 @@ setiap kali ada kolom baru ditambahkan.
 - Kata sandi minimal 10 karakter, di-hash dengan **Argon2id**.
 - Token undangan dan atur ulang kata sandi: 32 byte acak, disimpan sebagai hash,
   berlaku 7 hari untuk undangan dan 1 jam untuk atur ulang, sekali pakai.
-- Sesi berbasis cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, umur 12 jam.
+- Sesi berbasis cookie: `HttpOnly`, `Secure`, `SameSite=Lax`. Umur **12 jam**, atau
+  **7 hari** bila pengguna memilih "Ingat saya" saat login.
+- **Autentikasi dua faktor bersifat opsional** dan dapat diaktifkan sendiri oleh pengguna
+  mana pun dari halaman profil, memakai TOTP. Tidak diwajibkan peran mana pun di v1.
+  Saat diaktifkan, sistem menampilkan kode pemulihan sekali saja; kode disimpan dalam
+  bentuk hash dan dihapus setelah dipakai. Super Admin dapat menonaktifkan 2FA milik
+  pengguna lain bila kode pemulihannya ikut hilang, dan tindakan itu tercatat di audit log.
+- Pengguna dapat melihat daftar perangkat yang sedang aktif dan mengeluarkan salah satunya.
 - Pembatasan percobaan login: 5 kegagalan per 15 menit per IP dan per akun.
   Pesan kegagalan tidak membedakan antara email tidak dikenal dan kata sandi salah.
-- Menonaktifkan pengguna langsung mencabut seluruh sesinya.
-- Autentikasi dua faktor tidak masuk v1 — dicatat sebagai kandidat v2 untuk peran
-  `SUPERADMIN` dan `ADMIN`.
+- Menonaktifkan pengguna langsung mencabut seluruh sesinya, termasuk sesi "Ingat saya".
 
 ---
 
@@ -106,7 +112,9 @@ setiap kali ada kolom baru ditambahkan.
 | Unggahan berkas berbahaya | Rendah | Sedang | Daftar putih jenis berkas, batas ukuran, kunci objek ditentukan server, bucket tidak pernah melayani HTML, `Content-Disposition: attachment` |
 | Lampiran bocor lewat tautan | Sedang | Sedang | Bucket privat, URL bertanda tangan berumur 15 menit, pemeriksaan wewenang sebelum penerbitan |
 | Data lintas organisasi terbaca | Rendah | Tinggi | `organization_id` pada setiap kueri, Row Level Security sebagai jaring pengaman |
-| Pengambilalihan akun | Rendah | Tinggi | Pembatasan login, kata sandi kuat, sesi pendek, pencabutan sesi |
+| Pengambilalihan akun | Rendah | Tinggi | Pembatasan login, kata sandi kuat, sesi pendek, pencabutan sesi, 2FA opsional bagi yang mengaktifkan |
+| Ponsel dinas dipakai bergantian | Sedang | Sedang | Sesi bawaan 12 jam, "Ingat saya" tidak aktif secara bawaan, daftar perangkat aktif dapat dilihat dan dikeluarkan sendiri |
+| Aset dihapuskan karena salah klik | Sedang | Rendah | Masa pembatalan 30 hari dengan pemulihan ke status semula |
 | Kehilangan data | Rendah | Tinggi | Cadangan harian, uji pulih tiap kuartal, penyimpanan cadangan di luar VPS |
 | SQL injection | Rendah | Tinggi | Prisma dengan kueri berparameter; `$queryRaw` hanya dengan templat tagged |
 | XSS pada catatan pengguna | Rendah | Sedang | React melakukan escaping bawaan; tidak ada `dangerouslySetInnerHTML` |
@@ -122,10 +130,13 @@ dan nomor HP peminjam luar. Tidak ada data pasien.
 - Nomor HP peminjam hanya terlihat oleh peran yang berwenang, tidak pernah publik.
 - Foto lampiran berpotensi memuat orang secara tidak sengaja. Panduan pemakaian: **foto
   barang, bukan orang**. Ini dicantumkan sebagai petunjuk di formulir unggah.
-- Retensi: data peminjaman disimpan minimal 5 tahun untuk keperluan audit, sejalan dengan
-  kebutuhan penelusuran aset.
-- Permintaan penghapusan data pribadi ditangani dengan menganonimkan nama peminjam luar,
-  bukan menghapus entri riwayat — riwayat aset tetap utuh.
+- Retensi: data peminjaman dan lampiran foto disimpan selama asetnya masih tercatat,
+  termasuk setelah aset dihapuskan. Tidak ada penghapusan otomatis berdasarkan umur data.
+- **Prosedur permintaan penghapusan data pribadi belum diatur di v1.** Bila permintaan
+  semacam itu muncul, tangani secara manual dan catat keputusannya. Ketika hendak
+  diformalkan, jalur yang dianjurkan adalah menganonimkan nama dan nomor HP peminjam luar
+  sambil mempertahankan entri riwayatnya, agar jejak keberadaan aset tidak berlubang.
+  Kolom `anonymized_at` pada tabel `loans` disiapkan untuk itu di v2.
 
 ---
 
