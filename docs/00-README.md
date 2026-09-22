@@ -23,15 +23,14 @@ Status: **Disetujui untuk mulai implementasi v1**
 | 08 | [QR & Labeling](08-qr-labeling.md) | Format QR, desain label, bahan, alur cetak ulang |
 | 09 | [Deployment & Operasional](09-deployment-ops.md) | Docker Compose, backup, monitoring, runbook |
 | 10 | [Roadmap](10-roadmap.md) | Milestone, urutan pengerjaan, estimasi |
-| 11 | [Asumsi & Pertanyaan Terbuka](11-open-questions.md) | Keputusan yang saya ambil sendiri, dan yang masih perlu jawaban |
-| 12 | [Daftar Pertanyaan](12-daftar-pertanyaan.md) | Lembar kerja berisi pertanyaan untuk diisi, siap diteruskan ke pihak RS |
+| 11 | [Keputusan, Asumsi & Pertanyaan Terbuka](11-open-questions.md) | Keputusan final, asumsi yang perlu dikonfirmasi, dan lembar kerja pertanyaan untuk pihak RS |
 
 ## Cara membaca
 
 Kalau Anda akan mulai coding hari ini: baca **02 → 03 → 04 → 09**.
 Kalau Anda akan mempresentasikan ke manajemen RS: baca **01 → 05 → 10**.
 Kalau Anda sedang mengevaluasi risiko: baca **07 → 11**.
-Kalau Anda perlu mengumpulkan informasi dari pihak RS: pakai **12** sebagai lembar kerja.
+Kalau Anda perlu mengumpulkan informasi dari pihak RS: pakai **11 bagian C** sebagai lembar kerja.
 
 ## Ringkasan keputusan yang mengikat
 
