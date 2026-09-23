@@ -16,7 +16,13 @@
 | QR | `qrcode` (server, SVG) + `@zxing/browser` (pemindai) | Pembuatan di server agar konsisten; pemindaian memakai WebAssembly yang andal di peramban ponsel |
 | Reverse proxy | **Caddy** | HTTPS dan pembaruan sertifikat otomatis, konfigurasi beberapa baris |
 | Orkestrasi | **Docker Compose** | Sesuai untuk satu VPS |
-| Log | Pino ke stdout, dikumpulkan Docker | Sederhana dan cukup pada skala ini |
+| Runtime | **Node 22 LTS** | Didukung sampai 2027; kombinasi paling aman dengan Next.js 15 dan Prisma |
+| Package manager | **pnpm** | Hemat disk dan cepat |
+| Lint & format | **Biome** | Menggantikan ESLint dan Prettier sekaligus: satu konfigurasi, jauh lebih cepat |
+| Pengujian | **Vitest** + **Playwright** | Vitest untuk unit, integrasi, dan uji isolasi tenant; Playwright untuk alur ujung ke ujung |
+| CI/CD | **GitHub Actions** | Lint, tes, uji isolasi tenant, lalu deploy otomatis ke VPS |
+| PWA | Manifest + ikon | Dapat dipasang ke layar utama ponsel. **Tetap online-only** — tanpa cache offline |
+| Log | Pino ke stdout, dikumpulkan Docker | Sentry ditambahkan di M7, sebelum ada pengguna sungguhan |
 
 ### Mengapa bukan pilihan lain
 
@@ -144,8 +150,19 @@ jumlah pelanggan, dan yang membuat disk 100 GB tidak menjadi batas pertumbuhan.
 │   │   ├── image-compress.ts               # kompresi di klien
 │   │   └── validators/                     # skema Zod
 │   └── components/
+├── public/
+│   ├── manifest.webmanifest        # PWA installable
+│   └── icons/
+├── tests/
+│   ├── tenant-isolation.test.ts    # wajib, berjalan di CI
+│   └── e2e/                        # Playwright
+├── .github/workflows/
+│   ├── ci.yml                      # lint, tes, uji isolasi tenant
+│   └── deploy.yml                  # deploy otomatis ke VPS saat push ke main
 ├── docker-compose.yml
+├── docker-compose.dev.yml
 ├── Caddyfile
+├── biome.json
 └── .env.example
 ```
 
@@ -162,6 +179,25 @@ berjalan. `db-platform.ts` yang melewati RLS hanya boleh diimpor oleh berkas di 
 
 ---
 
+## 3b. Konvensi Pengembangan
+
+| Hal | Aturan |
+|---|---|
+| Bahasa kode | **Inggris** — nama tabel, kolom, variabel, fungsi, berkas, komentar, dan pesan commit |
+| Bahasa antarmuka | **Indonesia** — seluruh teks yang dilihat pengguna, termasuk pesan galat dan email |
+| Penempatan teks UI | Terkumpul di satu tempat, bukan tersebar sebagai string di dalam komponen, agar kelak dapat diterjemahkan tanpa membongkar komponen |
+| Nama paket, database, container | `simaset` |
+| Domain | Belum ditetapkan. Dokumen dan konfigurasi memakai `{DOMAIN}`; nilainya datang dari `APP_URL` |
+| Commit | Conventional Commits berbahasa Inggris: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` |
+| Branch | Pekerjaan di branch terpisah, digabung lewat PR agar CI berjalan sebelum masuk `main` |
+
+**Mengapa teks UI dikumpulkan sejak awal.** Bukan untuk menyiapkan multi-bahasa — antarmuka
+tetap satu bahasa. Alasannya lebih sederhana: istilah rumah sakit sering perlu diseragamkan
+belakangan, dan mengganti satu istilah di seluruh aplikasi jauh lebih mudah bila teksnya
+tidak tersebar di lima puluh komponen.
+
+---
+
 ## 4. Alur Teknis Kunci
 
 ### 4.1 Pemindaian QR sampai halaman aset
@@ -174,7 +210,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     U->>B: Pindai QR dengan kamera
-    B->>B: Baca URL https://simaset.id/a/x7Kp92mQr4Lt
+    B->>B: Baca URL https://{DOMAIN}/a/x7Kp92mQr4Lt
     B->>N: GET /a/x7Kp92mQr4Lt
     N->>N: Periksa sesi
     alt Ada sesi dan berwenang
@@ -233,7 +269,29 @@ Indeks parsial unik `loans_one_active_per_asset` menjadi penjaga terakhir bila d
 menekan simpan bersamaan; permintaan kedua gagal di basis data dan diterjemahkan menjadi
 pesan "Aset ini baru saja dipinjam orang lain".
 
-### 4.4 Tugas terjadwal
+### 4.4 Deploy otomatis
+
+```mermaid
+flowchart LR
+    A["Push ke main"] --> B["CI: lint, tes unit,<br/>uji isolasi tenant"]
+    B -->|gagal| X["Deploy dibatalkan"]
+    B -->|lulus| C["Build citra Docker"]
+    C --> D["SSH ke VPS"]
+    D --> E["Cadangkan basis data"]
+    E --> F["prisma migrate deploy"]
+    F --> G["Ganti container aplikasi"]
+    G --> H["Periksa /api/health"]
+    H -->|gagal| I["Kembalikan ke citra sebelumnya"]
+```
+
+**Aturan yang tidak boleh dilanggar:** deploy hanya berjalan bila seluruh pengujian lulus,
+terutama uji isolasi tenant. Cadangan basis data selalu diambil sebelum migrasi dijalankan,
+dan kegagalan pemeriksaan kesehatan mengembalikan container ke citra sebelumnya.
+
+Kunci SSH disimpan sebagai secret di GitHub Actions, dengan akses terbatas hanya untuk
+menjalankan skrip deploy — bukan akses shell penuh.
+
+### 4.5 Tugas terjadwal
 
 | Tugas | Jadwal | Isi |
 |---|---|---|
@@ -329,7 +387,7 @@ yang melewati RLS, dan hanya itu satu-satunya jalan melewatinya.
 ### ADR-09 — Satu domain bersama untuk seluruh pelanggan
 
 **Keputusan.** Halaman publik hasil pemindaian berada di satu domain untuk semua pelanggan,
-misalnya `simaset.id/a/{public_id}`. Tidak ada subdomain maupun custom domain per pelanggan.
+yaitu `{DOMAIN}/a/{public_id}`. Tidak ada subdomain maupun custom domain per pelanggan.
 
 **Alasan.** URL itu tercetak permanen pada label fisik. Subdomain per pelanggan berarti
 nama rumah sakit ikut tercetak, sehingga perubahan nama, merger, atau restrukturisasi
@@ -431,12 +489,14 @@ UPLOAD_MAX_BYTES=10485760
 PRESIGN_PUT_TTL_SECONDS=300
 PRESIGN_GET_TTL_SECONDS=900
 
-# Email
-SMTP_HOST=                        # atau Resend / Amazon SES
+# Email — layanan belum diputuskan, ditetapkan sebelum M6.
+# Selama pengembangan, MAIL_TRANSPORT=log mencetak email ke stdout alih-alih mengirimnya.
+MAIL_TRANSPORT=log                # log | smtp
+SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
-MAIL_FROM="SIMASET <noreply@simaset.id>"
+MAIL_FROM="SIMASET <noreply@{DOMAIN}>"
 
 # Pekerjaan terjadwal
 ENABLE_WORKER=true

@@ -35,3 +35,5 @@ Data pelanggan sungguhan baru boleh masuk setelah v1.1.
 ## Stack
 
 Next.js 15 · TypeScript · PostgreSQL 16 (RLS) · Prisma · Auth.js · Cloudflare R2 · Caddy · Docker Compose
+
+Node 22 LTS · pnpm · Biome · Vitest · Playwright · GitHub Actions

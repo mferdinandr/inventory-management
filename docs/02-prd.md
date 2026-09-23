@@ -42,8 +42,8 @@ Halaman khusus `PLATFORM_OWNER` untuk mengelola pelanggan.
 **Acceptance criteria**
 - Menampilkan daftar organisasi beserta pemakaian kuota aset, penyimpanan, dan pengguna.
 - Dapat membuat organisasi baru: nama, kode, zona waktu, kuota, dan data admin pertamanya.
-- Membuat organisasi otomatis menyalin kategori bawaan dan mengirim undangan `SUPERADMIN`
-  pertama.
+- Membuat organisasi mengirim undangan `SUPERADMIN` pertama. **Kategori tidak diisi
+  otomatis** — lihat FR-03.
 - Dapat mengubah kuota dan status organisasi.
 - Dapat masuk sebagai organisasi tertentu untuk dukungan teknis. Setiap sesi semacam itu
   menulis `audit_logs` bertindakan `platform.impersonate` yang **terlihat oleh pelanggan**,
@@ -81,7 +81,16 @@ Penanda ini yang mengaktifkan kewajiban kalibrasi.
 **Acceptance criteria**
 - Kategori memiliki atribut `is_medical_device`.
 - Kategori medis memiliki `default_calibration_interval_months` yang mengisi otomatis saat aset dibuat.
-- Contoh kategori: Elektromedik, Alat Penunjang, Furnitur, Perangkat IT, Kendaraan, Alat Rumah Tangga.
+- **Organisasi baru dimulai tanpa kategori sama sekali.** Tidak ada penyalinan otomatis;
+  tiap rumah sakit menyusun pengelompokannya sendiri.
+- Halaman kategori yang masih kosong menampilkan panduan singkat beserta contoh pengelompokan
+  yang lazim di rumah sakit — sebagai penjelasan di layar, **bukan** tombol yang mengisinya.
+- Contoh yang ditampilkan: Elektromedik dan Alat Penunjang Medis sebagai kategori medis
+  berinterval kalibrasi, serta Furnitur, Perangkat IT, dan Kendaraan sebagai non-medis.
+
+**Konsekuensi yang perlu disadari:** pelanggan baru tidak dapat mendaftarkan satu aset pun
+sebelum membuat kategori pertamanya. Karena itu panduan di layar kosong bukan hiasan —
+itu penahan agar onboarding tidak berhenti di langkah pertama.
 
 ### FR-04 — Vendor / Penyedia (P1 — v1.1)
 
@@ -217,9 +226,12 @@ sebagai bukti audit jauh setelah alatnya sendiri tidak dipakai lagi.
 Dua mode cetak.
 
 **Acceptance criteria**
-- **Label tunggal** dengan ukuran siap printer thermal (default 50 × 30 mm dan 62 × 29 mm).
-- **Lembar A4** berisi banyak label sekaligus untuk printer biasa, dengan opsi memilih
-  banyak aset dari daftar.
+- Tiga ukuran tersedia sejak MVP:
+  - **50 × 30 mm** — label thermal standar
+  - **62 × 29 mm** — label thermal lebar, umum pada Brother QL
+  - **Lembar A4** berisi 24 label (3 × 8) untuk printer biasa
+- Lembar A4 memungkinkan memilih banyak aset sekaligus dari daftar.
+- Tersedia pengaturan geser margin pada lembar A4 untuk mengoreksi ketidakpresisian printer.
 - Isi label: QR, `asset_code`, nama aset dipotong, nama ruangan, logo/nama RS.
 - Pratinjau cetak sesuai hasil akhir, dengan CSS `@media print` yang tidak menyertakan
   elemen antarmuka.
@@ -354,6 +366,16 @@ seluruh lampiran foto, isi catatan lengkap, identitas dan nomor HP peminjam, nam
 - Pengguna yang sudah login dan berwenang langsung diarahkan ke tampilan penuh.
 - `public_id` yang tidak dikenal menampilkan halaman 404 netral tanpa membocorkan informasi apa pun.
 - Terdapat pembatasan laju permintaan per alamat IP.
+
+### FR-24b — Aplikasi Dapat Dipasang di Ponsel (P0)
+
+**Acceptance criteria**
+- Aplikasi menyediakan manifest dan ikon sehingga dapat ditambahkan ke layar utama ponsel
+  dan terbuka tanpa bilah alamat peramban.
+- **Tetap memerlukan jaringan.** Tidak ada cache offline maupun antrean sinkronisasi;
+  keputusan online-only tidak berubah.
+- Halaman yang gagal dimuat karena jaringan menampilkan pesan yang jelas, bukan layar kosong
+  atau halaman galat bawaan peramban.
 
 ### FR-25 — Pemindaian QR dari Aplikasi (P0)
 

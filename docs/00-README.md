@@ -3,9 +3,9 @@
 Dokumentasi perencanaan lengkap untuk membangun produk SaaS pelacakan aset berbasis QR Code
 bagi rumah sakit.
 
-Versi dokumen: **2.0**
-Tanggal: **22 September 2026**
-Status: **Disetujui untuk mulai implementasi MVP**
+Versi dokumen: **2.1**
+Tanggal: **23 September 2026**
+Status: **Perencanaan selesai — seluruh keputusan terkunci, siap mulai M0**
 
 ---
 
@@ -14,7 +14,7 @@ Status: **Disetujui untuk mulai implementasi MVP**
 | # | Dokumen | Isi |
 |---|---------|-----|
 | 01 | [Project Brief](01-project-brief.md) | Masalah, solusi, sasaran, batasan, definisi sukses |
-| 02 | [PRD](02-prd.md) | Kebutuhan produk, user stories, acceptance criteria, cakupan v1 |
+| 02 | [PRD](02-prd.md) | Kebutuhan produk, acceptance criteria, pembagian MVP dan v1.1 |
 | 03 | [ERD & Skema Data](03-erd.md) | Diagram relasi, seluruh tabel, enum, index, aturan integritas |
 | 04 | [Arsitektur Teknis](04-technical-architecture.md) | Stack, struktur kode, alur teknis, keputusan arsitektur |
 | 05 | [User Flow](05-user-flows.md) | Alur penggunaan per peran, dari label sampai riwayat |
@@ -23,14 +23,14 @@ Status: **Disetujui untuk mulai implementasi MVP**
 | 08 | [QR & Labeling](08-qr-labeling.md) | Format QR, desain label, bahan, alur cetak ulang |
 | 09 | [Deployment & Operasional](09-deployment-ops.md) | Docker Compose, backup, monitoring, runbook |
 | 10 | [Roadmap](10-roadmap.md) | Milestone, urutan pengerjaan, estimasi |
-| 11 | [Keputusan, Asumsi & Pertanyaan Terbuka](11-open-questions.md) | Keputusan final, asumsi yang perlu dikonfirmasi, dan lembar kerja pertanyaan untuk pihak RS |
+| 11 | [Keputusan, Asumsi & Pertanyaan Terbuka](11-open-questions.md) | 42 keputusan final, 19 asumsi terkonfirmasi, dan lembar kerja onboarding pelanggan |
 
 ## Cara membaca
 
 Kalau Anda akan mulai coding hari ini: baca **02 → 03 → 04 → 09**.
 Kalau Anda akan mempresentasikan ke manajemen RS: baca **01 → 05 → 10**.
 Kalau Anda sedang mengevaluasi risiko: baca **07 → 11**.
-Kalau Anda perlu mengumpulkan informasi dari pihak RS: pakai **11 bagian C** sebagai lembar kerja.
+Kalau Anda perlu mengumpulkan informasi dari pelanggan baru: pakai **11 bagian C.2** sebagai lembar kerja.
 
 ## Bentuk produk
 
@@ -62,10 +62,24 @@ Keputusan berikut menjadi dasar seluruh dokumen. Mengubahnya berarti merevisi ER
 8. **Online-only.** Tidak ada sinkronisasi offline di v1.
 9. **Notifikasi lewat email.**
 10. **Kuota per organisasi:** 2.000 aset, 20 GB, 50 pengguna. Dapat dinaikkan per pelanggan.
-11. **Deploy di VPS sendiri** dengan Docker Compose. Foto di Cloudflare R2 untuk produksi,
-    MinIO untuk pengembangan lokal.
+11. **Deploy di VPS sendiri** dengan Docker Compose, otomatis dari GitHub Actions.
+    Foto di Cloudflare R2 untuk produksi, MinIO untuk pengembangan lokal.
 12. **Onboarding manual.** Pemilik platform membuat organisasi lewat panel operator.
     Penagihan diurus di luar sistem.
+13. **Kode berbahasa Inggris, antarmuka berbahasa Indonesia.**
+14. **Organisasi baru dimulai tanpa kategori** — halaman kosong memuat panduan, bukan
+    tombol yang mengisinya.
+
+## Konvensi singkat
+
+| Hal | Nilai |
+|---|---|
+| Runtime | Node 22 LTS, pnpm |
+| Lint & format | Biome |
+| Pengujian | Vitest, Playwright |
+| CI/CD | GitHub Actions — lint, tes, uji isolasi tenant, lalu deploy ke VPS |
+| Nama paket & database | `simaset` |
+| Domain | `{DOMAIN}` — belum ditetapkan, datang dari `APP_URL` |
 
 ## Rencana rilis
 

@@ -49,7 +49,9 @@ adalah gangguan kecil; yang ditemukan setelah ada pelanggan adalah krisis.
 
 ## M0 — Fondasi Multi-tenant (1 minggu)
 
-- Inisialisasi proyek Next.js, TypeScript, Tailwind, shadcn/ui
+- Inisialisasi proyek Next.js 15, TypeScript, Tailwind, shadcn/ui, pnpm, Node 22 LTS
+- Biome untuk lint dan format, Vitest dan Playwright untuk pengujian
+- GitHub Actions: CI (lint, tes, uji isolasi tenant) dan deploy otomatis ke VPS
 - **Skema Prisma lengkap** dan migrasi pertama: seluruh tabel, enum, dan indeks,
   termasuk yang baru dipakai di v1.1
 - Row Level Security aktif pada seluruh tabel bertenant
@@ -60,10 +62,16 @@ adalah gangguan kecil; yang ditemukan setelah ada pelanggan adalah krisis.
 - Matriks izin di `lib/permissions.ts` beserta pengujian unitnya
 - Seed: satu `PLATFORM_OWNER`, **dua organisasi contoh** lengkap dengan datanya
 - Docker Compose berjalan di lokal, termasuk MinIO untuk pengembangan
+- Manifest dan ikon PWA agar aplikasi dapat dipasang di ponsel
 - **Pengujian isolasi tenant di CI**
 
-**Selesai bila:** percobaan `UPDATE` pada `asset_events` gagal di tingkat basis data, dan
-pengguna organisasi A tidak dapat membaca satu baris pun milik organisasi B.
+**Selesai bila:** percobaan `UPDATE` pada `asset_events` gagal di tingkat basis data,
+pengguna organisasi A tidak dapat membaca satu baris pun milik organisasi B, dan push ke
+`main` berhasil menjalankan pipeline sampai aplikasi hidup di VPS.
+
+> Menyiapkan deploy otomatis di minggu pertama terasa terlalu dini, tetapi justru di sinilah
+> biayanya paling murah: tidak ada data yang bisa rusak, dan setiap milestone berikutnya
+> langsung bisa diuji di lingkungan yang sebenarnya.
 
 ---
 
@@ -71,10 +79,10 @@ pengguna organisasi A tidak dapat membaca satu baris pun milik organisasi B.
 
 - CRUD lokasi berjenjang dengan pemeliharaan kolom `path`
 - CRUD kategori dengan penanda alat medis dan interval kalibrasi bawaan
+- Halaman kategori kosong yang memuat panduan dan contoh pengelompokan
 - Undangan pengguna, penetapan peran, penugasan cakupan lokasi
 - **Panel operator**: daftar organisasi, buat organisasi baru, atur kuota dan status,
   masuk sebagai organisasi tertentu
-- Penyalinan kategori bawaan saat organisasi baru dibuat
 - Pemeriksaan kuota aset, penyimpanan, dan pengguna
 - Pencatatan `platform.impersonate` di audit log organisasi
 - Kerangka tata letak aplikasi dan navigasi
@@ -91,7 +99,7 @@ undangan admin pertamanya terkirim, tanpa menyentuh basis data secara langsung.
 - Daftar aset dengan pencarian, filter, dan kursor pagination
 - Halaman detail aset
 - Pembuatan QR sebagai SVG
-- Halaman cetak label tunggal dan lembar A4
+- Halaman cetak tiga ukuran label: 50 × 30 mm, 62 × 29 mm, dan lembar A4
 - Pencatatan `label_prints`
 - Halaman publik `/a/{publicId}` dengan pembatasan kolom dan identitas rumah sakit
 - Pemindai kamera di dalam aplikasi
@@ -172,11 +180,14 @@ labelnya siap dicetak.
 
 - Pembatasan laju di seluruh titik yang ditetapkan
 - Header keamanan dan penyetelan CSP
+- Sentry untuk pemantauan galat
 - Autentikasi dua faktor opsional: pengaturan, kode pemulihan, daftar perangkat aktif
 - Audit log lengkap
 - Penanganan galat dan pesan berbahasa Indonesia untuk seluruh kode error
 - Pengujian end-to-end untuk alur utama, termasuk isolasi tenant
-- Penyiapan VPS, Caddy, bucket R2, cadangan, pemantauan
+- Penetapan domain produksi dan penyesuaian `APP_URL`
+- Penyiapan Caddy, bucket R2 untuk foto dan bucket terpisah untuk cadangan, pemantauan
+- Penetapan layanan pengirim email beserta SPF, DKIM, dan DMARC
 - Uji pemulihan cadangan
 - Penyusunan panduan pengguna singkat dan materi pelatihan
 

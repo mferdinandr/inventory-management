@@ -68,6 +68,23 @@ pesanan untuk satu rumah sakit**:
 | 29 | Rilis dua tahap: MVP 6 minggu untuk demo, v1.1 3 minggu berikutnya sebelum data pelanggan masuk |
 | 30 | VPS 2 vCPU / 8 GB / 100 GB NVMe milik sendiri |
 
+Keputusan tooling dan produk, 23 September 2026:
+
+| # | Keputusan |
+|---|---|
+| 31 | Kode, komentar, dan commit berbahasa Inggris; antarmuka berbahasa Indonesia |
+| 32 | pnpm dan Node 22 LTS |
+| 33 | Vitest untuk unit dan integrasi, Playwright untuk ujung ke ujung |
+| 34 | GitHub Actions untuk CI dan deploy otomatis ke VPS sejak M0; Biome menggantikan ESLint dan Prettier |
+| 35 | Organisasi baru dimulai tanpa kategori; halaman kosong memuat panduan, bukan tombol pengisi |
+| 36 | Tiga ukuran label sejak MVP: 50 × 30 mm, 62 × 29 mm, dan lembar A4 |
+| 37 | Tema netral shadcn dengan aksen biru |
+| 38 | Laporan dibuat langsung saat diminta, tanpa antrean |
+| 39 | Aplikasi dapat dipasang di ponsel sebagai PWA, tetapi tetap online-only |
+| 40 | Sentry dipasang di M7; selama MVP cukup log |
+| 41 | Cadangan basis data ke Cloudflare R2 pada bucket terpisah dari bucket foto |
+| 42 | Nama paket, database, dan container: `simaset`. Domain ditulis `{DOMAIN}` sampai ditetapkan |
+
 ---
 
 ## B. Asumsi yang Perlu Dikonfirmasi
@@ -117,13 +134,12 @@ Isi kolom **Status** dengan ✅ atau ❌. Bila ❌, tuliskan yang dikehendaki di
 
 | # | Asumsi | Status | Biaya ubah |
 |---|---|:--:|---|
-| AS-17 | Ukuran label bawaan 50 × 30 mm, dengan varian mini 25 × 15 mm | ⬜ | Rendah |
+| AS-17 | Tiga ukuran label sejak MVP: 50 × 30 mm, 62 × 29 mm, dan lembar A4. Varian mini 25 × 15 mm menyusul bila ada yang membutuhkan | ✅ | Rendah |
 | AS-18 | Antarmuka satu bahasa (Indonesia); zona waktu ditetapkan per organisasi | ✅ | Sedang |
-| AS-19 | Laporan dibuat langsung saat diminta, tanpa antrean latar belakang | ⬜ | Rendah |
+| AS-19 | Laporan dibuat langsung saat diminta, tanpa antrean latar belakang | ✅ | Rendah |
 
-AS-17 dan AS-19 dapat diputuskan belakangan: ukuran label mengikuti printer yang kelak
-dipakai pelanggan, dan laporan sinkron baru terasa menghambat bila ekspor melewati sekitar
-5.000 baris.
+**Seluruh asumsi AS-01 sampai AS-19 sudah dikonfirmasi.** Tidak ada lagi yang menunggu
+keputusan.
 
 > Catatan bila ada yang tidak disetujui:
 >
@@ -144,13 +160,16 @@ rumah sakit pelanggan**. Bagian itu dapat diteruskan apa adanya kepada pelanggan
 
 ### C.1 Pertanyaan Platform
 
-#### Q-01 · Domain produksi 🟡 ditunda
+#### Q-01 · Domain produksi 🟡 ditunda — **satu-satunya yang masih terbuka**
 
-**Dibutuhkan sebelum:** label sungguhan pertama dicetak — **bukan sebelum coding**
+**Dibutuhkan sebelum:** M7, dan mutlak sebelum label sungguhan pertama dicetak
 
 **Keputusan sementara:** fokus pengembangan lokal dulu. `APP_URL` bernilai
 `http://localhost:3000`, dan QR yang dihasilkan selama pengembangan hanya berlaku di mesin
-sendiri. Domain ditetapkan setelah aplikasi berjalan.
+sendiri. Seluruh dokumen dan konfigurasi menulis `{DOMAIN}` sebagai penanda.
+
+Deploy otomatis ke VPS pada M0 dapat berjalan memakai alamat IP atau subdomain sementara —
+yang tidak boleh terjadi hanyalah mencetak label fisik sebelum domain final.
 
 **Pertanyaan:** Apa nama domain final yang akan dipakai sistem ini?
 
@@ -178,17 +197,18 @@ bersifat fisik dan berlipat sesuai jumlah aset.
 Cukup untuk aplikasi dan basis data seluruh pelanggan pada skala yang direncanakan, karena
 foto berada di Cloudflare R2 dan tidak menyentuh disk ini.
 
-#### Q-02b · Akun Cloudflare R2 ⬜
+#### Q-02b · Akun Cloudflare R2 🟡 dijadwalkan
 
-**Dibutuhkan sebelum:** M3, saat unggah foto mulai dikerjakan
+**Dibutuhkan sebelum:** M3, saat unggah foto mulai dikerjakan — **sekitar minggu kelima**
 
-Pengembangan lokal memakai MinIO di Docker sehingga tidak terhambat. Yang dibutuhkan
-menjelang M3: satu bucket R2, kunci akses, dan domain publik bucket.
+**Status:** akun belum ada, akan dibuat menjelang M3. Tidak menghambat, karena pengembangan
+lokal memakai MinIO di Docker.
 
-> Jawaban:
-> - Akun Cloudflare:
-> - Nama bucket:
-> - Domain publik bucket:
+Yang perlu disiapkan saat waktunya tiba:
+- [ ] Akun Cloudflare
+- [ ] Bucket untuk foto lampiran, dipastikan tidak dapat diakses anonim
+- [ ] Bucket terpisah untuk cadangan basis data
+- [ ] Kunci akses R2 dan domain publik bucket
 
 ---
 
@@ -208,6 +228,9 @@ berakhir di folder spam, dan pelanggan baru tidak pernah berhasil masuk pertama 
 **Pilihan yang umum:** Resend, Amazon SES, Postmark, atau SMTP biasa. Ketiga yang pertama
 menangani reputasi pengirim dengan lebih baik daripada SMTP sendiri.
 
+**Status:** belum diputuskan, ditetapkan sebelum M6. Tidak menghambat MVP karena selama
+pengembangan `MAIL_TRANSPORT=log` mencetak email ke stdout alih-alih mengirimnya.
+
 > Jawaban:
 > - Layanan:
 > - Alamat pengirim:
@@ -215,21 +238,13 @@ menangani reputasi pengirim dengan lebih baik daripada SMTP sendiri.
 
 ---
 
-#### Q-03 · Tujuan penyimpanan cadangan ⬜
+#### Q-03 · Tujuan penyimpanan cadangan ✅
 
-**Dibutuhkan sebelum:** go-live
+**Terjawab:** Cloudflare R2, pada **bucket terpisah** dari bucket foto. Memisahkannya
+memastikan salah konfigurasi pada satu bucket tidak merusak yang lain.
 
-**Pertanyaan:** Ke mana salinan cadangan akan dikirim?
-
-**Mengapa penting:** Cadangan yang tersimpan di disk yang sama dengan datanya bukanlah
-cadangan. Ketika VPS bermasalah, keduanya hilang bersamaan.
-
-**Pilihan yang umum:** Cloudflare R2, Backblaze B2, atau penyimpanan objek milik penyedia
-VPS yang sama tetapi di wilayah berbeda.
-
-> Jawaban:
-> - Tujuan cadangan:
-> - Pemegang kredensial:
+Cadangan yang tersimpan di disk yang sama dengan datanya bukanlah cadangan — ketika VPS
+bermasalah, keduanya hilang bersamaan.
 
 ---
 
@@ -533,13 +548,16 @@ tandanya muncul, penyebabnya langsung dikenali.
 
 ### Platform
 
-| Tenggat | Yang harus sudah dijawab |
-|---|---|
-| **Sekarang** | Tidak ada. M0 dapat dimulai hari ini |
-| **Sebelum M3** | Q-02b akun dan bucket Cloudflare R2 |
-| **Sebelum M7** | Q-01 domain produksi, Q-03 tujuan cadangan, Q-11 SMTP pengirim |
-| **Sebelum label sungguhan pertama dicetak** | **Q-01 domain — tidak dapat ditawar** |
-| **Sebelum pelanggan pertama** | Q-04 kepemilikan dan pemeliharaan sistem |
+| Tenggat | Yang harus sudah dijawab | Status |
+|---|---|---|
+| **Sekarang** | Tidak ada. M0 dapat dimulai | ✅ siap |
+| **Sebelum M3** (minggu ke-5) | Q-02b akun dan bucket Cloudflare R2 | 🟡 dijadwalkan |
+| **Sebelum M6** | Q-11 layanan pengirim email | ⬜ terbuka |
+| **Sebelum M7** | Q-01 domain produksi | 🟡 ditunda |
+| **Sebelum label sungguhan pertama dicetak** | **Q-01 domain — tidak dapat ditawar** | 🟡 ditunda |
+| **Sebelum pelanggan pertama** | Q-04 kepemilikan dan pemeliharaan sistem | ⬜ terbuka |
+
+Seluruh asumsi di Bagian B sudah dikonfirmasi. Tidak ada satu pun yang menghambat M0.
 
 ### Per pelanggan, saat onboarding
 
