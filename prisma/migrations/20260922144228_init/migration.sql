@@ -12,9 +12,9 @@ DECLARE
   b bytea;
 BEGIN
   ts_ms := (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::bigint;
-  b := substr(int8send(ts_ms) || gen_random_bytes(8), 1, 16)
-  b := set_byte(b, 6, (get_byte(b, 6) & 15) | 112)
-  b := set_byte(b, 8, (get_byte(b, 8) & 63) | 128)
+  b := substr(int8send(ts_ms) || gen_random_bytes(8), 1, 16);
+  b := set_byte(b, 6, (get_byte(b, 6) & 15) | 112);
+  b := set_byte(b, 8, (get_byte(b, 8) & 63) | 128);
   RETURN (encode(b, 'hex'))::uuid;
 END;
 $$;
@@ -773,7 +773,7 @@ CREATE INDEX "assets_revertible_idx"
 
 CREATE INDEX "assets_search_idx" ON "assets" USING GIN (
   to_tsvector('simple',
-    coalesce("name",''), ' ') || ' ' ||
+    coalesce("name",'') || ' ' ||
     coalesce("asset_code",'') || ' ' ||
     coalesce("brand",'') || ' ' ||
     coalesce("model",'') || ' ' ||
