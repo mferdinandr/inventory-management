@@ -638,14 +638,15 @@ Perlu disiapkan sebagai bagian instalasi:
   dapat diuji bila ada tenant kedua, dan bug isolasi yang ditemukan di minggu pertama jauh
   lebih murah daripada yang ditemukan setelah ada pelanggan.
 - Satu `SUPERADMIN` pada masing-masing organisasi contoh.
-- Kategori dasar per organisasi: Elektromedik (medis, interval kalibrasi 12 bulan),
-  Alat Penunjang Medis (medis, 12 bulan), Furnitur, Perangkat IT, Alat Rumah Tangga, Kendaraan.
+- Kategori contoh pada masing-masing organisasi **pengembangan** saja: Elektromedik
+  (medis, 12 bulan), Alat Penunjang Medis (medis, 12 bulan), Furnitur, Perangkat IT.
 - Struktur lokasi contoh: satu gedung, satu lantai, satu instalasi, beberapa ruangan.
 - Beberapa aset contoh pada masing-masing organisasi, agar pengujian isolasi punya bahan.
 
-**Templat kategori.** Karena tiap pelanggan baru membutuhkan kategori yang hampir sama,
-sediakan satu fungsi seed yang menyalin kategori bawaan ke organisasi baru saat dibuat dari
-panel operator. Tanpa itu, setiap onboarding dimulai dari layar kosong.
+**Penting: seed ini hanya untuk pengembangan.** Organisasi pelanggan yang dibuat lewat panel
+operator **tidak** menerima kategori apa pun — tiap rumah sakit menyusun pengelompokannya
+sendiri. Halaman kategori yang masih kosong menampilkan panduan beserta contoh, tetapi tidak
+ada yang mengisinya secara otomatis.
 
 ---
 

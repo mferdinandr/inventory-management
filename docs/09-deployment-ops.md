@@ -112,7 +112,7 @@ dari keharusan HTTPS, sehingga kamera pemindai QR tetap dapat diuji tanpa sertif
 ## 3. Caddyfile
 
 ```caddy
-simaset.id {
+{DOMAIN} {
     encode gzip zstd
 
     header {
@@ -165,8 +165,8 @@ cp .env.example .env && $EDITOR .env
 docker compose up -d --build
 
 # 5. Siapkan basis data dan bucket
-docker compose exec app npx prisma migrate deploy
-docker compose exec app npx prisma db seed
+docker compose exec app pnpm prisma migrate deploy
+docker compose exec app pnpm prisma db seed
 
 # 6. Pastikan bucket R2 tidak dapat diakses anonim, lalu buat organisasi
 #    pelanggan pertama lewat panel operator di /operator
@@ -196,9 +196,11 @@ rclone sync /backups remote:simaset-backup --transfers 4
 find /backups -name 'db-*.sql.gz' -mtime +30 -delete
 ```
 
+**Tujuan cadangan: Cloudflare R2, bucket terpisah dari bucket foto.** Memisahkannya
+memastikan salah konfigurasi pada satu bucket tidak merusak yang lain.
+
 **Aturan yang tidak boleh dilanggar:** salinan cadangan harus berada **di luar VPS**.
-Cadangan yang tersimpan di disk yang sama dengan datanya bukanlah cadangan. Gunakan
-Cloudflare R2, Backblaze B2, atau penyimpanan objek penyedia VPS sebagai tujuan rclone.
+Cadangan yang tersimpan di disk yang sama dengan datanya bukanlah cadangan.
 
 **Uji pemulihan setiap kuartal.** Pulihkan ke lingkungan terpisah, buka aplikasinya, dan
 pastikan foto masih dapat dibuka. Cadangan yang tidak pernah diuji sering ternyata tidak dapat dipulihkan.
@@ -214,7 +216,7 @@ Pada skala ini, pemantauan sederhana sudah memadai:
 | Aplikasi hidup | Endpoint `/api/health` diperiksa Uptime Kuma atau layanan gratis | Gagal 2 kali berturut-turut |
 | Penggunaan disk | Tugas cron harian | Di atas 75% |
 | Keberhasilan cadangan | Skrip mengirim email saat gagal | Setiap kegagalan |
-| Galat aplikasi | Log Pino, opsional Sentry | Lonjakan tak wajar |
+| Galat aplikasi | Log Pino selama MVP; Sentry dipasang di M7 | Lonjakan tak wajar |
 | Konsistensi data | Tugas `consistency-check` harian | Setiap ketidaksesuaian |
 | Pemakaian kuota pelanggan | Panel operator dan ringkasan mingguan | Organisasi melewati 80% kuota |
 | Biaya R2 | Dasbor Cloudflare | Lonjakan tak wajar dari satu organisasi |
@@ -226,19 +228,37 @@ mengembalikan `{ "status": "ok", "db": "ok", "storage": "ok", "version": "..." }
 
 ## 7. Pembaruan Versi
 
+Deploy berjalan **otomatis lewat GitHub Actions** setiap kali ada push ke `main`, dan hanya
+setelah seluruh pengujian lulus — termasuk uji isolasi tenant.
+
+Urutan yang dijalankan pipeline:
+
+1. Lint, tes unit dan integrasi, uji isolasi tenant. Gagal di sini berarti deploy dibatalkan.
+2. Build citra Docker.
+3. SSH ke VPS memakai kunci yang tersimpan di GitHub Secrets.
+4. **Cadangkan basis data lebih dulu**, selalu.
+5. `prisma migrate deploy`.
+6. Ganti container aplikasi.
+7. Periksa `/api/health`. Bila gagal, kembalikan ke citra sebelumnya.
+
+Deploy manual, bila diperlukan:
+
 ```bash
 cd /opt/simaset
 docker compose exec backup /backup.sh          # cadangkan lebih dulu, selalu
 git pull
 docker compose build app
-docker compose exec app npx prisma migrate deploy
+docker compose exec app pnpm prisma migrate deploy
 docker compose up -d app
-curl -sf https://simaset.id/api/health
+curl -sf https://{DOMAIN}/api/health
 ```
 
 Waktu henti sekitar 10–20 detik. Pada skala ini hal tersebut dapat diterima; lakukan di luar
 jam sibuk. Bila kelak tidak dapat diterima, jalankan dua kontainer aplikasi di belakang Caddy
 dan perbarui bergantian.
+
+**Kunci SSH untuk deploy** dibatasi hanya untuk menjalankan skrip deploy, bukan akses shell
+penuh. Kunci pribadi Anda sendiri tetap terpisah dari kunci yang dipegang GitHub Actions.
 
 **Migrasi basis data harus selalu kompatibel mundur** dalam satu langkah rilis: tambahkan
 kolom sebagai nullable dulu, isi datanya, baru jadikan wajib pada rilis berikutnya.

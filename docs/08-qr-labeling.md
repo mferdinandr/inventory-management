@@ -11,7 +11,7 @@ mahal untuk diperbaiki belakangan — memperbaikinya berarti mengunjungi kembali
 QR memuat **satu URL absolut** dan tidak lebih:
 
 ```
-https://simaset.id/a/x7Kp92mQr4Lt
+https://{DOMAIN}/a/x7Kp92mQr4Lt
 ```
 
 Satu domain dipakai bersama seluruh pelanggan. `public_id` unik secara global sehingga tidak
@@ -99,14 +99,23 @@ Isi label:
 | Nama atau logo RS | ✅ | Penanda kepemilikan, sekaligus penunjuk rumah sakit mana — karena domainnya dipakai bersama seluruh pelanggan |
 | "Jangan dilepas" | ⬜ | Dianjurkan pada label alat bernilai tinggi |
 
+### Label thermal lebar 62 × 29 mm
+
+Ukuran yang umum pada printer Brother QL. Tata letak sama dengan label standar, dengan ruang
+lebih lapang untuk nama aset yang panjang.
+
 ### Label mini 25 × 15 mm
 
 Hanya QR dan `asset_code` dalam ukuran kecil. Untuk alat genggam dan aksesori.
+Tidak termasuk MVP; ditambahkan bila ada pelanggan yang membutuhkannya.
 
 ### Lembar A4
 
 Tata letak 3 kolom × 8 baris (24 label per lembar) memakai kertas stiker A4 yang umum
 tersedia. Tersedia pengaturan geser margin untuk mengoreksi ketidakpresisian printer.
+
+**Yang tersedia sejak MVP:** 50 × 30 mm, 62 × 29 mm, dan lembar A4. Ketiganya menutupi
+hampir semua kemungkinan printer pelanggan tanpa perlu menunggu mereka memutuskan lebih dulu.
 
 ---
 
