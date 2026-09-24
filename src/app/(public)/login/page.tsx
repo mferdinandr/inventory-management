@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { type FormEvent, Suspense, useState } from "react"
@@ -9,6 +10,8 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const accepted = searchParams.get("accepted") === "1"
+  const reset = searchParams.get("reset") === "1"
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -39,6 +42,12 @@ function LoginForm() {
         <h1 className="text-2xl font-semibold tracking-tight">SIMASET</h1>
         <p className="text-sm text-muted-foreground">Masuk ke panel inventaris aset rumah sakit</p>
       </div>
+      {accepted ? (
+        <p className="text-sm text-emerald-600">Akun berhasil diaktifkan. Silakan masuk.</p>
+      ) : null}
+      {reset ? (
+        <p className="text-sm text-emerald-600">Kata sandi berhasil diperbarui. Silakan masuk.</p>
+      ) : null}
       <label className="block space-y-1">
         <span className="text-sm font-medium">Email</span>
         <input
@@ -65,6 +74,12 @@ function LoginForm() {
       >
         {loading ? "Memproses…" : "Masuk"}
       </button>
+      <Link
+        href="/forgot-password"
+        className="block text-center text-sm text-muted-foreground hover:underline"
+      >
+        Lupa kata sandi?
+      </Link>
     </form>
   )
 }
