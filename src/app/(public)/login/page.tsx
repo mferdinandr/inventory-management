@@ -1,8 +1,10 @@
-import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState, type FormEvent } from "react"
+"use client"
 
-export default function LoginPage() {
+import { useRouter, useSearchParams } from "next/navigation"
+import { signIn } from "next-auth/react"
+import { type FormEvent, Suspense, useState } from "react"
+
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
@@ -29,28 +31,52 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted p-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-xl border bg-card p-6 shadow-sm"
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-sm space-y-4 rounded-xl border bg-card p-6 shadow-sm"
+    >
+      <div className="space-y-1 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">SIMASET</h1>
+        <p className="text-sm text-muted-foreground">Masuk ke panel inventaris aset rumah sakit</p>
+      </div>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">Email</span>
+        <input
+          type="email"
+          name="email"
+          required
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">Kata sandi</span>
+        <input
+          type="password"
+          name="password"
+          required
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </label>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
       >
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">SIMASET</h1>
-          <p className="text-sm text-muted-foreground">Masuk ke panel inventaris aset rumah sakit</p>
-        </div>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
-          <input type="email" name="email" required className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Kata sandi</span>
-          <input type="password" name="password" required className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        </label>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <button type="submit" disabled={loading} className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">
-          {loading ? "Memproses…" : "Masuk"}
-        </button>
-      </form>
+        {loading ? "Memproses…" : "Masuk"}
+      </button>
+    </form>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-muted p-4">
+      {/* useSearchParams() (for callbackUrl) opts the tree below it out of
+          static prerendering unless it's wrapped in Suspense. */}
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </main>
   )
 }
