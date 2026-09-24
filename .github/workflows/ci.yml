@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Mirrors .env.example / docker-compose.dev.yml so the migration's
+  # `CREATE ROLE simaset_app/simaset_public/simaset_platform ... PASSWORD
+  # 'simaset-dev-only'` matches what CI connects with. Not a secret — this
+  # database exists only for the lifetime of the job.
+  POSTGRES_SUPERUSER_PASSWORD: simaset-dev-only
+  DATABASE_URL: postgresql://simaset_app:simaset-dev-only@localhost:5432/simaset
+  DATABASE_URL_MIGRATION: postgresql://simaset:simaset-dev-only@localhost:5432/simaset
+  DATABASE_URL_PLATFORM: postgresql://simaset_platform:simaset-dev-only@localhost:5432/simaset
+  DATABASE_URL_PUBLIC: postgresql://simaset_public:simaset-dev-only@localhost:5432/simaset
+  APP_URL: http://localhost:3000
+  NODE_ENV: test
+  # Placeholder secrets: real values only matter once these features are
+  # exercised (2FA setup, session signing at runtime). 32 random bytes,
+  # base64, generated once for this file — fine to be public, CI-only.
+  AUTH_SECRET: Y2ktb25seS1hdXRoLXNlY3JldC1kby1ub3QtdXNlLWVsc2V3aGVyZQ==
+  TOTP_ENCRYPTION_KEY: Y2ktb25seS10b3RwLWtleS1kby1ub3QtdXNlLWVsc2V3aGVyZQ==
+  SESSION_MAX_AGE_HOURS: "12"
+  SESSION_REMEMBER_ME_DAYS: "7"
+  DISPOSAL_REVERT_DAYS: "30"
+  S3_ENDPOINT: http://localhost:9000
+  S3_PUBLIC_ENDPOINT: http://localhost:9000
+  S3_REGION: auto
+  S3_BUCKET: simaset
+  S3_ACCESS_KEY: simaset
+  S3_SECRET_KEY: simaset-ci-only
+  S3_FORCE_PATH_STYLE: "true"
+  MAIL_TRANSPORT: log
+  TZ: Asia/Jakarta
+
+jobs:
+  test:
+    name: Lint, typecheck, and test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: simaset
+          POSTGRES_PASSWORD: simaset-dev-only
+          POSTGRES_DB: simaset
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Apply migrations (creates simaset_app / simaset_public / simaset_platform roles, RLS, append-only rules)
+        run: pnpm db:deploy
+
+      - name: Seed two organizations (fixtures the tenant-isolation suite depends on)
+        run: pnpm db:seed
+
+      # The single most important step in this workflow: tests/tenant-isolation.test.ts
+      # proves Row Level Security actually blocks cross-organization reads/writes
+      # through the real simaset_app role, not just in application code.
+      - name: Test (Vitest — unit, integration, tenant isolation)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
