@@ -14,8 +14,8 @@ function platformConnectionString(): string {
 /**
  * Koneksi khusus panel operator — memakai role `simaset_platform` (BYPASSRLS)
  * sehingga melewati Row Level Security. Dok/04 bab 3: berkas ini hanya boleh
- * diimpor oleh kode di bawah `app/(platform)/`. Penegakannya lewat aturan lint
- * di ESLint..**
+ * diimpor oleh kode di bawah `app/(platform)/`. Ditegakkan lewat
+ * `linter.rules.style.noRestrictedImports` di biome.json.
  */
 export const dbPlatform =
   globalForPlatform.dbPlatform ??
