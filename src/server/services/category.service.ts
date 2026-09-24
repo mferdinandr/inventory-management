@@ -62,14 +62,16 @@ function auditData(
   action: string,
   changes: Record<string, unknown>,
   input: { organizationId: string; actorId: string; categoryId: string },
-): Prisma.Args<"auditLog", "create">["data"] {
+): Prisma.Args<"auditLog", "create"> {
   return {
-    organizationId: input.organizationId,
-    actorUserId: input.actorId,
-    action,
-    entityType: "category",
-    entityId: input.categoryId,
-    changes: changes as Prisma.InputJsonValue,
+    data: {
+      organizationId: input.organizationId,
+      actorUserId: input.actorId,
+      action,
+      entityType: "category",
+      entityId: input.categoryId,
+      changes: changes as Prisma.InputJsonValue,
+    },
   }
 }
 
@@ -124,6 +126,9 @@ export async function updateCategory(
       include: { children: { select: { id: true } } },
     })
     if (!existing) throw new CategoryError("Kategori tidak ditemukan.")
+    if (input.parentId === categoryId) {
+      throw new CategoryError("Kategori tidak dapat menjadi induk bagi dirinya sendiri.")
+    }
 
     const movingUnderAnotherParent = input.parentId !== null && input.parentId !== existing.parentId
     if (movingUnderAnotherParent && existing.children.length > 0) {
