@@ -1,7 +1,7 @@
 import "server-only"
-import { PrismaClient } from "../../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import type { Prisma, PrismaClient as PrismaClientType } from "../../generated/prisma/client"
+import { PrismaClient } from "../../generated/prisma/client"
 
 const globalForPrisma = globalThis as unknown as { db?: PrismaClientType }
 
@@ -36,7 +36,5 @@ export async function withOrg<T>(
 }
 
 export async function clearOrg(tx: Prisma.TransactionClient): Promise<void> {
-  await tx.$executeRawUnsafe(
-    "SELECT set_config('app.current_org', '', true)",
-  )
+  await tx.$executeRawUnsafe("SELECT set_config('app.current_org', '', true)")
 }

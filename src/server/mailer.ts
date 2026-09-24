@@ -16,7 +16,6 @@ function getTransport(): nodemailer.Transporter | null {
     })
   }
   return transport
-
 }
 
 export type MailInput = {
@@ -28,7 +27,9 @@ export type MailInput = {
 export async function sendMail(input: MailInput): Promise<{ ok: boolean; error?: string }> {
   const t = getTransport()
   if (!t) {
-    console.warn(`[mailer] SMTP belum dikonfigurasi — email ke ${input.to} tidak terkirim: ${input.subject}`)
+    console.warn(
+      `[mailer] SMTP belum dikonfigurasi — email ke ${input.to} tidak terkirim: ${input.subject}`,
+    )
     return { ok: false, error: "Not configured" }
   }
   try {

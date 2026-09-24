@@ -93,19 +93,10 @@ export const PERMISSIONS: Record<Exclude<UserRole, "PLATFORM_OWNER">, readonly P
     "loan:manage",
     "loan:viewContact",
   ],
-  VIEWER: [
-    "asset:view",
-    "asset:viewSensitive",
-    "event:view",
-    "loan:viewContact",
-    "report:view",
-  ],
+  VIEWER: ["asset:view", "asset:viewSensitive", "event:view", "loan:viewContact", "report:view"],
 }
 
-export function hasPermission(
-  role: UserRole,
-  permission: Permission,
-): boolean {
+export function hasPermission(role: UserRole, permission: Permission): boolean {
   if (role === "PLATFORM_OWNER") return true
   return PERMISSIONS[role].includes(permission)
 }

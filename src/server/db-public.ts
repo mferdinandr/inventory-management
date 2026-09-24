@@ -1,7 +1,7 @@
 import "server-only"
-import { PrismaClient } from "../../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import type { PrismaClient as PrismaClientType } from "../../generated/prisma/client"
+import { PrismaClient } from "../../generated/prisma/client"
 
 const globalForPublic = globalThis as unknown as { dbPublic?: PrismaClientType }
 
@@ -15,7 +15,9 @@ const globalForPublic = globalThis as unknown as { dbPublic?: PrismaClientType }
 export const dbPublic =
   globalForPublic.dbPublic ??
   new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL_PUBLIC ?? process.env.DATABASE_URL }),
+    adapter: new PrismaPg({
+      connectionString: process.env.DATABASE_URL_PUBLIC ?? process.env.DATABASE_URL,
+    }),
   })
 
 if (process.env.NODE_ENV !== "production") globalForPublic.dbPublic = dbPublic

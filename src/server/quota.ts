@@ -1,6 +1,6 @@
 import "server-only"
-import { db } from "./db"
 import type { Prisma } from "../../generated/prisma/client"
+import { db } from "./db"
 
 export class QuotaExceededError extends Error {
   constructor(message: string) {

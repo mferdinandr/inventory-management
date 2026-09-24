@@ -1,7 +1,7 @@
 import "server-only"
-import { PrismaClient } from "../../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import type { PrismaClient as PrismaClientType } from "../../generated/prisma/client"
+import { PrismaClient } from "../../generated/prisma/client"
 
 const globalForPlatform = globalThis as unknown as { dbPlatform?: PrismaClientType }
 

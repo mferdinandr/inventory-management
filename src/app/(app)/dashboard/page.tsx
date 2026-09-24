@@ -1,5 +1,5 @@
-import { requireUser } from "@/server/tenant"
 import { signOut } from "@/auth"
+import { requireUser } from "@/server/tenant"
 
 export default async function DashboardPage() {
   const user = await requireUser()
@@ -29,8 +29,8 @@ export default async function DashboardPage() {
         </form>
       </header>
       <p className="text-sm text-muted-foreground">
-        Fondasi M0 sudah berdiri — skema, RLS, dan autentikasi aktif. Halaman
-        kerja (aset, riwayat, peminjaman) menyusul per milestone。
+        Fondasi M0 sudah berdiri — skema, RLS, dan autentikasi aktif. Halaman kerja (aset, riwayat,
+        peminjaman) menyusul per milestone。
       </p>
     </main>
   )
