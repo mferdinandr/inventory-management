@@ -11,7 +11,7 @@ const LINKS = [
     href: "/settings/locations",
     label: "Lokasi",
     description: "Struktur gedung, lantai, instalasi, ruangan",
-    enabled: false,
+    enabled: true,
   },
   {
     href: "/settings/vendors",
