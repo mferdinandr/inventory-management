@@ -1,7 +1,21 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/auth"
+import NextAuth from "next-auth"
+import { authConfig } from "@/auth.config"
 
-const APP_PREFIXES = ["/dashboard", "/assets", "/scan", "/loans", "/maintenance", "/reports", "/settings"]
+// Own NextAuth instance built from the edge-safe config only (no Credentials
+// provider, no @/server/db import) — see auth.config.ts's doc comment for why
+// middleware.ts must not import { auth } from "@/auth" directly.
+const { auth } = NextAuth(authConfig)
+
+const APP_PREFIXES = [
+  "/dashboard",
+  "/assets",
+  "/scan",
+  "/loans",
+  "/maintenance",
+  "/reports",
+  "/settings",
+]
 const PLATFORM_PREFIXES = ["/operator"]
 
 export default auth((req) => {
