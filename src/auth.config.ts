@@ -27,6 +27,7 @@ export const authConfig: NextAuthConfig = {
         token.role = (user as { role: string }).role
         token.organizationId = (user as { organizationId: string | null }).organizationId ?? null
         token.status = (user as { status: string }).status
+        token.impersonating = (user as { impersonating?: boolean }).impersonating === true
       }
       return token
     },
@@ -41,6 +42,7 @@ export const authConfig: NextAuthConfig = {
         | "VIEWER"
       session.user.organizationId = (token.organizationId as string | null) ?? null
       session.user.status = token.status as "ACTIVE" | "INVITED" | "DISABLED"
+      session.user.impersonating = token.impersonating === true
       session.user.name = session.user.name ?? (token.name as string)
       return session
     },
