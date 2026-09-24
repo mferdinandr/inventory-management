@@ -382,7 +382,11 @@ hasilnya kosong.
 
 **Konsekuensi.** `app.current_org` ditetapkan di awal tiap transaksi dari sesi pengguna,
 tidak pernah dari parameter permintaan. Panel operator memakai koneksi basis data terpisah
-yang melewati RLS, dan hanya itu satu-satunya jalan melewatinya.
+yang melewati RLS. Satu pengecualian lain yang sah: pencarian pengguna berdasarkan email
+saat login, sebelum organisasinya sendiri diketahui — pada langkah itu `app.current_org`
+belum bisa disetel karena itulah yang justru sedang dicari, sehingga koneksi terikat RLS
+akan selalu mengembalikan nol baris. `server/services/credentials.service.ts` karena itu turut diizinkan memakai
+koneksi yang melewati RLS, ditegakkan lewat aturan lint yang sama dengan panel operator.
 
 ### ADR-09 — Satu domain bersama untuk seluruh pelanggan
 
