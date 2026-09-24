@@ -1,12 +1,11 @@
 import "server-only"
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadBucketCommand, ListBucketsCommand } from "@aws-sdk/client-s3"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { randomUUID } from "node:crypto"
+import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 let client: S3Client | undefined
 
 function s3(): S3Client {
-
   client ??= new S3Client({
     region: process.env.S3_REGION ?? "auto",
     endpoint: process.env.S3_ENDPOINT,
@@ -17,8 +16,6 @@ function s3(): S3Client {
     },
   })
   return client
-
-
 }
 
 function bucket(): string {

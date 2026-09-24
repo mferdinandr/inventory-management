@@ -1,7 +1,7 @@
 import "dotenv/config"
+import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
 import { PrismaClient } from "../generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
 
 const connectionString =
   process.env.DATABASE_URL_MIGRATION ??
@@ -20,7 +20,7 @@ const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 async function randomPublicId(): Promise<string> {
   let out = ""
-  for (let i =  0; i < 12; i++) {
+  for (let i = 0; i < 12; i++) {
     out += ALPHABET[Math.floor(Math.random() * ALPHABET.length)]!
   }
   return out
@@ -122,33 +122,33 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
     name: "Elektromedik",
     code: "EM",
     isMedicalDevice: true,
-    calibration:  12,
+    calibration: 12,
   })
-  const catAPM = await findOrCreateCategory(org.id, {
+  await findOrCreateCategory(org.id, {
     name: "Alat Penunjang Medis",
     code: "APM",
     isMedicalDevice: true,
-    calibration:  12,
+    calibration: 12,
   })
-  const catFUR = await findOrCreateCategory(org.id, {
+  await findOrCreateCategory(org.id, {
     name: "Furnitur",
     code: "FUR",
     isMedicalDevice: false,
     calibration: null,
   })
-  const catIT = await findOrCreateCategory(org.id, {
+  await findOrCreateCategory(org.id, {
     name: "Perangkat IT",
     code: "IT",
     isMedicalDevice: false,
     calibration: null,
   })
-  const catART = await findOrCreateCategory(org.id, {
+  await findOrCreateCategory(org.id, {
     name: "Alat Rumah Tangga",
     code: "ART",
     isMedicalDevice: false,
     calibration: null,
   })
-  const catKEND = await findOrCreateCategory(org.id, {
+  await findOrCreateCategory(org.id, {
     name: "Kendaraan",
     code: "KEND",
     isMedicalDevice: false,
@@ -192,7 +192,7 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
     path: `${gedung.id}/${lantai.id}/${instalasi.id}`,
   })
 
-  for (let i =  0; i < spec.assets.length; i++) {
+  for (let i = 0; i < spec.assets.length; i++) {
     const def = spec.assets[i]!
     const assetCode = `${org.code}-RAD-000${i + 1}`
     const existing = await prisma.asset.findUnique({
@@ -210,13 +210,13 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
         brand: def.brand,
         serialNumber: def.serial,
         categoryId: catEM.id,
-        locationId: i ===  0 ? ruang1.id : ruang2.id,
+        locationId: i === 0 ? ruang1.id : ruang2.id,
         acquisitionDate: new Date("2024-06-01"),
         acquisitionCost: "45000000",
-        fundingSource:"APBD",
-        acquisitionDocumentNo:"PPK-2024-0101",
+        fundingSource: "APBD",
+        acquisitionDocumentNo: "PPK-2024-0101",
         warrantyUntil: new Date("2027-06-01"),
-        condition:"GOOD",
+        condition: "GOOD",
         status: "AVAILABLE",
         createdBy: admin.id,
       },
@@ -282,7 +282,6 @@ async function main() {
 
   for (const spec of specs) {
     await seedOrganization(spec, passwordHash)
-
   }
 
   console.log("Seed selesai: 1 pemilik platform,  2 organisasi,")

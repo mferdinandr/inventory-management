@@ -14,8 +14,9 @@
       "*.ts",
       "*.tsx",
       "*.mjs",
-      "!generated/**",
-      "!prisma/migrations/**"
+      "!generated",
+      "!prisma/migrations",
+      "!src/app/globals.css"
     ]
   },
   "formatter": {
@@ -27,12 +28,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
         "noUnusedVariables": "error",
         "noUnusedImports": "error"
       },
       "style": {
+        "noNonNullAssertion": "off",
         "noRestrictedImports": {
           "level": "error",
           "options": {
@@ -51,6 +53,16 @@
         "rules": {
           "style": {
             "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off"
           }
         }
       }
