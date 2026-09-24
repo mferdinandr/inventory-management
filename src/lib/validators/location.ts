@@ -37,7 +37,7 @@ export const createLocationSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["type"],
-        message: "Lokasi tanpa induk hanya boleh bertipe Gedung (BUILDING.",
+        message: "Lokasi tanpa induk hanya boleh bertipe Gedung (BUILDING.).",
       })
     }
   })

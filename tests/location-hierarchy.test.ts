@@ -220,7 +220,7 @@ describe("location hierarchy service", () => {
     expect((await listLocations(orgId)).find((l) => l.id === bId)?.isActive).toBe(false)
   })
 
-  it("assigns a PIC and rejects unknown users", async () => {
+  it("assigns a PIC only to ROOM locations", async () => {
     const bId = locId(
       await createLocation({
         organizationId: orgId,
@@ -229,18 +229,49 @@ describe("location hierarchy service", () => {
       }),
     )
     roots.push(bId)
+    const fId = locId(
+      await createLocation({
+        organizationId: orgId,
+        actorId,
+        data: { type: "FLOOR", name: "Lantai PIC", parentId: bId },
+      }),
+    )
+    const dId = locId(
+      await createLocation({
+        organizationId: orgId,
+        actorId,
+        data: { type: "DEPARTMENT", name: "Instalasi PIC", parentId: fId },
+      }),
+    )
+    const rId = locId(
+      await createLocation({
+        organizationId: orgId,
+        actorId,
+        data: { type: "ROOM", name: "Ruang Ber-PIC", parentId: dId },
+      }),
+    )
+
     const ok = await updateLocation({
+      organizationId: orgId,
+      actorId,
+      id: rId,
+      data: { picUserId: actorId },
+    })
+    expect(ok.ok).toBe(true)
+    expect((await listLocations(orgId)).find((l) => l.id === rId)?.picUserId).toBe(actorId)
+
+    const wrongType = await updateLocation({
       organizationId: orgId,
       actorId,
       id: bId,
       data: { picUserId: actorId },
     })
-    expect(ok.ok).toBe(true)
-    expect((await listLocations(orgId)).find((l) => l.id === bId)?.picUserId).toBe(actorId)
+    expect(wrongType.ok).toBe(false)
+
     const bad = await updateLocation({
       organizationId: orgId,
       actorId,
-      id: bId,
+      id: rId,
       data: { picUserId: "00000000-0000-0000-0000-000000000000" },
     })
     expect(bad.ok).toBe(false)

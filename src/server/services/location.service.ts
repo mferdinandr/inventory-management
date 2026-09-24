@@ -53,8 +53,21 @@ export async function listLocations(organizationId: string): Promise<LocationLis
       }
     })
 
-    items.sort((a, b) => a.depth - b.depth || a.name.localeCompare(b.name, "id"))
-    return items
+    const ordered: LocationListItem[] = []
+    const childrenByParent = new Map<string | null, LocationListItem[]>()
+    for (const item of items) {
+      const siblings = childrenByParent.get(item.parentId) ?? []
+      siblings.push(item)
+      childrenByParent.set(item.parentId, siblings)
+    }
+    const visit = (nodes: LocationListItem[]) => {
+      for (const node of nodes.sort((a, b) => a.name.localeCompare(b.name, "id"))) {
+        ordered.push(node)
+        visit(childrenByParent.get(node.id) ?? [])
+      }
+    }
+    visit(childrenByParent.get(null) ?? [])
+    return ordered
   })
 }
 
@@ -81,6 +94,10 @@ export async function createLocation(args: {
 
     const typeError = assertParentType(args.data.type, parent.row?.type ?? null)
     if (typeError) return { ok: false, error: typeError }
+
+    if ((args.data.picUserId ?? null) !== null && args.data.type !== "ROOM") {
+      return { ok: false, error: "PIC hanya dapat ditetapkan untuk lokasi bertipe Ruangan." }
+    }
 
     const pic = await resolvePicUser(tx, args.data.picUserId ?? null)
     if (pic.error) return { ok: false, error: pic.error }
@@ -144,6 +161,9 @@ export async function updateLocation(args: {
     }
 
     if (args.data.picUserId !== undefined) {
+      if ((args.data.picUserId ?? null) !== null && current.type !== "ROOM") {
+        return { ok: false, error: "PIC hanya dapat ditetapkan untuk lokasi bertipe Ruangan." }
+      }
       const pic = await resolvePicUser(tx, args.data.picUserId ?? null)
       if (pic.error) return { ok: false, error: pic.error }
       if (pic.picUserId !== current.picUserId) {

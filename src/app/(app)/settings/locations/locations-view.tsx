@@ -158,9 +158,11 @@ export function LocationsView({
             <Field label="Kode (opsional)">
               <Input name="code" maxLength={20} placeholder="mis. RAD" />
             </Field>
-            <Field label="PIC ruangan (opsional)">
-              <PicSelect name="picUserId" options={picCandidates} />
-            </Field>
+            {createType === "ROOM" ? (
+              <Field label="PIC ruangan (opsional)">
+                <PicSelect name="picUserId" options={picCandidates} />
+              </Field>
+            ) : null}
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={busy}>
@@ -248,14 +250,16 @@ export function LocationsView({
                         />
                       </Field>
                     ) : null}
-                    <Field label="PIC ruangan (opsional)">
-                      <PicSelect
-                        name="picUserId"
-                        options={picCandidates}
-                        defaultValue={location.picUserId ?? ""}
-                        fallbackName={location.picName ?? undefined}
-                      />
-                    </Field>
+                    {location.type === "ROOM" ? (
+                      <Field label="PIC ruangan (opsional)">
+                        <PicSelect
+                          name="picUserId"
+                          options={picCandidates}
+                          defaultValue={location.picUserId ?? ""}
+                          fallbackName={location.picName ?? undefined}
+                        />
+                      </Field>
+                    ) : null}
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button
