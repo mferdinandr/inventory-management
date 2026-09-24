@@ -1,8 +1,8 @@
 import "server-only"
 import { generateToken } from "@/lib/tokens"
 import { withOrg } from "@/server/db"
-import { sendMail } from "@/server/mailer"
-import { assertUserQuota } from "@/server/quota"
+import { escapeHtml, sendMail } from "@/server/mailer"
+import { assertOrgWritable, assertUserQuota } from "@/server/quota"
 import type { UserRole } from "../../../generated/prisma/enums"
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 hari — docs/07-rbac-security.md §4
@@ -35,6 +35,7 @@ export async function inviteUser(
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS)
 
   const user = await withOrg(input.organizationId, async (tx) => {
+    await assertOrgWritable(input.organizationId, tx)
     await assertUserQuota(input.organizationId, tx)
 
     const existing = await tx.user.findUnique({
@@ -61,8 +62,8 @@ export async function inviteUser(
     to: email,
     subject: `Undangan bergabung di SIMASET — ${user.organization?.name ?? ""}`,
     html: `
-      <p>Halo ${input.name},</p>
-      <p>Anda diundang bergabung di SIMASET untuk ${user.organization?.name ?? "organisasi Anda"}.</p>
+      <p>Halo ${escapeHtml(input.name)},</p>
+      <p>Anda diundang bergabung di SIMASET untuk ${escapeHtml(user.organization?.name ?? "organisasi Anda")}.</p>
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>
     `,
@@ -84,6 +85,7 @@ export async function resendInvite(
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS)
 
   const user = await withOrg(organizationId, async (tx) => {
+    await assertOrgWritable(organizationId, tx)
     const existing = await tx.user.findUnique({ where: { id: userId } })
     if (existing?.status !== "INVITED") {
       throw new Error("Pengguna tidak ditemukan atau sudah aktif.")
@@ -99,7 +101,7 @@ export async function resendInvite(
     to: user.email,
     subject: `Undangan bergabung di SIMASET — ${user.organization?.name ?? ""}`,
     html: `
-      <p>Halo ${user.name},</p>
+      <p>Halo ${escapeHtml(user.name)},</p>
       <p>Berikut tautan undangan baru Anda ke SIMASET.</p>
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>

@@ -1,5 +1,6 @@
 import "server-only"
 import { withOrg } from "@/server/db"
+import { assertOrgWritable } from "@/server/quota"
 import type { Prisma } from "../../../generated/prisma/client"
 
 // FR-03 (docs/02-prd.md): kategori bersusun dua tingkat dan menandai apakah
@@ -81,6 +82,7 @@ export async function createCategory(
   input: CategoryInput,
 ): Promise<{ id: string }> {
   return withOrg(organizationId, async (tx) => {
+    await assertOrgWritable(organizationId, tx)
     await assertSiblingsUnique(tx, organizationId, input.parentId, input.name)
     await assertParentValid(tx, organizationId, input.parentId)
 
@@ -121,6 +123,7 @@ export async function updateCategory(
   input: CategoryInput,
 ): Promise<void> {
   return withOrg(organizationId, async (tx) => {
+    await assertOrgWritable(organizationId, tx)
     const existing = await tx.category.findFirst({
       where: { id: categoryId, organizationId },
       include: { children: { select: { id: true } } },
@@ -173,6 +176,7 @@ export async function setCategoryActive(
   isActive: boolean,
 ): Promise<void> {
   return withOrg(organizationId, async (tx) => {
+    await assertOrgWritable(organizationId, tx)
     const existing = await tx.category.findFirst({
       where: { id: categoryId, organizationId },
       include: { children: { select: { id: true } } },

@@ -39,7 +39,7 @@
           "level": "error",
           "options": {
             "paths": {
-              "@/server/db-platform": "db-platform bypasses Row Level Security (docs/04 ADR-08). Only src/app/(platform)/**, credentials.service.ts, and auth-token.service.ts (all pre-session, before an org is known) may import it."
+              "@/server/db-platform": "db-platform bypasses Row Level Security (docs/04 ADR-08). Only src/app/(platform)/**, operator.service.ts (the operator panel's own service), credentials.service.ts, and auth-token.service.ts (both pre-session, before an org is known) may import it."
             }
           }
         }
@@ -51,7 +51,8 @@
       "includes": [
         "src/app/(platform)/**",
         "src/server/services/credentials.service.ts",
-        "src/server/services/auth-token.service.ts"
+        "src/server/services/auth-token.service.ts",
+        "src/server/services/operator.service.ts"
       ],
       "linter": {
         "rules": {

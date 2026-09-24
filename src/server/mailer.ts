@@ -18,6 +18,16 @@ function getTransport(): nodemailer.Transporter | null {
   return transport
 }
 
+/** Untuk menyisipkan isian pengguna (nama orang, nama organisasi) ke badan email HTML. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 export type MailInput = {
   to: string
   subject: string

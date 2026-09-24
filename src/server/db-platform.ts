@@ -14,7 +14,8 @@ function platformConnectionString(): string {
 /**
  * Koneksi khusus panel operator — memakai role `simaset_platform` (BYPASSRLS)
  * sehingga melewati Row Level Security. Dok/04 bab 3: berkas ini hanya boleh
- * diimpor oleh kode di bawah `app/(platform)/`, dengan satu pengecualian:
+ * diimpor oleh kode di bawah `app/(platform)/` dan layanannya,
+ * `server/services/operator.service.ts`, dengan satu pengecualian:
  * `server/services/credentials.service.ts`. Login mencari pengguna
  * berdasarkan email sebelum organisasi mana pun diketahui — `app.current_org`
  * belum bisa disetel karena itulah yang justru sedang dicari, sehingga `db`

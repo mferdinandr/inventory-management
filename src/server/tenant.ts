@@ -1,4 +1,5 @@
 import "server-only"
+import { redirect } from "next/navigation"
 import { auth } from "../auth"
 
 export type SessionUser = {
@@ -7,6 +8,7 @@ export type SessionUser = {
   role: "PLATFORM_OWNER" | "SUPERADMIN" | "ADMIN" | "PIC_ROOM" | "TECHNICIAN" | "VIEWER"
   name: string
   email: string
+  impersonating: boolean
 }
 
 export async function requireUser(): Promise<SessionUser> {
@@ -27,4 +29,15 @@ export async function requireActiveOrg(): Promise<string> {
     throw new Error("Sesi ini belum terikat ke satu organisasi.")
   }
   return user.organizationId
+}
+
+/**
+ * Penjaga halaman panel operator. middleware.ts sudah menyaring /operator, tetapi
+ * halaman di sana membaca data lintas organisasi (dbPlatform) — setiap halaman
+ * memeriksa ulang agar tidak bergantung pada satu lapis saja.
+ */
+export async function requirePlatformOwner(): Promise<SessionUser> {
+  const user = await requireUser()
+  if (user.role !== "PLATFORM_OWNER") redirect("/dashboard")
+  return user
 }
