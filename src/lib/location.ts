@@ -60,7 +60,7 @@ export function assertParentType(
   if (parentType === null) {
     return childType === "BUILDING"
       ? null
-      : "Lokasi tanpa induk hanya boleh bertipe Gedung (BUILDING.)."
+      : "Lokasi tanpa induk hanya boleh bertipe Gedung (BUILDING)."
   }
   if (!CHILD_TYPES[parentType].includes(childType)) {
     return `Lokasi bertipe ${TYPE_LABELS[childType]} tidak dapat berada langsung di bawah ${TYPE_LABELS[parentType]}.`

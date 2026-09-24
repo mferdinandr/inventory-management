@@ -10,8 +10,8 @@ const NON_MEDIS_EXAMPLES = ["Furnitur", "Perangkat IT", "Kendaraan"]
 /**
  * FR-03 (docs/02-prd.md): halaman kategori kosong menampilkan panduan singkat
  * beserta contoh pengelompokan yang lazim di rumah sakit — sebagai penjelasan di
- * layar,, **bukan** tombol yang mengisinya. Pelanggan baru tidak dapat mendaftarkan
- * aset sebelum membuat kategori pertamanya,, jadi panduan ini penahan onboarding.
+ * layar, **bukan** tombol yang mengisinya. Pelanggan baru tidak dapat mendaftarkan
+ * aset sebelum membuat kategori pertamanya, jadi panduan ini penahan onboarding.
 
  */
 export function CategoryEmptyGuide({ canManage }: { canManage: boolean }) {

@@ -11,7 +11,7 @@ export default async function LocationsPage() {
 
   if (!hasPermission(user.role, "master:manage")) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="space-y-6">
         <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
           Halaman ini hanya dapat diakses oleh Admin atau Super Admin organisasi.
         </div>
@@ -25,12 +25,12 @@ export default async function LocationsPage() {
   ])
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="space-y-6">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Lokasi</h1>
+          <h1 className="text-xl font-semibold">Lokasi</h1>
           <p className="text-sm text-muted-foreground">
-            Gedung → Lantai → Instalasi/Departemen → Ruangan, Aset ditempatkan pada tingkat Ruangan.
+            Gedung → Lantai → Instalasi/Departemen → Ruangan. Aset ditempatkan pada tingkat Ruangan.
           </p>
         </div>
       </header>

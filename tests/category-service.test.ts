@@ -129,7 +129,7 @@ describe("category.service (FR-03)", () => {
     ).rejects.toThrow(/dua tingkat/)
   })
 
-  it("updates a category,, records an audit log,, and rejects self-parent", async () => {
+  it("updates a category, records an audit log, and rejects self-parent", async () => {
     const parent = await createCategory(
       orgA.id,
       actorId,
@@ -164,7 +164,7 @@ describe("category.service (FR-03)", () => {
     ).rejects.toThrow(/dirinya sendiri/)
   })
 
-  it("disables hand re-enables hand blocks deactivating a parent with children", async () => {
+  it("disables and re-enables, and blocks deactivating a parent with children", async () => {
     const parent = await createCategory(
       orgA.id,
       actorId,
