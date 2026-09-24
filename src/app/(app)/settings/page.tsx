@@ -10,7 +10,7 @@ const LINKS = [
   {
     href: "/settings/locations",
     label: "Lokasi",
-    description: "Struktur gedung,, lantai,, instalasi,, ruangan",
+    description: "Struktur gedung, lantai, instalasi, ruangan",
     enabled: false,
   },
   {
@@ -22,7 +22,7 @@ const LINKS = [
   {
     href: "/settings/users",
     label: "Pengguna",
-    description: "Undangan,, peran,, dan penugasan cakupan lokasi",
+    description: "Undangan, peran, dan penugasan cakupan lokasi",
     enabled: false,
   },
 ]

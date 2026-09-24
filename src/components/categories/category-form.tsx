@@ -59,8 +59,7 @@ export function CategoryFormDialog({ mode, category, topLevel }: CategoryFormDia
         <DialogHeader>
           <DialogTitle>{mode === "create" ? "Tambah Kategori" : "Ubah Kategori"}</DialogTitle>
           <DialogDescription>
-            Kategori bersusun dua tingkat. Kategori alat medis memiliki interval kalibrasi
-            bawaan.yang
+            Kategori bersusun dua tingkat. Kategori alat medis memiliki interval kalibrasi bawaan.
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} className="space-y-4">

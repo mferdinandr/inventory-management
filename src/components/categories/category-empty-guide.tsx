@@ -36,12 +36,12 @@ export function CategoryEmptyGuide({ canManage }: { canManage: boolean }) {
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
               {MEDIS_EXAMPLES.map((ex) => (
                 <li key={ex.name}>
-                  <span className="font-medium text-foreground">{ex.name}</span> — alat medis,,
+                  <span className="font-medium text-foreground">{ex.name}</span> — alat medis,
                   kalibrasi tiap {ex.interval} bulan
                 </li>
               ))}
               <li>
-                <span className="font-medium text-foreground">{nonMedisLabel}</span> — non-medis,,
+                <span className="font-medium text-foreground">{nonMedisLabel}</span> — non-medis,
                 tanpa kalibrasi
               </li>
             </ul>

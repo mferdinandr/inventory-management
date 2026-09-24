@@ -94,7 +94,7 @@ export default async function CategoriesPage() {
         <div>
           <h1 className="text-xl font-semibold">Kategori Aset</h1>
           <p className="text-sm text-muted-foreground">
-            Pengelompokan aset, penanda alat medis,, dan interval kalibrasi bawaan.
+            Pengelompokan aset, penanda alat medis, dan interval kalibrasi bawaan.
           </p>
         </div>
         {canManage ? <CategoryFormDialog mode="create" topLevel={topLevel} /> : null}
