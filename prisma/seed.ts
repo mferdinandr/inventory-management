@@ -201,7 +201,7 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
       },
     })
     if (existing) continue
-    await prisma.asset.create({
+    const asset = await prisma.asset.create({
       data: {
         organizationId: org.id,
         publicId: await randomPublicId(),
@@ -219,6 +219,22 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
         condition:"GOOD",
         status: "AVAILABLE",
         createdBy: admin.id,
+      },
+    })
+
+    // FR-15: setiap aset baru otomatis memiliki entri riwayat pertama bertipe
+    // CREATED. event.service.ts (M3) akan menjadi satu-satunya penulis ini di
+    // luar seed; di sini ditulis langsung karena layanan itu belum ada.
+    await prisma.assetEvent.create({
+      data: {
+        organizationId: org.id,
+        assetId: asset.id,
+        type: "CREATED",
+        title: "Aset didaftarkan",
+        occurredAt: asset.acquisitionDate ?? new Date("2024-06-01"),
+        recordedBy: admin.id,
+        locationId: asset.locationId,
+        statusAfter: "AVAILABLE",
       },
     })
   }
