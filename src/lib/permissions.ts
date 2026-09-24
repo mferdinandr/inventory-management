@@ -71,6 +71,11 @@ export const PERMISSIONS: Record<Exclude<UserRole, "PLATFORM_OWNER">, readonly P
   ],
   PIC_ROOM: [
     "asset:view",
+    "asset:viewSensitive",
+    "asset:create",
+    "asset:update",
+    "asset:transfer",
+    "asset:changeStatus",
     "event:view",
     "event:create",
     "event:correct",
@@ -81,6 +86,7 @@ export const PERMISSIONS: Record<Exclude<UserRole, "PLATFORM_OWNER">, readonly P
   ],
   TECHNICIAN: [
     "asset:view",
+    "asset:changeStatus",
     "event:view",
     "event:maintenance",
     "event:correct",
@@ -105,8 +111,9 @@ export function hasPermission(
 }
 
 /**
- * Catatan: cakupan `PIC_ROOM` (terbatas lokasi ditugaskan) dan batasan
- * "koreksi hanya entri yang dicatatnya" masih diverifikasi di layanan.
+ * Catatan: cakupan `PIC_ROOM` (terbatas lokasi ditugaskan), batasan
+ * "koreksi hanya entri yang dicatatnya", dan `asset:changeStatus` milik
+ * `TECHNICIAN` (hanya transisi terkait perbaikan) masih diverifikasi di layanan.
  *
  * Matriks ini menjawab "boleh tidak" per peran; cakupan diperiksa di service.
  */
