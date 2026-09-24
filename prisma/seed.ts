@@ -160,7 +160,7 @@ async function seedOrganization(spec: OrgSeed, passwordHash: string) {
     parentId: null,
     type: "BUILDING",
     name: "Gedung Utama",
-    path: "G",
+    path: "",
   })
   const lantai = await findOrCreateLocation({
     orgId: org.id,
