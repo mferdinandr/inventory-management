@@ -1,7 +1,7 @@
 import { PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { QuotaMeter } from "@/components/operator/quota-meter"
 import { OrganizationStatusBadge } from "@/components/operator/status-badge"
+import { QuotaMeter } from "@/components/quota-meter"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Table,

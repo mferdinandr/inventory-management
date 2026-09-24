@@ -124,6 +124,52 @@ function QuotaFields({
   )
 }
 
+export type ContactValues = {
+  contactName: string | null
+  contactEmail: string | null
+  contactPhone: string | null
+}
+
+function ContactFields({
+  prefix,
+  values,
+  saved,
+}: {
+  prefix: string
+  values?: ContactValues
+  saved?: Record<string, string>
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <Field id={`${prefix}-contact-name`} label="Nama narahubung">
+        <Input
+          id={`${prefix}-contact-name`}
+          name="contactName"
+          maxLength={200}
+          defaultValue={saved?.contactName ?? values?.contactName ?? ""}
+        />
+      </Field>
+      <Field id={`${prefix}-contact-email`} label="Email narahubung">
+        <Input
+          id={`${prefix}-contact-email`}
+          name="contactEmail"
+          type="email"
+          defaultValue={saved?.contactEmail ?? values?.contactEmail ?? ""}
+        />
+      </Field>
+      <Field id={`${prefix}-contact-phone`} label="Telepon narahubung">
+        <Input
+          id={`${prefix}-contact-phone`}
+          name="contactPhone"
+          type="tel"
+          maxLength={50}
+          defaultValue={saved?.contactPhone ?? values?.contactPhone ?? ""}
+        />
+      </Field>
+    </div>
+  )
+}
+
 function ActionMessage({ state }: { state: OperatorActionState | null }) {
   if (!state) return null
   if (!state.ok) return <p className="text-sm text-destructive">{state.error}</p>
@@ -186,11 +232,35 @@ export function CreateOrganizationForm({ defaults }: { defaults: QuotaValues }) 
             </SelectContent>
           </Select>
         </Field>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="showGovernmentFields"
+            defaultChecked={saved ? saved.showGovernmentFields === "on" : true}
+            className="mt-0.5 size-4 rounded border-border accent-foreground"
+          />
+          <span>
+            Tampilkan kolom khusus instansi pemerintah
+            <span className="block text-xs text-muted-foreground">
+              Sumber dana dan nomor dokumen pengadaan. Matikan untuk RS swasta.
+            </span>
+          </span>
+        </label>
       </section>
 
       <section className="space-y-4">
         <h2 className="font-medium">Langganan dan kuota</h2>
         <QuotaFields prefix="org" values={defaults} saved={saved} />
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-medium">Narahubung</h2>
+          <p className="text-sm text-muted-foreground">
+            Opsional. Hanya terlihat oleh pengelola SIMASET.
+          </p>
+        </div>
+        <ContactFields prefix="org" saved={saved} />
       </section>
 
       <section className="space-y-4">
@@ -233,12 +303,12 @@ export function CreateOrganizationForm({ defaults }: { defaults: QuotaValues }) 
   )
 }
 
-export function UpdateQuotaForm({
+export function UpdateOrganizationForm({
   organizationId,
   values,
 }: {
   organizationId: string
-  values: QuotaValues
+  values: QuotaValues & ContactValues
 }) {
   const [state, formAction, isPending] = useActionState(
     updateOrganizationAction.bind(null, organizationId),
@@ -249,6 +319,7 @@ export function UpdateQuotaForm({
   return (
     <form action={formAction} className="space-y-4">
       <QuotaFields prefix="quota" values={values} saved={saved} />
+      <ContactFields prefix="quota" values={values} saved={saved} />
       <div className="flex items-center gap-3">
         <Button type="submit" size="sm" disabled={isPending}>
           {isPending ? "Menyimpan…" : "Simpan"}

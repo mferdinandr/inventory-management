@@ -7,7 +7,8 @@ import { PrismaClient } from "../generated/prisma/client"
 // caller). Mocking it here is what makes a genuine end-to-end test possible
 // instead of one that stops short of actually consuming the token.
 const sentMail: Array<{ to: string; subject: string; html: string }> = []
-vi.mock("@/server/mailer", () => ({
+vi.mock("@/server/mailer", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/server/mailer")>()),
   sendMail: vi.fn(async (input: { to: string; subject: string; html: string }) => {
     sentMail.push(input)
     return { ok: true }

@@ -5,6 +5,7 @@ import { signOut } from "@/auth"
 import { AppNav } from "@/components/app-nav"
 import { Button } from "@/components/ui/button"
 import { endImpersonationAction } from "@/server/actions/operator.actions"
+import { isOrgSuspended } from "@/server/quota"
 import { requireUser } from "@/server/tenant"
 
 export default async function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -12,6 +13,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   // Pemilik platform tidak punya organisasi sendiri; halaman aplikasi baru
   // bermakna setelah ia "masuk sebagai" salah satu organisasi.
   if (user.role === "PLATFORM_OWNER" && !user.organizationId) redirect("/operator")
+  const suspended = user.organizationId ? await isOrgSuspended(user.organizationId) : false
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -30,6 +32,16 @@ export default async function AppLayout({ children }: Readonly<{ children: React
               Akhiri sesi dukungan
             </Button>
           </form>
+        </div>
+      ) : null}
+      {suspended ? (
+        // FR-01: organisasi SUSPENDED hanya dapat membaca.
+        <div
+          role="status"
+          className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+        >
+          Organisasi ini sedang ditangguhkan. Data tetap dapat dilihat, tetapi perubahan tidak dapat
+          disimpan. Hubungi pengelola SIMASET.
         </div>
       ) : null}
       <div className="flex flex-1">

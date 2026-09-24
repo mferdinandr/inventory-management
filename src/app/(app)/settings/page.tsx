@@ -1,4 +1,9 @@
 import Link from "next/link"
+import { QuotaMeter } from "@/components/quota-meter"
+import { formatBytes } from "@/lib/format"
+import { hasPermission } from "@/lib/permissions"
+import { getQuotaUsage } from "@/server/quota"
+import { requireActiveOrg, requireUser } from "@/server/tenant"
 
 const LINKS = [
   {
@@ -27,13 +32,46 @@ const LINKS = [
   },
 ]
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const user = await requireUser()
+  // FR-01c: admin organisasi melihat pemakaian kuotanya sendiri.
+  const quota = hasPermission(user.role, "user:manage")
+    ? await getQuotaUsage(await requireActiveOrg())
+    : null
+
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold">Pengaturan</h1>
         <p className="text-sm text-muted-foreground">Kelola master data organisasi Anda.</p>
       </header>
+      {quota ? (
+        <section className="space-y-2" aria-labelledby="quota-heading">
+          <h2 id="quota-heading" className="font-medium">
+            Pemakaian kuota
+          </h2>
+          <div className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:grid-cols-3">
+            <QuotaMeter
+              used={quota.usage.assets}
+              quota={quota.quota.assets}
+              label={`Aset: ${quota.usage.assets.toLocaleString("id-ID")} / ${quota.quota.assets.toLocaleString("id-ID")}`}
+            />
+            <QuotaMeter
+              used={Number(quota.usage.storageBytes)}
+              quota={Number(quota.quota.storageBytes)}
+              label={`Penyimpanan: ${formatBytes(quota.usage.storageBytes)} / ${formatBytes(quota.quota.storageBytes)}`}
+            />
+            <QuotaMeter
+              used={quota.usage.users}
+              quota={quota.quota.users}
+              label={`Pengguna: ${quota.usage.users} / ${quota.quota.users}`}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Butuh batas lebih besar? Hubungi pengelola SIMASET.
+          </p>
+        </section>
+      ) : null}
       <nav className="space-y-2" aria-label="Master data">
         {LINKS.map((link) => (
           <div key={link.href}>

@@ -2,9 +2,9 @@ import { ArrowLeftIcon } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ImpersonateDialog, ResendInviteButton } from "@/components/operator/organization-actions"
-import { UpdateQuotaForm } from "@/components/operator/organization-form"
-import { QuotaMeter } from "@/components/operator/quota-meter"
+import { UpdateOrganizationForm } from "@/components/operator/organization-form"
 import { OrganizationStatusBadge } from "@/components/operator/status-badge"
+import { QuotaMeter } from "@/components/quota-meter"
 import { Badge } from "@/components/ui/badge"
 import { formatBytes } from "@/lib/format"
 import { GB, organizationIdSchema } from "@/lib/validators/organization"
@@ -53,6 +53,7 @@ export default async function OrganizationDetailPage({
             </div>
             <p className="text-sm text-muted-foreground">
               {org.code} · {org.timezone} · dibuat {created}
+              {org.showGovernmentFields ? "" : " · RS swasta"}
             </p>
           </div>
           <ImpersonateDialog organizationId={org.id} organizationName={org.name} />
@@ -93,14 +94,17 @@ export default async function OrganizationDetailPage({
       </section>
 
       <section className="max-w-2xl space-y-3">
-        <h2 className="font-medium">Status dan kuota</h2>
-        <UpdateQuotaForm
+        <h2 className="font-medium">Status, kuota, dan narahubung</h2>
+        <UpdateOrganizationForm
           organizationId={org.id}
           values={{
             status: org.status,
             quotaAssets: org.quota.assets,
             quotaStorageGb: Number(org.quota.storageBytes / BigInt(GB)),
             quotaUsers: org.quota.users,
+            contactName: org.contact.name,
+            contactEmail: org.contact.email,
+            contactPhone: org.contact.phone,
           }}
         />
       </section>

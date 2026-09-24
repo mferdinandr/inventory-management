@@ -4,6 +4,7 @@ import type { CreateLocationInput, UpdateLocationInput } from "@/lib/validators/
 import type { Prisma } from "../../../generated/prisma/client"
 import type { LocationType } from "../../../generated/prisma/enums"
 import { withOrg } from "../db"
+import { assertOrgWritable } from "../quota"
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -89,6 +90,7 @@ export async function createLocation(args: {
   data: CreateLocationInput
 }): Promise<ActionResult<{ id: string; path: string }>> {
   return withOrg(args.organizationId, async (tx) => {
+    await assertOrgWritable(args.organizationId, tx)
     const parent = await resolveParent(tx, args.data.parentId)
     if (parent.error) return { ok: false, error: parent.error }
 
@@ -143,6 +145,7 @@ export async function updateLocation(args: {
   data: UpdateLocationInput
 }): Promise<ActionResult<{ id: string }>> {
   return withOrg(args.organizationId, async (tx) => {
+    await assertOrgWritable(args.organizationId, tx)
     const current = await tx.location.findUnique({ where: { id: args.id } })
     if (!current) return { ok: false, error: "Lokasi tidak ditemukan." }
 

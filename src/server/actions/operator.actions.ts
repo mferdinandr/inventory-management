@@ -123,7 +123,7 @@ export async function updateOrganizationAction(
   }
   revalidatePath("/operator")
   revalidatePath(`/operator/${id}`)
-  return { ok: true, message: "Kuota dan status tersimpan." }
+  return { ok: true, message: "Perubahan tersimpan." }
 }
 
 export async function resendAdminInviteAction(

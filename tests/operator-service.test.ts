@@ -12,6 +12,8 @@ import { PrismaClient } from "../generated/prisma/client"
 import { hashToken } from "../src/lib/tokens"
 import { type CreateOrganizationInput, GB } from "../src/lib/validators/organization"
 import { withOrg } from "../src/server/db"
+import { getQuotaUsage, OrganizationSuspendedError } from "../src/server/quota"
+import { createCategory } from "../src/server/services/category.service"
 import {
   createOrganization,
   endImpersonation,
@@ -32,6 +34,7 @@ const setup = new PrismaClient({
 })
 
 const meta = { ipAddress: "203.0.113.7", userAgent: "vitest" }
+const noContact = { contactName: null, contactEmail: null, contactPhone: null }
 const createdOrgIds: string[] = []
 let ownerId: string
 let customerAdminId: string
@@ -46,6 +49,10 @@ function makeInput(overrides: Partial<CreateOrganizationInput> = {}): CreateOrga
     quotaAssets: 2000,
     quotaStorageGb: 20,
     quotaUsers: 50,
+    showGovernmentFields: true,
+    contactName: null,
+    contactEmail: null,
+    contactPhone: null,
     adminName: "Siti Aminah",
     adminEmail: `admin-${runId}@rs-uji.test`,
     ...overrides,
@@ -76,6 +83,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await setup.auditLog.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
+  await setup.category.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
   await setup.user.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
   await setup.organization.deleteMany({ where: { id: { in: createdOrgIds } } })
   await setup.$disconnect()
@@ -168,6 +176,7 @@ describe("updateOrganization", () => {
       quotaAssets: 2000,
       quotaStorageGb: 50,
       quotaUsers: 50,
+      ...noContact,
     })
 
     const org = await setup.organization.findUniqueOrThrow({ where: { id: organizationId } })
@@ -193,11 +202,88 @@ describe("updateOrganization", () => {
       quotaAssets: 2000,
       quotaStorageGb: 20,
       quotaUsers: 50,
+      ...noContact,
     })
     const count = await setup.auditLog.count({
       where: { organizationId, action: "platform.organization.update" },
     })
     expect(count).toBe(0)
+  })
+})
+
+describe("contacts and government fields", () => {
+  it("stores contacts on create and records contact edits in the audit diff", async () => {
+    const { organizationId } = await newOrganization({
+      code: `C-${runId}`,
+      adminEmail: `c-${runId}@rs-uji.test`,
+      showGovernmentFields: false,
+      contactName: "Budi Santoso",
+      contactEmail: "budi@rs-uji.test",
+    })
+    const detail = await getOrganization(organizationId)
+    expect(detail?.showGovernmentFields).toBe(false)
+    expect(detail?.contact).toEqual({
+      name: "Budi Santoso",
+      email: "budi@rs-uji.test",
+      phone: null,
+    })
+
+    await updateOrganization(ownerId, organizationId, {
+      status: "TRIAL",
+      quotaAssets: 2000,
+      quotaStorageGb: 20,
+      quotaUsers: 50,
+      contactName: "Budi Santoso",
+      contactEmail: null,
+      contactPhone: "0811-0000-0000",
+    })
+    const audit = await setup.auditLog.findFirstOrThrow({
+      where: { organizationId, action: "platform.organization.update" },
+    })
+    expect(audit.changes).toEqual({
+      contactEmail: { from: "budi@rs-uji.test", to: null },
+      contactPhone: { from: null, to: "0811-0000-0000" },
+    })
+  })
+})
+
+describe("suspended organization", () => {
+  it("rejects writes while suspended and accepts them again once reactivated", async () => {
+    const { organizationId } = await newOrganization({
+      code: `S-${runId}`,
+      adminEmail: `s-${runId}@rs-uji.test`,
+    })
+    const quota = { quotaAssets: 2000, quotaStorageGb: 20, quotaUsers: 50, ...noContact }
+    const category = {
+      name: "Alat Uji",
+      code: null,
+      parentId: null,
+      isMedicalDevice: false,
+      defaultCalibrationIntervalMonths: null,
+    }
+
+    await updateOrganization(ownerId, organizationId, { status: "SUSPENDED", ...quota })
+    await expect(createCategory(organizationId, ownerId, category)).rejects.toBeInstanceOf(
+      OrganizationSuspendedError,
+    )
+    // Reads still work: the customer can see their data and their quota usage.
+    expect((await getQuotaUsage(organizationId)).status).toBe("SUSPENDED")
+
+    await updateOrganization(ownerId, organizationId, { status: "ACTIVE", ...quota })
+    await expect(createCategory(organizationId, ownerId, category)).resolves.toHaveProperty("id")
+  })
+})
+
+describe("getQuotaUsage", () => {
+  it("matches the operator panel's usage figures through the RLS-bound connection", async () => {
+    const { organizationId } = await newOrganization({
+      code: `G-${runId}`,
+      adminEmail: `g-${runId}@rs-uji.test`,
+    })
+    const usage = await getQuotaUsage(organizationId)
+    const detail = await getOrganization(organizationId)
+    expect(usage.usage).toEqual(detail?.usage)
+    expect(usage.quota).toEqual(detail?.quota)
   })
 })
 

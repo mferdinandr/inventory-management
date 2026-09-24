@@ -8,7 +8,7 @@ import {
   type UpdateOrganizationInput,
 } from "@/lib/validators/organization"
 import { dbPlatform } from "@/server/db-platform"
-import { sendMail } from "@/server/mailer"
+import { escapeHtml, sendMail } from "@/server/mailer"
 import type { Prisma } from "../../../generated/prisma/client"
 import type { OrganizationStatus } from "../../../generated/prisma/enums"
 
@@ -100,11 +100,22 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
 }
 
 export type OrganizationDetail = OrganizationSummary & {
+  showGovernmentFields: boolean
+  contact: { name: string | null; email: string | null; phone: string | null }
   admins: Array<{ id: string; name: string; email: string; status: string }>
 }
 
 export async function getOrganization(id: string): Promise<OrganizationDetail | null> {
-  const row = await dbPlatform.organization.findUnique({ where: { id }, select: summarySelect })
+  const row = await dbPlatform.organization.findUnique({
+    where: { id },
+    select: {
+      ...summarySelect,
+      showGovernmentFields: true,
+      contactName: true,
+      contactEmail: true,
+      contactPhone: true,
+    },
+  })
   if (!row) return null
   const [usage, admins] = await Promise.all([
     usageByOrganization([id]),
@@ -114,7 +125,12 @@ export async function getOrganization(id: string): Promise<OrganizationDetail | 
       orderBy: { createdAt: "asc" },
     }),
   ])
-  return { ...toSummary(row, usage.get(id)!), admins }
+  return {
+    ...toSummary(row, usage.get(id)!),
+    showGovernmentFields: row.showGovernmentFields,
+    contact: { name: row.contactName, email: row.contactEmail, phone: row.contactPhone },
+    admins,
+  }
 }
 
 /**
@@ -147,6 +163,10 @@ export async function createOrganization(
         quotaAssets: input.quotaAssets,
         quotaStorageBytes: BigInt(input.quotaStorageGb) * BigInt(GB),
         quotaUsers: input.quotaUsers,
+        showGovernmentFields: input.showGovernmentFields,
+        contactName: input.contactName,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
       },
       select: { id: true, name: true },
     })
@@ -179,6 +199,10 @@ export async function createOrganization(
           quotaAssets: input.quotaAssets,
           quotaStorageGb: input.quotaStorageGb,
           quotaUsers: input.quotaUsers,
+          showGovernmentFields: input.showGovernmentFields,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          contactPhone: input.contactPhone,
         },
       },
     })
@@ -240,15 +264,15 @@ function sendAdminInvite(email: string, name: string, orgName: string, token: st
     to: email,
     subject: `Undangan Super Admin SIMASET — ${orgName}`,
     html: `
-      <p>Halo ${name},</p>
-      <p>SIMASET untuk ${orgName} sudah siap. Anda diundang sebagai Super Admin pertama.</p>
+      <p>Halo ${escapeHtml(name)},</p>
+      <p>SIMASET untuk ${escapeHtml(orgName)} sudah siap. Anda diundang sebagai Super Admin pertama.</p>
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>
     `,
   })
 }
 
-/** Mengubah kuota dan status langganan. Hanya kolom yang berubah yang dicatat. */
+/** Mengubah kuota, status langganan, dan narahubung. Hanya kolom yang berubah yang dicatat. */
 export async function updateOrganization(
   actorUserId: string,
   organizationId: string,
@@ -257,7 +281,15 @@ export async function updateOrganization(
   await dbPlatform.$transaction(async (tx) => {
     const before = await tx.organization.findUnique({
       where: { id: organizationId },
-      select: { status: true, quotaAssets: true, quotaStorageBytes: true, quotaUsers: true },
+      select: {
+        status: true,
+        quotaAssets: true,
+        quotaStorageBytes: true,
+        quotaUsers: true,
+        contactName: true,
+        contactEmail: true,
+        contactPhone: true,
+      },
     })
     if (!before) throw new OperatorError("Organisasi tidak ditemukan.")
 
@@ -266,8 +298,11 @@ export async function updateOrganization(
       quotaAssets: input.quotaAssets,
       quotaStorageBytes: BigInt(input.quotaStorageGb) * BigInt(GB),
       quotaUsers: input.quotaUsers,
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+      contactPhone: input.contactPhone,
     }
-    const changes: Record<string, { from: string | number; to: string | number }> = {}
+    const changes: Record<string, { from: JsonScalar; to: JsonScalar }> = {}
     for (const key of Object.keys(next) as Array<keyof typeof next>) {
       if (before[key] !== next[key]) {
         // BigInt tidak dapat diserialisasi ke JSON — simpan sebagai angka biasa.
@@ -290,7 +325,9 @@ export async function updateOrganization(
   })
 }
 
-function jsonable(value: string | number | bigint): string | number {
+type JsonScalar = string | number | null
+
+function jsonable(value: string | number | bigint | null): JsonScalar {
   return typeof value === "bigint" ? Number(value) : value
 }
 
