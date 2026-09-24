@@ -45,6 +45,14 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  // Tanpa ini setiap run menambah pengguna ke RS01 hingga kuota 50 penuh dan
+  // inviteUser() mulai melempar QuotaExceededError.
+  await setup.user.deleteMany({
+    where: {
+      organizationId: orgId,
+      email: { startsWith: "invite-test-", endsWith: "@simaset.test" },
+    },
+  })
   await setup.$disconnect()
 })
 
