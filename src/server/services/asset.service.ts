@@ -120,7 +120,10 @@ export async function createAsset(
 
     // Tabrakan public_id/asset_code astronomis kecil kemungkinannya (docs/08:
     // 57^12 kombinasi), tapi diperiksa dan diulang sesuai dok, bukan diasumsikan
-    // tidak akan pernah terjadi.
+    // tidak akan pernah terjadi. Postgres membatalkan SELURUH transaksi begitu
+    // satu statement gagal (unique violation termasuk) — tanpa SAVEPOINT di
+    // sini, percobaan ulang di dalam tx yang sama akan langsung gagal lagi
+    // dengan "current transaction is aborted" pada percobaan berikutnya.
     for (let attempt = 0; attempt < 5; attempt++) {
       const publicId = generatePublicId()
       const sequence = await nextSequence(tx, organizationId, org.code, departmentCode, year)
@@ -130,6 +133,7 @@ export async function createAsset(
         year,
         sequence,
       })
+      await tx.$executeRawUnsafe("SAVEPOINT asset_create_attempt")
       try {
         const asset = await tx.asset.create({
           data: {
@@ -188,8 +192,10 @@ export async function createAsset(
           })
         }
 
+        await tx.$executeRawUnsafe("RELEASE SAVEPOINT asset_create_attempt")
         return asset
       } catch (e) {
+        await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT asset_create_attempt")
         if (isUniqueViolation(e, "public_id")) continue // ulangi dengan public_id baru
         if (isUniqueViolation(e, "asset_code")) continue // ulangi dengan urutan baru
         throw e
