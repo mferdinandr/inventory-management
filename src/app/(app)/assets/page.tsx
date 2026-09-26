@@ -26,6 +26,7 @@ export default async function AssetsPage({
   const user = await requireUser()
   const organizationId = await requireActiveOrg()
   const canCreate = hasPermission(user.role, "asset:create")
+  const canDispose = hasPermission(user.role, "asset:dispose")
 
   const { items } = await listAssets(organizationId, { q })
 
@@ -36,7 +37,15 @@ export default async function AssetsPage({
           <h1 className="text-xl font-semibold">Aset</h1>
           <p className="text-sm text-muted-foreground">Seluruh aset organisasi Anda.</p>
         </div>
-        {canCreate ? <Button render={<Link href="/assets/new">Daftarkan Aset</Link>} /> : null}
+        <div className="flex gap-2">
+          {canDispose ? (
+            <Button
+              variant="outline"
+              render={<Link href="/assets/disposed">Aset Dihapuskan</Link>}
+            />
+          ) : null}
+          {canCreate ? <Button render={<Link href="/assets/new">Daftarkan Aset</Link>} /> : null}
+        </div>
       </header>
 
       {scan ? (

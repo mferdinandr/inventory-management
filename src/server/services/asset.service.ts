@@ -328,7 +328,16 @@ export async function getAssetDetail(organizationId: string, assetId: string) {
         vendor: true,
         responsibleUser: { select: { id: true, name: true } },
         createdByUser: { select: { id: true, name: true } },
-        events: { orderBy: { occurredAt: "desc" }, take: 20 },
+        events: {
+          orderBy: { occurredAt: "desc" },
+          take: 30,
+          include: {
+            recordedByUser: { select: { id: true, name: true } },
+            attachments: { select: { id: true, mimeType: true, originalFilename: true } },
+            corrections: { select: { id: true } },
+            correctsEvent: { select: { id: true, title: true } },
+          },
+        },
         labelPrints: { orderBy: { printedAt: "desc" }, take: 10 },
       },
     }),
