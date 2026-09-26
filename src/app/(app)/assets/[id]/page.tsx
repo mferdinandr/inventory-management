@@ -1,6 +1,13 @@
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { DisposeDialog } from "@/components/assets/dispose-dialog"
+import { EventForm } from "@/components/assets/event-form"
+import { HistoryTimeline } from "@/components/assets/history-timeline"
+import { RevertDisposalButton } from "@/components/assets/revert-disposal-button"
+import { TransferForm } from "@/components/assets/transfer-form"
+import { hasPermission } from "@/lib/permissions"
+import { withOrg } from "@/server/db"
 import { getAssetDetail } from "@/server/services/asset.service"
 import { requireActiveOrg, requireUser } from "@/server/tenant"
 
@@ -26,11 +33,31 @@ export default async function AssetDetailPage({
 }) {
   const { id } = await params
   const { created } = await searchParams
-  await requireUser()
+  const user = await requireUser()
   const organizationId = await requireActiveOrg()
 
   const asset = await getAssetDetail(organizationId, id)
   if (!asset) notFound()
+
+  const canTransfer = hasPermission(user.role, "asset:transfer")
+  const canDispose = hasPermission(user.role, "asset:dispose")
+  const canRevert = hasPermission(user.role, "asset:revertDisposal")
+  const canRecordEvent = hasPermission(user.role, "event:create")
+  const isDisposed = asset.status === "DISPOSED"
+
+  const rooms = isDisposed
+    ? []
+    : await withOrg(organizationId, (tx) =>
+        tx.location.findMany({
+          where: { organizationId, type: "ROOM", isActive: true, id: { not: asset.locationId } },
+          orderBy: { name: "asc" },
+          include: { parent: { include: { parent: { include: { parent: true } } } } },
+        }),
+      )
+
+  const remainingRevertDays = asset.disposalRevertUntil
+    ? Math.max(0, Math.ceil((asset.disposalRevertUntil.getTime() - Date.now()) / 86_400_000))
+    : 0
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -38,6 +65,20 @@ export default async function AssetDetailPage({
         <p className="rounded-md border border-emerald-300 bg-emerald-50 p-2 text-sm text-emerald-800">
           Aset berhasil didaftarkan. Cetak labelnya sekarang sebelum lupa.
         </p>
+      ) : null}
+
+      {isDisposed ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <span>
+            Aset telah dihapuskan pada {asset.disposedAt?.toLocaleDateString("id-ID")}.
+            {asset.disposalRevertUntil && asset.disposalRevertUntil > new Date()
+              ? ` Dapat dibatalkan dalam ${remainingRevertDays} hari lagi.`
+              : " Masa pembatalan sudah lewat; penghapusan ini final."}
+          </span>
+          {canRevert && asset.disposalRevertUntil && asset.disposalRevertUntil > new Date() ? (
+            <RevertDisposalButton assetId={asset.id} />
+          ) : null}
+        </div>
       ) : null}
 
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -102,24 +143,56 @@ export default async function AssetDetailPage({
         </dl>
       </div>
 
+      {!isDisposed && (canRecordEvent || canTransfer || canDispose) ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {canRecordEvent ? <EventForm assetId={asset.id} /> : null}
+          {canTransfer ? (
+            <TransferForm
+              assetId={asset.id}
+              rooms={rooms.map((r) => ({
+                id: r.id,
+                label: [
+                  r.parent?.parent?.parent?.name,
+                  r.parent?.parent?.name,
+                  r.parent?.name,
+                  r.name,
+                ]
+                  .filter(Boolean)
+                  .join(" / "),
+              }))}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {!isDisposed && canDispose ? (
+        <div className="rounded-xl border border-destructive/30 bg-card p-4">
+          <p className="mb-2 text-sm text-muted-foreground">
+            Menghapuskan aset dapat dibatalkan dalam 30 hari.
+          </p>
+          <DisposeDialog assetId={asset.id} />
+        </div>
+      ) : null}
+
       <section className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Riwayat</h2>
-        {asset.events.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Belum ada riwayat.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {asset.events.map((e) => (
-              <li key={e.id} className="flex items-baseline justify-between gap-3">
-                <span>
-                  <span className="font-medium">{e.title}</span>
-                </span>
-                <time className="shrink-0 text-xs text-muted-foreground">
-                  {new Date(e.occurredAt).toLocaleDateString("id-ID")}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
+        <HistoryTimeline
+          assetId={asset.id}
+          events={asset.events.map((e) => ({
+            id: e.id,
+            type: e.type,
+            title: e.title,
+            notes: e.notes,
+            occurredAt: e.occurredAt,
+            recordedAt: e.recordedAt,
+            recordedByUser: e.recordedByUser,
+            statusBefore: e.statusBefore,
+            statusAfter: e.statusAfter,
+            attachments: e.attachments,
+            corrections: e.corrections,
+            correctsEvent: e.correctsEvent,
+          }))}
+        />
       </section>
     </div>
   )
