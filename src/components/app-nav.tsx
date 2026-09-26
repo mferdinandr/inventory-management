@@ -16,8 +16,8 @@ import { cn } from "@/lib/utils"
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: LucideIcon; comingSoon?: boolean }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/assets", label: "Aset", icon: Boxes, comingSoon: true },
-  { href: "/scan", label: "Pindai", icon: ScanLine, comingSoon: true },
+  { href: "/assets", label: "Aset", icon: Boxes },
+  { href: "/scan", label: "Pindai", icon: ScanLine },
   { href: "/loans", label: "Peminjaman", icon: Handshake, comingSoon: true },
   { href: "/maintenance", label: "Pemeliharaan", icon: Wrench, comingSoon: true },
   { href: "/reports", label: "Laporan", icon: BarChart3, comingSoon: true },

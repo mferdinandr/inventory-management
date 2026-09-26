@@ -81,7 +81,14 @@ export function CategoryFormDialog({ mode, category, topLevel }: CategoryFormDia
 
           <div className="space-y-1">
             <Label htmlFor="category-parent">Induk</Label>
-            <Select name="parentId" defaultValue={category?.parentId ?? ""}>
+            <Select
+              name="parentId"
+              defaultValue={category?.parentId ?? ""}
+              items={{
+                "": "— Tanpa induk —",
+                ...Object.fromEntries(parentCandidates.map((c) => [c.id, c.name])),
+              }}
+            >
               <SelectTrigger id="category-parent" className="w-full">
                 <SelectValue placeholder="— Tanpa induk —" />
               </SelectTrigger>
