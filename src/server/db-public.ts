@@ -7,10 +7,9 @@ const globalForPublic = globalThis as unknown as { dbPublic?: PrismaClientType }
 
 /**
  * Koneksi halaman publik (/a/{publicId}) — role `simaset_public` yang izinnya
- * terbatapada kolom aman (lihat migrasi: GRANT SELECT ...). Kolom sensitif
- * tidak pernah keluar dari basis data.
-.Ini HANYA untuk kueri baca.
-.
+ * terbatas pada kolom aman (lihat migrasi: GRANT SELECT ...). Kolom sensitif
+ * tidak pernah keluar dari basis data — bukan disaring di kode, sungguh
+ * tidak bisa dipilih oleh peran ini. Ini hanya untuk kueri baca.
  */
 export const dbPublic =
   globalForPublic.dbPublic ??
