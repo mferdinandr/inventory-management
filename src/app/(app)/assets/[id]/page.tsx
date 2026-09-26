@@ -6,9 +6,13 @@ import { EventForm } from "@/components/assets/event-form"
 import { HistoryTimeline } from "@/components/assets/history-timeline"
 import { RevertDisposalButton } from "@/components/assets/revert-disposal-button"
 import { TransferForm } from "@/components/assets/transfer-form"
+import { CheckoutForm } from "@/components/loans/checkout-form"
+import { ReturnDialog } from "@/components/loans/return-dialog"
 import { hasPermission } from "@/lib/permissions"
+import { isLoanable } from "@/lib/status-machine"
 import { withOrg } from "@/server/db"
 import { getAssetDetail } from "@/server/services/asset.service"
+import { getActiveLoanForAsset } from "@/server/services/loan.service"
 import { requireActiveOrg, requireUser } from "@/server/tenant"
 
 export const dynamic = "force-dynamic"
@@ -43,17 +47,31 @@ export default async function AssetDetailPage({
   const canDispose = hasPermission(user.role, "asset:dispose")
   const canRevert = hasPermission(user.role, "asset:revertDisposal")
   const canRecordEvent = hasPermission(user.role, "event:create")
+  const canManageLoan = hasPermission(user.role, "loan:manage")
   const isDisposed = asset.status === "DISPOSED"
+  const isOnLoan = asset.status === "ON_LOAN"
 
-  const rooms = isDisposed
-    ? []
-    : await withOrg(organizationId, (tx) =>
-        tx.location.findMany({
-          where: { organizationId, type: "ROOM", isActive: true, id: { not: asset.locationId } },
-          orderBy: { name: "asc" },
-          include: { parent: { include: { parent: { include: { parent: true } } } } },
-        }),
-      )
+  const [rooms, users, activeLoan] = await Promise.all([
+    isDisposed
+      ? []
+      : withOrg(organizationId, (tx) =>
+          tx.location.findMany({
+            where: { organizationId, type: "ROOM", isActive: true, id: { not: asset.locationId } },
+            orderBy: { name: "asc" },
+            include: { parent: { include: { parent: { include: { parent: true } } } } },
+          }),
+        ),
+    canManageLoan && isLoanable(asset.status)
+      ? withOrg(organizationId, (tx) =>
+          tx.user.findMany({
+            where: { organizationId, status: "ACTIVE" },
+            orderBy: { name: "asc" },
+            select: { id: true, name: true },
+          }),
+        )
+      : [],
+    isOnLoan ? getActiveLoanForAsset(organizationId, asset.id) : null,
+  ])
 
   const remainingRevertDays = asset.disposalRevertUntil
     ? Math.max(0, Math.ceil((asset.disposalRevertUntil.getTime() - Date.now()) / 86_400_000))
@@ -143,10 +161,21 @@ export default async function AssetDetailPage({
         </dl>
       </div>
 
+      {canManageLoan && isOnLoan && activeLoan ? (
+        <div className="rounded-xl border bg-card p-4">
+          <p className="mb-2 text-sm text-muted-foreground">Aset ini sedang dipinjam.</p>
+          <ReturnDialog loanId={activeLoan.id} assetId={asset.id} />
+        </div>
+      ) : null}
+
+      {canManageLoan && isLoanable(asset.status) ? (
+        <CheckoutForm assetId={asset.id} users={users.map((u) => ({ id: u.id, label: u.name }))} />
+      ) : null}
+
       {!isDisposed && (canRecordEvent || canTransfer || canDispose) ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {canRecordEvent ? <EventForm assetId={asset.id} /> : null}
-          {canTransfer ? (
+          {canTransfer && !isOnLoan ? (
             <TransferForm
               assetId={asset.id}
               rooms={rooms.map((r) => ({
@@ -165,7 +194,7 @@ export default async function AssetDetailPage({
         </div>
       ) : null}
 
-      {!isDisposed && canDispose ? (
+      {!isDisposed && !isOnLoan && canDispose ? (
         <div className="rounded-xl border border-destructive/30 bg-card p-4">
           <p className="mb-2 text-sm text-muted-foreground">
             Menghapuskan aset dapat dibatalkan dalam 30 hari.
