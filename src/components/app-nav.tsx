@@ -38,10 +38,10 @@ export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" 
         const active = pathname === href || pathname.startsWith(`${href}/`)
         const content = (
           <>
-            <Icon className="size-4 shrink-0" />
+            <Icon className="size-5 shrink-0" />
             <span className="flex-1 text-left">{label}</span>
             {comingSoon ? (
-              <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+              <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
                 Segera
               </span>
             ) : null}
@@ -51,7 +51,7 @@ export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" 
           return (
             <span
               key={href}
-              className="flex cursor-not-allowed items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground/70"
+              className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3.5 py-3 text-base text-muted-foreground"
             >
               {content}
             </span>
@@ -62,7 +62,7 @@ export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" 
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-lg px-3.5 py-3 text-base font-medium transition-colors",
               active
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
