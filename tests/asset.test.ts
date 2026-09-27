@@ -86,12 +86,16 @@ describe("createAsset", () => {
     expect(asset.assetCode).toMatch(/^RS01-RAD-2026-\d{4}$/)
   })
 
-  it("two assets registered back to back get consecutive sequence numbers", async () => {
+  it("two assets registered back to back get increasing, distinct sequence numbers", async () => {
     const a = await createAsset(orgId, adminId, baseInput())
     const b = await createAsset(orgId, adminId, baseInput())
     const seqA = Number(a.assetCode.split("-").at(-1))
     const seqB = Number(b.assetCode.split("-").at(-1))
-    expect(seqB).toBe(seqA + 1)
+    // Bukan selalu tepat +1: file tes lain berjalan paralel (Vitest default)
+    // dan bisa mendaftarkan aset lain di RS01 di antara dua panggilan ini,
+    // mengambil satu nomor urut. Yang harus benar hanyalah urut naik dan
+    // tidak pernah bertabrakan — itulah yang benar-benar dijamin nextSequence().
+    expect(seqB).toBeGreaterThan(seqA)
   })
 
   it("writes a CREATED event automatically (FR-15)", async () => {
