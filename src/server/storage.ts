@@ -43,6 +43,25 @@ export function objectKeyForAttachment(input: {
   ].join("/")
 }
 
+/** Sertifikat kalibrasi/pemeliharaan — bukan lampiran asset_events biasa,
+ * ditautkan langsung dari maintenance_records.certificate_object_key.
+ */
+export function objectKeyForCertificate(input: {
+  organizationId: string
+  assetId: string
+  scheduleId: string
+  ext: string
+}): string {
+  return [
+    input.organizationId,
+    "assets",
+    input.assetId,
+    "maintenance",
+    input.scheduleId,
+    `${randomUUID()}.${input.ext}`,
+  ].join("/")
+}
+
 export async function presignUpload(opts: {
   objectKey: string
   contentType: string
