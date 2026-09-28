@@ -8,11 +8,15 @@ import { RevertDisposalButton } from "@/components/assets/revert-disposal-button
 import { TransferForm } from "@/components/assets/transfer-form"
 import { CheckoutForm } from "@/components/loans/checkout-form"
 import { ReturnDialog } from "@/components/loans/return-dialog"
+import { ScheduleFormDialog } from "@/components/maintenance/schedule-form-dialog"
+import { ScheduleList } from "@/components/maintenance/schedule-list"
 import { hasPermission } from "@/lib/permissions"
 import { isLoanable } from "@/lib/status-machine"
 import { withOrg } from "@/server/db"
 import { getAssetDetail } from "@/server/services/asset.service"
 import { getActiveLoanForAsset } from "@/server/services/loan.service"
+import { listSchedulesForAsset } from "@/server/services/maintenance.service"
+import { listActiveVendors } from "@/server/services/vendor.service"
 import { requireActiveOrg, requireUser } from "@/server/tenant"
 
 export const dynamic = "force-dynamic"
@@ -48,10 +52,11 @@ export default async function AssetDetailPage({
   const canRevert = hasPermission(user.role, "asset:revertDisposal")
   const canRecordEvent = hasPermission(user.role, "event:create")
   const canManageLoan = hasPermission(user.role, "loan:manage")
+  const canMaintain = hasPermission(user.role, "event:maintenance")
   const isDisposed = asset.status === "DISPOSED"
   const isOnLoan = asset.status === "ON_LOAN"
 
-  const [rooms, users, activeLoan] = await Promise.all([
+  const [rooms, users, activeLoan, schedules, vendors] = await Promise.all([
     isDisposed
       ? []
       : withOrg(organizationId, (tx) =>
@@ -71,6 +76,8 @@ export default async function AssetDetailPage({
         )
       : [],
     isOnLoan ? getActiveLoanForAsset(organizationId, asset.id) : null,
+    canMaintain ? listSchedulesForAsset(organizationId, asset.id) : [],
+    canMaintain ? listActiveVendors(organizationId) : [],
   ])
 
   const remainingRevertDays = asset.disposalRevertUntil
@@ -201,6 +208,21 @@ export default async function AssetDetailPage({
           </p>
           <DisposeDialog assetId={asset.id} />
         </div>
+      ) : null}
+
+      {!isDisposed && canMaintain ? (
+        <section className="rounded-xl border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Jadwal Pemeliharaan</h2>
+            <ScheduleFormDialog assetId={asset.id} />
+          </div>
+          <ScheduleList
+            assetId={asset.id}
+            schedules={schedules}
+            vendors={vendors.map((v) => ({ id: v.id, label: v.name }))}
+            canManage={canMaintain}
+          />
+        </section>
       ) : null}
 
       <section className="rounded-xl border bg-card p-4">

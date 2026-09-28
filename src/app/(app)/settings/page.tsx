@@ -22,7 +22,7 @@ const LINKS = [
     href: "/settings/vendors",
     label: "Vendor",
     description: "Penyedia barang dan jasa servis/kalibrasi",
-    enabled: false,
+    enabled: true,
   },
   {
     href: "/settings/users",
