@@ -26,8 +26,8 @@ erDiagram
         text code UK "BRG-0001"
         text name
         text description
-        enum route "STERIL | NON_STERIL"
-        enum location "OPERASI | CSSD | ALKES"
+        bool needs_sterilization
+        enum location "OPERASI | CSSD"
         text room "Kamar Operasi 101"
         int quantity "default 1"
         int damaged_quantity "default 0"
@@ -87,8 +87,7 @@ erDiagram
 | Enum | Nilai |
 |---|---|
 | `Role` | `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` |
-| `Route` | `STERIL`, `NON_STERIL` |
-| `Location` | `OPERASI`, `CSSD`, `ALKES` |
+| `Location` | `OPERASI`, `CSSD` |
 | `LogAction` | `REGISTER`, `EDIT`, `SEND`, `RETURN`, `MAINTENANCE`, `ARCHIVE`, `RESTORE` |
 | `MaintenanceType` | `PERBAIKAN`, `PEMELIHARAAN`, `KALIBRASI` |
 
@@ -102,8 +101,9 @@ Lihat [12 — Data Contoh](12-data-contoh.md).
 - `item_contents.brand` — daftar Mei mencatat merek per instrumen (Aesculap, B.Braun, Storz).
 - `damaged_quantity` + `note` — kolom "Alat Rusak" dan "Keterangan" pada daftar Juni.
   Jumlah baik = `quantity − damaged_quantity`.
-- `items.quantity` / `damaged_quantity` — barang besar sejenis dicatat per jumlah di daftar Mei
-  ("Meja Stainless 4", "Tempat sampah 2"); satu QR untuk kelompok itu. Kondisi RUSAK = `damaged_quantity > 0`.
+- `items.quantity` / `damaged_quantity` — barang sejenis tanpa nomor seri dicatat per jumlah di daftar Mei
+  ("Meja Stainless 4", "Tempat sampah 2"); satu QR untuk kelompok itu. Alat bernomor seri
+  satu QR per unit. Kondisi RUSAK = `damaged_quantity > 0`.
 
 ## Skema (ringkas)
 
@@ -127,7 +127,7 @@ CREATE TABLE items (
                  DEFAULT 'BRG-' || lpad(nextval('item_code_seq')::text, 4, '0'),
   name           text NOT NULL,
   description    text,
-  route          "Route" NOT NULL DEFAULT 'STERIL',
+  needs_sterilization boolean NOT NULL,
   location       "Location" NOT NULL DEFAULT 'OPERASI',
   room           text,
   quantity       int NOT NULL DEFAULT 1 CHECK (quantity >= 0),
@@ -144,7 +144,9 @@ CREATE TABLE items (
   version        int NOT NULL DEFAULT 1,
   is_archived    boolean NOT NULL DEFAULT false,
   created_at     timestamptz NOT NULL DEFAULT now(),
-  CHECK (damaged_quantity BETWEEN 0 AND quantity)
+  CHECK (damaged_quantity BETWEEN 0 AND quantity),
+  CHECK (serial_number IS NULL OR quantity = 1),       -- satu QR = satu unit bernomor seri
+  CHECK (needs_sterilization OR location = 'OPERASI')  -- barang tanpa steril tidak pernah ke CSSD
 );
 
 CREATE TABLE item_contents (
@@ -224,18 +226,17 @@ isian "jadwal berikutnya" (pemeliharaan). `damaged_after` mengubah `items.damage
 1. **Riwayat append-only.** Peran basis data aplikasi hanya diberi `INSERT, SELECT` pada
    `item_logs` dan `maintenance_records`; `UPDATE` dan `DELETE` dicabut. Salah isi maintenance
    dikoreksi dengan catatan baru.
-2. **Perpindahan lokasi bersyarat.**
-   - Kirim (OPERASI): `UPDATE items SET location = CASE route WHEN 'STERIL' THEN 'CSSD' ELSE 'ALKES' END, version=version+1
-     WHERE id=$1 AND location='OPERASI'`.
-   - Kembali: `... SET location='OPERASI' WHERE id=$1 AND location IN ('CSSD','ALKES')`.
-   - Nol baris terpengaruh → 409. Tujuan tidak dikirim klien, jadi `NON_STERIL` tak mungkin
-     masuk CSSD.
+2. **Perpindahan lokasi bersyarat.** Hanya barang `needs_sterilization`.
+   - Kirim (OPERASI): `UPDATE items SET location='CSSD', version=version+1
+     WHERE id=$1 AND location='OPERASI' AND needs_sterilization`.
+   - Kembali (STERIL): `... SET location='OPERASI' WHERE id=$1 AND location='CSSD'`.
+   - Nol baris terpengaruh → 409. Barang tanpa sterilisasi tidak punya jalur perpindahan.
 3. **Pengembalian atomik.** Update lokasi, update jumlah, dan penulisan log dalam satu
    transaksi. Begitu juga maintenance: insert record + update `damaged_quantity` + insert log.
 4. **Penguncian optimistis.** Ubah isi mengirim `version`; tidak cocok → 409.
 5. `location_since` diperbarui setiap kali lokasi berubah.
 6. Barang tidak pernah dihapus; hanya `is_archived`. Terarsip tidak dapat dikirim/dikembalikan.
-7. `route` hanya dapat diubah saat barang di Operasi.
+7. `needs_sterilization` hanya dapat diubah saat barang di Operasi.
 8. Selalu ada minimal satu `SUPERADMIN` aktif.
 9. `serial_number` yang sudah dipakai barang lain memunculkan peringatan (bukan penolakan).
 10. "Terakhir dicek CSSD" dihitung dari log `RETURN` terakhir, bukan kolom sendiri.

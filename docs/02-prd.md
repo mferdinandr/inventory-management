@@ -22,10 +22,10 @@ pendataan tidak tertahan.
 |---|---|---|
 | **Identitas** | Kode | otomatis `BRG-0001`, tidak berubah |
 | | Nama * | "Mesin Anestesi Drager", "MAYOR 1" |
-| | Jalur * | `STERIL` (via CSSD) atau `NON_STERIL` (via Kantor Alkes) |
+| | Perlu sterilisasi * | Ya (set/wadah instrumen; bisa dikirim ke CSSD) atau Tidak (alat besar; tidak berpindah) |
 | | Kamar/ruang | "Kamar Operasi 101", "RR", "Ruang Transit" (teks, ada saran dari yang pernah dipakai) |
 | | Keterangan | teks bebas |
-| **Jumlah** | Jumlah | default 1; mis. "Meja stainless" = 4 |
+| **Jumlah** | Jumlah | default 1. **Lebih dari 1 hanya untuk barang sejenis tanpa nomor seri** (meja stainless 4, tempat sampah 2). Alat bernomor seri didaftarkan satu per satu |
 | | Jumlah rusak | default 0 |
 | **Detail alat** | Merek, Model/tipe, Nomor seri | |
 | **Pembelian** | Tanggal pembelian, Harga (Rp), Supplier/penyedia, Sumber dana | |
@@ -34,14 +34,17 @@ pendataan tidak tertahan.
 
 Sistem otomatis mengisi: lokasi awal `OPERASI`, `location_since`, versi.
 
-- **O** mendaftarkan dan mengubah semua isian di atas **selama barang tidak sedang di CSSD**
-  (barang non-steril yang sedang di Alkes tetap dapat diubah O).
+- **O** mendaftarkan dan mengubah semua isian di atas **selama barang tidak sedang di CSSD**.
+  Barang tanpa sterilisasi tidak pernah ke CSSD, sehingga selalu dapat diubah O.
+- **A** hanya melihat. **S** hanya mengubah isi saat barang di CSSD (F3).
 - Arsip = disembunyikan dari daftar, tetap ada di riwayat. Tidak ada hapus permanen.
 
 **Acceptance:**
 - Barang baru langsung punya kode dan QR siap cetak.
 - Nomor seri yang sudah dipakai barang lain memunculkan peringatan (bukan penolakan).
 - Jumlah rusak tidak boleh melebihi jumlah.
+- Nomor seri hanya boleh diisi bila jumlah = 1 (satu QR untuk satu unit bernomor seri).
+- Jenis "Perlu sterilisasi" tidak dapat diubah saat barang di CSSD.
 - Barang terarsip tidak muncul di daftar default tetapi bisa dicari dengan filter "arsip".
 
 ## F3. Isi wadah
@@ -69,29 +72,28 @@ Setiap baris isi:
 - Jumlah negatif atau rusak > jumlah ditolak.
 - Dua orang menyimpan bersamaan → yang kedua mendapat "data sudah berubah, muat ulang".
 
-## F4. Alur perpindahan
+## F4. Alur perpindahan (hanya barang yang perlu sterilisasi)
 
-Hanya dua tindakan; tujuan **Kirim** otomatis mengikuti jalur barang.
+Hanya dua tindakan, dan hanya untuk barang yang **perlu sterilisasi**. Barang tanpa
+sterilisasi tidak punya tombol Kirim/Kembalikan dan tidak pernah berpindah dari Operasi.
 
 | Tindakan | Siapa | Syarat | Hasil |
 |---|---|---|---|
-| **Kirim** | O | Barang di Operasi | `STERIL` → CSSD; `NON_STERIL` → Alkes |
-| **Kembalikan ke Operasi** (dari CSSD) | S | Barang di CSSD | Lokasi → Operasi; perubahan jumlah disimpan bersamaan |
-| **Ambil kembali** (dari Alkes) | O | Barang `NON_STERIL` di Alkes | Lokasi → Operasi |
+| **Kirim ke CSSD** | O | Perlu sterilisasi, di Operasi | Lokasi → CSSD |
+| **Kembalikan ke Operasi** | S | Di CSSD | Lokasi → Operasi; perubahan jumlah disimpan bersamaan |
 
-- Alkes **tidak** memindahkan barang. Alkes melihat dan melakukan maintenance (F5).
 - Tiap tindakan meminta **nama petugas** (diingat di perangkat) dan catatan opsional.
 - Tidak ada approval dan tidak ada status antara.
 
 **Acceptance:**
 - Mengirim barang yang sudah tidak di Operasi → ditolak dengan pesan lokasi sebenarnya.
-- `NON_STERIL` tidak pernah masuk CSSD, dan sebaliknya.
+- Mengirim barang yang tidak perlu sterilisasi → ditolak.
 - Pengembalian + perubahan jumlah atomik.
 
-## F5. Maintenance (A, SA)
+## F5. Maintenance (semua peran)
 
-Tombol **Maintenance** di halaman barang (hanya terlihat oleh A dan SA), dapat dilakukan pada
-barang di lokasi mana pun. Tiga form, masing-masing dengan isian detail:
+Tombol **Maintenance** di halaman barang terlihat oleh **semua peran** (O, S, A, SA) dan dapat
+dipakai pada barang di lokasi mana pun, termasuk yang sedang di CSSD. Tiga form, masing-masing dengan isian detail:
 
 | Form | Isian |
 |---|---|
@@ -107,7 +109,7 @@ barang di lokasi mana pun. Tiga form, masing-masing dengan isian detail:
 - Hasil kalibrasi "Tidak lulus" otomatis menandai minimal 1 unit rusak bila jumlah rusak masih 0.
 
 **Acceptance:**
-- Peran O dan S mendapat 403 pada endpoint maintenance, dan tidak melihat tombolnya.
+- Semua peran yang login dapat mencatat maintenance; pengguna nonaktif atau tanpa sesi ditolak.
 - Field wajib per form divalidasi; `berlaku sampai` tidak boleh sebelum tanggal kalibrasi.
 
 ## F6. Riwayat
@@ -133,7 +135,7 @@ peran basis data aplikasi tidak punya hak `UPDATE`/`DELETE` pada `item_logs` dan
 
 ## F9. Beranda (semua peran)
 
-- Hitungan: di **Operasi**, di **CSSD**, di **Alkes**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
+- Hitungan: di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
 - Daftar barang dengan filter lokasi/kamar/rusak/jatuh tempo + pencarian. Baris: kode, nama,
   kamar, lokasi, jumlah (rusak), sudah berapa lama di lokasi itu.
 - Detail barang: identitas, pembelian, isi, riwayat, maintenance. Tombol aksi hanya
