@@ -1,12 +1,15 @@
 # 03 — ERD & Skema Data
 
-Empat tabel. Tidak ada `organization_id`, tidak ada tabel lampiran.
+Lima tabel. Tidak ada `organization_id`, tidak ada tabel lampiran/gambar.
 
 ```mermaid
 erDiagram
     users ||--o{ item_logs : "mencatat"
+    users ||--o{ maintenance_records : "mencatat"
     items ||--o{ item_contents : "berisi"
     items ||--o{ item_logs : "punya riwayat"
+    items ||--o{ maintenance_records : "dirawat"
+    maintenance_records ||--o| item_logs : "tercatat di"
 
     users {
         uuid id PK
@@ -25,6 +28,16 @@ erDiagram
         text description
         enum route "STERIL | NON_STERIL"
         enum location "OPERASI | CSSD | ALKES"
+        text room "Kamar Operasi 101"
+        enum condition "BAIK | RUSAK"
+        text brand
+        text model
+        text serial_number
+        date purchase_date
+        bigint purchase_price
+        text supplier
+        text funding_source
+        date warranty_until
         timestamptz location_since
         int version "optimistic lock"
         bool is_archived
@@ -34,17 +47,36 @@ erDiagram
         uuid id PK
         uuid item_id FK
         text name
+        text brand
         int quantity "CHECK >= 0"
+        int damaged_quantity "CHECK 0..quantity"
+        text note
         timestamptz updated_at
     }
     item_logs {
         uuid id PK
         uuid item_id FK
-        enum action "REGISTER | SEND | RETURN | EDIT | ARCHIVE | RESTORE"
+        enum action "REGISTER | EDIT | SEND | RETURN | MAINTENANCE | ARCHIVE | RESTORE"
         uuid user_id FK
         text actor_name "nama petugas"
         text note
-        jsonb changes "perubahan isi"
+        jsonb changes "perubahan isi/jumlah"
+        uuid maintenance_id FK "bila MAINTENANCE"
+        timestamptz created_at
+    }
+    maintenance_records {
+        uuid id PK
+        uuid item_id FK
+        enum type "PERBAIKAN | PEMELIHARAAN | KALIBRASI"
+        date performed_on
+        text performer "teknisi / vendor"
+        bigint cost
+        text note
+        jsonb details "isi form sesuai type"
+        date next_due "jatuh tempo berikutnya"
+        enum condition_after "BAIK | RUSAK"
+        uuid user_id FK
+        text actor_name
         timestamptz created_at
     }
 ```
@@ -56,7 +88,21 @@ erDiagram
 | `Role` | `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` |
 | `Route` | `STERIL`, `NON_STERIL` |
 | `Location` | `OPERASI`, `CSSD`, `ALKES` |
-| `LogAction` | `REGISTER`, `SEND`, `RETURN`, `EDIT`, `ARCHIVE`, `RESTORE` |
+| `Condition` | `BAIK`, `RUSAK` |
+| `LogAction` | `REGISTER`, `EDIT`, `SEND`, `RETURN`, `MAINTENANCE`, `ARCHIVE`, `RESTORE` |
+| `MaintenanceType` | `PERBAIKAN`, `PEMELIHARAAN`, `KALIBRASI` |
+
+## Mengapa kolom ini ada (dari daftar contoh)
+
+Lihat [12 — Data Contoh](12-data-contoh.md).
+
+- `room` — daftar Juni dikelompokkan per kamar (Kamar Operasi 101, 102, RR, Ruang Transit).
+- `brand`, `model`, `serial_number`, `purchase_*`, `supplier`, `warranty_until` — detail
+  pembelian barang besar (mesin anestesi, meja operasi, lampu operasi, USG).
+- `item_contents.brand` — daftar Mei mencatat merek per instrumen (Aesculap, B.Braun, Storz).
+- `damaged_quantity` + `note` — kolom "Alat Rusak" dan "Keterangan" pada daftar Juni.
+  Jumlah baik = `quantity − damaged_quantity`.
+- `items.condition` — kolom Kondisi (BAIK/RUSAK) pada daftar Mei untuk barang besar.
 
 ## Skema (ringkas)
 
@@ -82,6 +128,16 @@ CREATE TABLE items (
   description    text,
   route          "Route" NOT NULL DEFAULT 'STERIL',
   location       "Location" NOT NULL DEFAULT 'OPERASI',
+  room           text,
+  condition      "Condition" NOT NULL DEFAULT 'BAIK',
+  brand          text,
+  model          text,
+  serial_number  text,
+  purchase_date  date,
+  purchase_price bigint CHECK (purchase_price >= 0),   -- rupiah, tanpa desimal
+  supplier       text,
+  funding_source text,
+  warranty_until date,
   location_since timestamptz NOT NULL DEFAULT now(),
   version        int NOT NULL DEFAULT 1,
   is_archived    boolean NOT NULL DEFAULT false,
@@ -89,23 +145,46 @@ CREATE TABLE items (
 );
 
 CREATE TABLE item_contents (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  item_id    uuid NOT NULL REFERENCES items(id),
-  name       text NOT NULL,
-  quantity   int  NOT NULL CHECK (quantity >= 0),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id          uuid NOT NULL REFERENCES items(id),
+  name             text NOT NULL,
+  brand            text,
+  quantity         int  NOT NULL CHECK (quantity >= 0),
+  damaged_quantity int  NOT NULL DEFAULT 0,
+  note             text,
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  CHECK (damaged_quantity BETWEEN 0 AND quantity),
   UNIQUE (item_id, name)
 );
 
+CREATE TABLE maintenance_records (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id         uuid NOT NULL REFERENCES items(id),
+  type            "MaintenanceType" NOT NULL,
+  performed_on    date NOT NULL,
+  performer       text NOT NULL,
+  cost            bigint CHECK (cost >= 0),
+  note            text,
+  details         jsonb NOT NULL,
+  next_due        date,
+  condition_after "Condition" NOT NULL,
+  user_id         uuid NOT NULL REFERENCES users(id),
+  actor_name      text NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON maintenance_records (item_id, performed_on DESC);
+CREATE INDEX ON maintenance_records (next_due) WHERE next_due IS NOT NULL;
+
 CREATE TABLE item_logs (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  item_id    uuid NOT NULL REFERENCES items(id),
-  action     "LogAction" NOT NULL,
-  user_id    uuid NOT NULL REFERENCES users(id),
-  actor_name text NOT NULL,
-  note       text,
-  changes    jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id        uuid NOT NULL REFERENCES items(id),
+  action         "LogAction" NOT NULL,
+  user_id        uuid NOT NULL REFERENCES users(id),
+  actor_name     text NOT NULL,
+  note           text,
+  changes        jsonb,
+  maintenance_id uuid REFERENCES maintenance_records(id),
+  created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ON item_logs (item_id, created_at DESC);
 CREATE INDEX ON items (location) WHERE NOT is_archived;
@@ -115,28 +194,44 @@ CREATE INDEX ON items (location) WHERE NOT is_archived;
 
 ```json
 [
-  { "name": "Jarum", "from": 10, "to": 8 },
-  { "name": "Pisau",  "from": null, "to": 3 },
-  { "name": "Gunting", "from": 2, "to": null }
+  { "name": "Jarum", "field": "quantity", "from": 10, "to": 8 },
+  { "name": "Jarum", "field": "damaged_quantity", "from": 0, "to": 1 },
+  { "name": "Pisau", "field": "quantity", "from": null, "to": 3 },
+  { "name": "Gunting", "field": "quantity", "from": 2, "to": null }
 ]
 ```
 
-`from: null` = baris baru, `to: null` = baris dihapus.
+`from: null` = baris baru, `to: null` = baris dihapus. `field` ∈ `quantity`,
+`damaged_quantity`, `brand`, `note`.
+
+## Bentuk `maintenance_records.details` (per jenis)
+
+| Jenis | Isi `details` |
+|---|---|
+| `PERBAIKAN` | `complaint` (keluhan/kerusakan), `action` (tindakan), `parts` (suku cadang diganti, teks), `finished_on` (tanggal selesai, opsional) |
+| `PEMELIHARAAN` | `activities` (kegiatan yang dilakukan, teks), `findings` (temuan) |
+| `KALIBRASI` | `institution` (lembaga), `certificate_no`, `result` (`LULUS` \| `TIDAK_LULUS`), `valid_until` |
+
+Divalidasi dengan skema Zod per jenis. `next_due` terisi dari `valid_until` (kalibrasi) atau dari
+isian "jadwal berikutnya" (pemeliharaan). `condition_after` mengubah `items.condition`.
 
 ## Aturan integritas
 
 1. **Riwayat append-only.** Peran basis data aplikasi hanya diberi `INSERT, SELECT` pada
-   `item_logs`; `UPDATE` dan `DELETE` dicabut.
-2. **Perpindahan lokasi bersyarat.** Kirim:
-   `UPDATE items SET location = CASE route WHEN 'STERIL' THEN 'CSSD' ELSE 'ALKES' END, version=version+1
-   WHERE id=$1 AND location='OPERASI'`. Nol baris terpengaruh → 409. Pengembalian:
-   `WHERE location IN ('CSSD','ALKES')` dengan hasil `OPERASI`. Tujuan tidak dikirim klien,
-   jadi `NON_STERIL` tak mungkin masuk CSSD.
+   `item_logs` dan `maintenance_records`; `UPDATE` dan `DELETE` dicabut. Salah isi maintenance
+   dikoreksi dengan catatan baru.
+2. **Perpindahan lokasi bersyarat.**
+   - Kirim (OPERASI): `UPDATE items SET location = CASE route WHEN 'STERIL' THEN 'CSSD' ELSE 'ALKES' END, version=version+1
+     WHERE id=$1 AND location='OPERASI'`.
+   - Kembali: `... SET location='OPERASI' WHERE id=$1 AND location IN ('CSSD','ALKES')`.
+   - Nol baris terpengaruh → 409. Tujuan tidak dikirim klien, jadi `NON_STERIL` tak mungkin
+     masuk CSSD.
 3. **Pengembalian atomik.** Update lokasi, update jumlah, dan penulisan log dalam satu
-   transaksi.
+   transaksi. Begitu juga maintenance: insert record + update `condition` + insert log.
 4. **Penguncian optimistis.** Ubah isi mengirim `version`; tidak cocok → 409.
-5. `location_since` diperbarui setiap kali lokasi berubah (untuk kolom "sudah berapa lama").
-6. Barang tidak pernah dihapus; hanya `is_archived`.
-7. Barang terarsip tidak dapat dikirim/dikembalikan.
-8. `route` hanya dapat diubah saat barang di Operasi.
-9. Selalu ada minimal satu `SUPERADMIN` aktif (diperiksa di servis pengguna).
+5. `location_since` diperbarui setiap kali lokasi berubah.
+6. Barang tidak pernah dihapus; hanya `is_archived`. Terarsip tidak dapat dikirim/dikembalikan.
+7. `route` hanya dapat diubah saat barang di Operasi.
+8. Selalu ada minimal satu `SUPERADMIN` aktif.
+9. `serial_number` yang sudah dipakai barang lain memunculkan peringatan (bukan penolakan).
+10. "Terakhir dicek CSSD" dihitung dari log `RETURN` terakhir, bukan kolom sendiri.
