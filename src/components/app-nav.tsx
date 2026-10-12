@@ -20,7 +20,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: LucideIcon; comingSo
   { href: "/scan", label: "Pindai", icon: ScanLine },
   { href: "/loans", label: "Peminjaman", icon: Handshake },
   { href: "/maintenance", label: "Pemeliharaan", icon: Wrench },
-  { href: "/reports", label: "Laporan", icon: BarChart3, comingSoon: true },
+  { href: "/reports", label: "Laporan", icon: BarChart3 },
   { href: "/settings", label: "Pengaturan", icon: Settings },
 ]
 
