@@ -29,7 +29,8 @@ erDiagram
         enum route "STERIL | NON_STERIL"
         enum location "OPERASI | CSSD | ALKES"
         text room "Kamar Operasi 101"
-        enum condition "BAIK | RUSAK"
+        int quantity "default 1"
+        int damaged_quantity "default 0"
         text brand
         text model
         text serial_number
@@ -74,7 +75,7 @@ erDiagram
         text note
         jsonb details "isi form sesuai type"
         date next_due "jatuh tempo berikutnya"
-        enum condition_after "BAIK | RUSAK"
+        int damaged_after "jumlah rusak sesudahnya"
         uuid user_id FK
         text actor_name
         timestamptz created_at
@@ -88,7 +89,6 @@ erDiagram
 | `Role` | `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` |
 | `Route` | `STERIL`, `NON_STERIL` |
 | `Location` | `OPERASI`, `CSSD`, `ALKES` |
-| `Condition` | `BAIK`, `RUSAK` |
 | `LogAction` | `REGISTER`, `EDIT`, `SEND`, `RETURN`, `MAINTENANCE`, `ARCHIVE`, `RESTORE` |
 | `MaintenanceType` | `PERBAIKAN`, `PEMELIHARAAN`, `KALIBRASI` |
 
@@ -102,7 +102,8 @@ Lihat [12 — Data Contoh](12-data-contoh.md).
 - `item_contents.brand` — daftar Mei mencatat merek per instrumen (Aesculap, B.Braun, Storz).
 - `damaged_quantity` + `note` — kolom "Alat Rusak" dan "Keterangan" pada daftar Juni.
   Jumlah baik = `quantity − damaged_quantity`.
-- `items.condition` — kolom Kondisi (BAIK/RUSAK) pada daftar Mei untuk barang besar.
+- `items.quantity` / `damaged_quantity` — barang besar sejenis dicatat per jumlah di daftar Mei
+  ("Meja Stainless 4", "Tempat sampah 2"); satu QR untuk kelompok itu. Kondisi RUSAK = `damaged_quantity > 0`.
 
 ## Skema (ringkas)
 
@@ -129,7 +130,8 @@ CREATE TABLE items (
   route          "Route" NOT NULL DEFAULT 'STERIL',
   location       "Location" NOT NULL DEFAULT 'OPERASI',
   room           text,
-  condition      "Condition" NOT NULL DEFAULT 'BAIK',
+  quantity       int NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+  damaged_quantity int NOT NULL DEFAULT 0,
   brand          text,
   model          text,
   serial_number  text,
@@ -141,7 +143,8 @@ CREATE TABLE items (
   location_since timestamptz NOT NULL DEFAULT now(),
   version        int NOT NULL DEFAULT 1,
   is_archived    boolean NOT NULL DEFAULT false,
-  created_at     timestamptz NOT NULL DEFAULT now()
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  CHECK (damaged_quantity BETWEEN 0 AND quantity)
 );
 
 CREATE TABLE item_contents (
@@ -167,7 +170,7 @@ CREATE TABLE maintenance_records (
   note            text,
   details         jsonb NOT NULL,
   next_due        date,
-  condition_after "Condition" NOT NULL,
+  damaged_after   int NOT NULL CHECK (damaged_after >= 0),
   user_id         uuid NOT NULL REFERENCES users(id),
   actor_name      text NOT NULL,
   created_at      timestamptz NOT NULL DEFAULT now()
@@ -202,7 +205,8 @@ CREATE INDEX ON items (location) WHERE NOT is_archived;
 ```
 
 `from: null` = baris baru, `to: null` = baris dihapus. `field` ∈ `quantity`,
-`damaged_quantity`, `brand`, `note`.
+`damaged_quantity`, `brand`, `note`. Perubahan jumlah/jumlah rusak pada barang itu sendiri
+(bukan isi) memakai `name` = nama barang.
 
 ## Bentuk `maintenance_records.details` (per jenis)
 
@@ -213,7 +217,7 @@ CREATE INDEX ON items (location) WHERE NOT is_archived;
 | `KALIBRASI` | `institution` (lembaga), `certificate_no`, `result` (`LULUS` \| `TIDAK_LULUS`), `valid_until` |
 
 Divalidasi dengan skema Zod per jenis. `next_due` terisi dari `valid_until` (kalibrasi) atau dari
-isian "jadwal berikutnya" (pemeliharaan). `condition_after` mengubah `items.condition`.
+isian "jadwal berikutnya" (pemeliharaan). `damaged_after` mengubah `items.damaged_quantity` (tidak boleh melebihi `quantity`).
 
 ## Aturan integritas
 
@@ -227,7 +231,7 @@ isian "jadwal berikutnya" (pemeliharaan). `condition_after` mengubah `items.cond
    - Nol baris terpengaruh → 409. Tujuan tidak dikirim klien, jadi `NON_STERIL` tak mungkin
      masuk CSSD.
 3. **Pengembalian atomik.** Update lokasi, update jumlah, dan penulisan log dalam satu
-   transaksi. Begitu juga maintenance: insert record + update `condition` + insert log.
+   transaksi. Begitu juga maintenance: insert record + update `damaged_quantity` + insert log.
 4. **Penguncian optimistis.** Ubah isi mengirim `version`; tidak cocok → 409.
 5. `location_since` diperbarui setiap kali lokasi berubah.
 6. Barang tidak pernah dihapus; hanya `is_archived`. Terarsip tidak dapat dikirim/dikembalikan.
