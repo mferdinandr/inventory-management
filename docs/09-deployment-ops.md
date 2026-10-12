@@ -77,6 +77,7 @@ docker compose up -d
 docker compose exec app pnpm prisma migrate deploy
 docker compose exec app pnpm user:create   # buat SUPERADMIN pertama
 # lalu login dan buat akun OPERASI, STERIL, ALKES dari halaman Pengguna
+# data awal (sekali): docker compose exec app pnpm import:csv --items items.csv --contents contents.csv
 ```
 
 Setelah migrasi: cabut `UPDATE`/`DELETE` pada `item_logs` untuk peran basis data aplikasi
@@ -112,4 +113,5 @@ Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docke
 - [ ] Hak `UPDATE/DELETE` pada `item_logs` dicabut (diuji)
 - [ ] Cadangan berjalan **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
-- [ ] Kedua jalur (steril via CSSD, non-steril via Alkes) dicoba oleh petugas sungguhan
+- [ ] Kedua jalur (steril via CSSD, non-steril via Alkes) dan satu catatan maintenance dicoba oleh petugas sungguhan
+- [ ] Impor data awal diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber

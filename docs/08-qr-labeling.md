@@ -23,7 +23,7 @@ https://{DOMAIN}/i/BRG-0001
 └────────────────────────┘
 ```
 
-QR + kode (cetak tebal) + nama (dipotong bila panjang). Kode tercetak supaya label yang
+QR + kode (cetak tebal) + nama (dipotong bila panjang). Kamar tidak dicetak karena barang berpindah. Kode tercetak supaya label yang
 rusak masih bisa dicari manual.
 
 ## 3. Ukuran
