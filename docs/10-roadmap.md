@@ -55,7 +55,7 @@ flowchart LR
 ## Setelah rilis (hanya bila terbukti perlu)
 
 Ekspor CSV, peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (untuk
-menandai kekurangan otomatis), (manajemen pengguna sudah masuk rilis).
+menandai kekurangan otomatis).
 
 ## Risiko jadwal
 
