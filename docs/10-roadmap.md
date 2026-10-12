@@ -1,66 +1,82 @@
 # 10 — Roadmap
 
-Satu rilis, sekitar **3 minggu** untuk satu pengembang (perkiraan awal). Tidak ada
-pembagian MVP/v1.1 karena lingkupnya sudah kecil.
+Satu rilis, sekitar **4 minggu** untuk satu pengembang (perkiraan awal; maintenance dan
+detail pembelian menambah ±1 minggu dari rencana sebelumnya).
+
+Setiap langkah di bawah dikerjakan dengan **commit kecil dan langsung di-push** (lihat
+`CLAUDE.md`): build → commit → push; ada error → perbaiki → commit → push.
 
 ## M0 — Fondasi (± 3 hari)
 
 - Repo, Next.js, Biome, Prisma, Docker Compose lokal, CI
-- Skema 4 tabel + migrasi + pencabutan hak `item_logs`
+- Skema 5 tabel + migrasi + pencabutan hak `item_logs` dan `maintenance_records`
 - Auth.js, 4 peran, `permissions.ts`, `pnpm user:create` (SUPERADMIN pertama)
-- Halaman Pengguna (SUPERADMIN): tambah, ubah peran, nonaktifkan, reset kata sandi, ganti kata sandi awal
-- Halaman login dan kerangka layout
+- Halaman Pengguna: tambah, ubah peran, nonaktifkan, reset, ganti kata sandi awal
+- Login dan kerangka layout
 
-**Selesai bila:** SUPERADMIN dapat membuat akun tiga peran lain, dan masing-masing dapat login serta melihat halaman sesuai perannya.
+**Selesai bila:** SUPERADMIN dapat membuat tiga akun lain, dan masing-masing dapat login serta
+melihat halaman sesuai perannya.
 
-## M1 — Barang & Isi (± 4 hari)
+## M1 — Barang & Isi (± 5 hari)
 
-- Daftar, cari, tambah (dengan `route`), ubah, arsip/pulihkan
-- Isi wadah (tambah/ubah/hapus baris)
-- Log `REGISTER`, `EDIT`, `ARCHIVE`, `RESTORE`
-- Penguncian `version`
+- Daftar, cari, tambah, ubah, arsip/pulihkan
+- Form lengkap: identitas, kamar, jumlah/rusak, detail alat, pembelian
+- Isi wadah (nama, merek, jumlah, rusak, catatan) dengan editor daftar panjang
+- Log `REGISTER`, `EDIT`, `ARCHIVE`, `RESTORE`; penguncian `version`
 
 ## M2 — QR, Label, Pindai (± 3 hari)
 
 - Endpoint QR, rute `/i/[code]` dengan alihan login
 - Cetak label tunggal dan lembar A4
-- Pemindai kamera dan pencarian cadangan
+- Pemindai kamera dan pencarian (kode, nama, merek, seri, kamar)
 
 ## M3 — Alur Kirim & Kembali (± 4 hari)
 
-- `send()` (tujuan menurut `route`) dan `return()` (dari CSSD maupun Alkes), bersyarat + atomik
-- Layar CSSD: edit jumlah + kembalikan dalam satu simpanan; Alkes: kembalikan
+- `send()` (tujuan menurut `route`), `return()` dari CSSD, `retrieve()` dari Alkes — bersyarat + atomik
+- Layar CSSD: edit jumlah + kembalikan dalam satu simpanan
 - Nama petugas (diingat di perangkat)
-- Tes konflik: kirim ganda, kembali ganda, versi basi
+- Tes konflik: kirim ganda, kembali ganda, versi basi, peran × lokasi
 
-## M4 — Tampilan Alkes & Riwayat (± 2 hari)
+## M4 — Maintenance (± 4 hari)
 
-- Beranda dengan tiga hitungan (Operasi/CSSD/Alkes), daftar, filter lokasi, "lama di lokasi"
+- Tabel `maintenance_records`, `maintenance.service.ts`
+- Tiga form (perbaikan, pemeliharaan, kalibrasi) dengan validasi Zod per jenis
+- Tab Maintenance di halaman barang; jatuh tempo berikutnya; pembaruan jumlah rusak
+- Tes izin: hanya ALKES dan SUPERADMIN
+
+## M5 — Beranda & Riwayat (± 2 hari)
+
+- Hitungan Operasi/CSSD/Alkes/Rusak/Jatuh tempo, daftar, filter
 - Linimasa riwayat dengan perubahan jumlah
-- Pastikan tombol dan izin sesuai peran + lokasi (dan server menolak sisanya)
 
-## M5 — Penyebaran & Uji Lapangan (± 3 hari)
+## M6 — Data Awal, Penyebaran & Uji Lapangan (± 4 hari)
 
+- `pnpm import:csv`; uji dengan data contoh ([12](12-data-contoh.md))
 - Server, Caddy, HTTPS, cadangan + uji pemulihan
 - Uji label di sterilisasi sungguhan
-- Uji coba kedua jalur dengan petugas Operasi, Steril, Alkes; perbaiki alur yang membingungkan
+- Uji coba kedua jalur dan maintenance dengan petugas Operasi, Steril, Alkes
 
 ## Ketergantungan
 
 ```mermaid
 flowchart LR
-    M0 --> M1 --> M2 --> M3 --> M4 --> M5
+    M0 --> M1 --> M2 --> M3 --> M4 --> M5 --> M6
 ```
+
+M2 (label) dapat dimulai paralel dengan M1 setelah skema barang jadi, dan uji bahan label
+sebaiknya dimulai sejak M2.
 
 ## Setelah rilis (hanya bila terbukti perlu)
 
-Ekspor CSV, peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (untuk
-menandai kekurangan otomatis).
+Ekspor CSV/Excel, peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (menandai
+kekurangan otomatis), notifikasi jatuh tempo, work order maintenance.
 
 ## Risiko jadwal
 
 | Risiko | Dampak |
 |---|---|
-| Label gagal sterilisasi | Bahan label perlu diganti; uji **lebih awal** (mulai di M2) |
-| Daftar isi wadah sangat panjang | Antarmuka edit perlu diperbaiki (mis. tempel banyak baris sekaligus) |
+| Label gagal sterilisasi | Bahan label perlu diganti; uji **lebih awal** |
+| Daftar isi sangat panjang (ratusan baris) | Editor perlu pencarian, tempel massal |
+| Data awal hanya ada sebagai PDF | Impor tertunda sampai berkas Excel diperoleh |
 | Petugas tidak memindai | Perbaikan alur, bukan fitur baru |
+| Form maintenance dianggap terlalu panjang | Kurangi field wajib setelah uji coba |
