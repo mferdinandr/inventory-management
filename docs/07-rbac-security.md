@@ -4,9 +4,9 @@
 
 | Peran | Siapa | Singkatnya |
 |---|---|---|
-| `OPERASI` | Petugas ruang operasi | Mendaftarkan dan mengirim |
+| `OPERASI` | Petugas ruang operasi | Mendaftarkan, mengubah, mengirim, mengambil kembali |
 | `STERIL` | Petugas CSSD | Mengecek, memperbarui jumlah, mengembalikan |
-| `ALKES` | Kantor Alkes | Memantau; mengembalikan barang non-steril |
+| `ALKES` | Kantor Alkes | Memantau + mencatat maintenance |
 | `SUPERADMIN` | Pengelola sistem | Akses penuh + kelola pengguna |
 
 Peran hanya dapat diubah oleh SUPERADMIN.
@@ -15,35 +15,36 @@ Peran hanya dapat diubah oleh SUPERADMIN.
 
 | Aksi | OPERASI | STERIL | ALKES | SUPERADMIN |
 |---|:-:|:-:|:-:|:-:|
-| Lihat daftar, detail, riwayat | ✅ | ✅ | ✅ | ✅ |
+| Lihat daftar, detail, riwayat, maintenance | ✅ | ✅ | ✅ | ✅ |
 | Cari / pindai | ✅ | ✅ | ✅ | ✅ |
 | Daftarkan barang | ✅ | ❌ | ❌ | ✅ |
-| Ubah nama/keterangan/jalur | ✅ (di Operasi) | ❌ | ❌ | ✅ |
-| Ubah isi & jumlah | ✅ (di Operasi) | ✅ (di CSSD) | ❌ | ✅ (di mana saja) |
-| Kirim (ke CSSD/Alkes sesuai jalur) | ✅ | ❌ | ❌ | ✅ |
+| Ubah identitas/detail/pembelian/jalur | ✅ (tidak di CSSD) | ❌ | ❌ | ✅ |
+| Ubah isi & jumlah/rusak | ✅ (tidak di CSSD) | ✅ (di CSSD) | ❌ | ✅ (di mana saja) |
+| Kirim | ✅ | ❌ | ❌ | ✅ |
 | Kembalikan dari CSSD | ❌ | ✅ | ❌ | ✅ |
-| Kembalikan dari Alkes | ❌ | ❌ | ✅ | ✅ |
+| Ambil kembali dari Alkes | ✅ | ❌ | ❌ | ✅ |
+| **Maintenance** (3 form) | ❌ | ❌ | ✅ (lokasi mana pun) | ✅ |
 | Arsipkan / pulihkan | ✅ | ❌ | ❌ | ✅ |
 | Cetak label | ✅ | ❌ | ❌ | ✅ |
 | Kelola pengguna | ❌ | ❌ | ❌ | ✅ |
 
-Izin diperiksa **di server** pada setiap endpoint; menyembunyikan tombol di UI hanya
-kenyamanan. Matriks ini ada di satu berkas (`permissions.ts`) dan diuji.
+Izin diperiksa **di server** pada setiap endpoint, termasuk **lokasi barang**; menyembunyikan
+tombol di UI hanya kenyamanan. Matriks ini ada di satu berkas (`permissions.ts`) dan diuji
+per peran × lokasi.
 
 ## 3. Autentikasi
 
-- Username + kata sandi (argon2id).
+- Username + kata sandi (argon2id), minimal 8 karakter.
 - Sesi 30 hari, cookie `HttpOnly`, `Secure`, `SameSite=Lax`.
 - Batas percobaan: 5 gagal / 10 menit per username + IP.
-- SUPERADMIN pertama dibuat lewat CLI; sisanya dibuat SUPERADMIN dari UI. Kata sandi awal
-  wajib diganti saat login pertama (`must_change_password`).
+- SUPERADMIN pertama dibuat lewat CLI; sisanya oleh SUPERADMIN dari UI. Kata sandi awal
+  wajib diganti saat login pertama.
 - Pengguna tidak dihapus, hanya dinonaktifkan. Selalu tersisa ≥ 1 SUPERADMIN aktif.
-- Kata sandi minimal 8 karakter.
 
 ## 4. Akun bersama dan penelusuran
 
-Bila satu akun peran dipakai banyak orang, `user_id` saja tidak cukup menunjukkan siapa
-pelakunya. Karena itu setiap **kirim** dan **kembalikan** mewajibkan **nama petugas**
+Bila satu akun dipakai banyak orang, `user_id` tidak cukup menunjukkan pelakunya. Karena itu
+setiap **kirim**, **kembalikan/ambil kembali**, dan **maintenance** mewajibkan **nama petugas**
 (`actor_name`), tersimpan di riwayat.
 
 ## 5. Ancaman dan mitigasi
@@ -52,9 +53,9 @@ pelakunya. Karena itu setiap **kirim** dan **kembalikan** mewajibkan **nama petu
 |---|---|
 | Orang luar membuka data | Semua halaman butuh login; tidak ada halaman publik |
 | Tebak kata sandi | Argon2id, pembatasan percobaan |
-| Peran melampaui wewenang | Pemeriksaan peran **dan lokasi barang** di server, bukan hanya UI |
-| Akun SUPERADMIN disalahgunakan | Hanya segelintir orang; semua aksinya tetap tercatat di riwayat; kata sandi kuat |
-| Riwayat diubah | Hak `UPDATE/DELETE` dicabut dari peran basis data aplikasi |
+| Peran melampaui wewenang | Pemeriksaan peran **dan lokasi barang** di server |
+| Akun SUPERADMIN disalahgunakan | Hanya segelintir orang; aksinya tetap tercatat; kata sandi kuat |
+| Riwayat/maintenance diubah | Hak `UPDATE/DELETE` dicabut dari peran basis data aplikasi |
 | Perubahan jumlah saling menimpa | Kolom `version` + transaksi |
 | Injeksi SQL | Prisma berparameter |
 | Kebocoran rahasia | `.env` di luar git; `AUTH_SECRET` panjang acak |
@@ -62,4 +63,6 @@ pelakunya. Karena itu setiap **kirim** dan **kembalikan** mewajibkan **nama petu
 
 ## 6. Data
 
-Tidak ada data pasien dalam sistem. Hanya nama barang, jumlah, dan nama petugas.
+Tidak ada data pasien. Data yang tersimpan: nama barang, jumlah, detail pembelian (harga,
+supplier), catatan maintenance, dan nama petugas. Harga pembelian bersifat internal; sistem
+hanya dapat diakses setelah login.
