@@ -37,7 +37,7 @@ beforeAll(async () => {
   })
   adminId = admin.id
   const room = await setup.location.findFirstOrThrow({
-    where: { organizationId: orgId, type: "ROOM" },
+    where: { organizationId: orgId, type: "ROOM", parent: { code: { not: null } } },
     select: { id: true },
   })
   roomId = room.id
@@ -83,7 +83,10 @@ describe("createAsset", () => {
   it("generates a code formatted {org}-{dept}-{year}-{seq} and a 12-char public_id", async () => {
     const asset = await createAsset(orgId, adminId, baseInput())
     expect(asset.publicId).toMatch(/^[A-Za-z0-9]{12}$/)
-    expect(asset.assetCode).toMatch(/^RS01-RAD-2026-\d{4}$/)
+    // Bukan departemen tertentu (mis. "RAD") — beforeAll hanya menjamin
+    // "ruangan pertama di RS01 dengan departemen berkode", bisa yang mana
+    // saja tergantung urutan baris di database saat ini.
+    expect(asset.assetCode).toMatch(/^RS01-[A-Z]+-2026-\d{4}$/)
   })
 
   it("two assets registered back to back get increasing, distinct sequence numbers", async () => {
