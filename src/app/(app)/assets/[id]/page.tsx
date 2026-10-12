@@ -139,6 +139,13 @@ export default async function AssetDetailPage({
             >
               Lihat halaman publik
             </Link>
+            <Link
+              href={`/print/asset-history/${asset.id}`}
+              target="_blank"
+              className="text-muted-foreground hover:underline"
+            >
+              Cetak riwayat lengkap
+            </Link>
           </div>
         </div>
 
