@@ -48,8 +48,8 @@ Vista 300, USG Logiq V5, lemari alat, meja stainless, tiang infus, tempat sampah
 linen, kursi, box container.
 
 **Konsekuensi untuk sistem:**
-- Set instrumen → barang `STERIL` dengan isi (nama + merek + jumlah + rusak + catatan).
-- Alat besar → barang `NON_STERIL` dengan detail pembelian dan **maintenance**
+- Set instrumen → barang perlu sterilisasi dengan isi (nama + merek + jumlah + rusak + catatan).
+- Alat besar → barang tanpa sterilisasi (tidak berpindah) dengan detail pembelian dan **maintenance**
   (meja operasi yang bocor oli adalah contoh nyata kebutuhan form Perbaikan).
 - Satu set bisa berisi 20+ baris; layar edit isi harus nyaman untuk daftar panjang.
 - *Kondisi* di daftar Mei menjadi `damaged_quantity > 0` pada isi dan `condition` pada barang.

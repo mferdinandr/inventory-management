@@ -113,5 +113,5 @@ Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docke
 - [ ] Hak `UPDATE/DELETE` pada `item_logs` dicabut (diuji)
 - [ ] Cadangan berjalan **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
-- [ ] Kedua jalur (steril via CSSD, non-steril via Alkes) dan satu catatan maintenance dicoba oleh petugas sungguhan
+- [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan
 - [ ] Impor data awal diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber

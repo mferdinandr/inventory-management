@@ -4,9 +4,9 @@
 
 | Peran | Siapa | Singkatnya |
 |---|---|---|
-| `OPERASI` | Petugas ruang operasi | Mendaftarkan, mengubah, mengirim, mengambil kembali |
+| `OPERASI` | Petugas ruang operasi | Mendaftarkan, mengubah, mengirim set ke CSSD |
 | `STERIL` | Petugas CSSD | Mengecek, memperbarui jumlah, mengembalikan |
-| `ALKES` | Kantor Alkes | Memantau + mencatat maintenance |
+| `ALKES` | Kantor Alkes | Hanya melihat (plus maintenance, seperti semua peran) |
 | `SUPERADMIN` | Pengelola sistem | Akses penuh + kelola pengguna |
 
 Peran hanya dapat diubah oleh SUPERADMIN.
@@ -20,10 +20,9 @@ Peran hanya dapat diubah oleh SUPERADMIN.
 | Daftarkan barang | ✅ | ❌ | ❌ | ✅ |
 | Ubah identitas/detail/pembelian/jalur | ✅ (tidak di CSSD) | ❌ | ❌ | ✅ |
 | Ubah isi & jumlah/rusak | ✅ (tidak di CSSD) | ✅ (di CSSD) | ❌ | ✅ (di mana saja) |
-| Kirim | ✅ | ❌ | ❌ | ✅ |
+| Kirim ke CSSD (hanya yang perlu sterilisasi) | ✅ | ❌ | ❌ | ✅ |
 | Kembalikan dari CSSD | ❌ | ✅ | ❌ | ✅ |
-| Ambil kembali dari Alkes | ✅ | ❌ | ❌ | ✅ |
-| **Maintenance** (3 form) | ❌ | ❌ | ✅ (lokasi mana pun) | ✅ |
+| **Maintenance** (3 form) | ✅ | ✅ | ✅ | ✅ (lokasi mana pun) |
 | Arsipkan / pulihkan | ✅ | ❌ | ❌ | ✅ |
 | Cetak label | ✅ | ❌ | ❌ | ✅ |
 | Kelola pengguna | ❌ | ❌ | ❌ | ✅ |
@@ -44,7 +43,7 @@ per peran × lokasi.
 ## 4. Akun bersama dan penelusuran
 
 Bila satu akun dipakai banyak orang, `user_id` tidak cukup menunjukkan pelakunya. Karena itu
-setiap **kirim**, **kembalikan/ambil kembali**, dan **maintenance** mewajibkan **nama petugas**
+setiap **kirim**, **kembalikan**, dan **maintenance** mewajibkan **nama petugas**
 (`actor_name`), tersimpan di riwayat.
 
 ## 5. Ancaman dan mitigasi

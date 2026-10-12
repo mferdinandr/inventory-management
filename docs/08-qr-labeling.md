@@ -42,7 +42,7 @@ Wadah jalur `STERIL` di CSSD melewati **pembersihan dan sterilisasi**. Label ker
 - Konfirmasi ke CSSD: **metode sterilisasi** yang dipakai (uap/autoklaf, suhu, dll).
 - Gunakan label/tag yang **tahan proses itu** (mis. label tahan autoklaf atau tag logam
   bergravir). Uji dulu satu label melewati satu siklus sebelum cetak massal.
-- Untuk barang `NON_STERIL` (TV, meja) yang tidak masuk CSSD, label tahan desinfektan cukup.
+- Untuk alat tanpa sterilisasi (TV, meja, mesin) yang tidak masuk CSSD, label tahan desinfektan cukup.
 - Tempel di permukaan datar, jauh dari engsel atau bagian yang dibuka.
 
 ## 5. Setelah menempel
