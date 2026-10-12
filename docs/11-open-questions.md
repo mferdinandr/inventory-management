@@ -27,8 +27,8 @@
 | # | Asumsi | Bila salah |
 |---|---|---|
 | AS-1 | **Operasi** yang mendaftarkan barang dan menetapkan isi awal | Ganti izin di matriks 07 |
-| AS-2 | Barang berpindah ke CSSD **langsung** saat Operasi menekan kirim, tanpa konfirmasi terima | Tambah status "dikirim" dan tombol "Terima" di CSSD |
-| AS-3 | Satu akun per peran dipakai bergantian oleh beberapa petugas | Bila perorangan, nama petugas bisa diambil dari akun |
+| AS-2 | **Dikonfirmasi pengguna:** barang berpindah ke CSSD **langsung** saat Operasi menekan kirim, tanpa konfirmasi terima | Tambah status "dikirim" dan tombol "Terima" di CSSD |
+| AS-3 | **Dikonfirmasi pengguna:** satu akun per peran dipakai bergantian oleh beberapa petugas | Bila perorangan, nama petugas bisa diambil dari akun |
 | AS-4 | Pengecekan CSSD cukup mengubah jumlah per baris | Bila perlu kolom "kondisi", tambah satu kolom teks |
 | AS-5 | Barang besar (TV, meja) tidak punya isi | Tidak ada perubahan; isi tinggal diisi |
 | AS-6 | Nama isi wadah unik per wadah | Hapus constraint `UNIQUE (item_id, name)` |
@@ -45,7 +45,7 @@
 | # | Pertanyaan | Dibutuhkan untuk |
 |---|---|---|
 | Q-1 | Domain produksi? | `APP_URL`, isi QR — **harus pasti sebelum label dicetak** |
-| Q-2 | Server di VPS atau di RS? | Deployment |
+| Q-2 | ~~Server di VPS atau di RS?~~ **Dijawab: VPS sendiri di luar RS** | Deployment |
 | Q-3 | Metode dan suhu sterilisasi CSSD? | Memilih bahan label |
 | Q-4 | Printer label apa yang tersedia? | Ukuran label |
 | Q-5 | Berapa perkiraan jumlah barang dan panjang isi tiap wadah? | Desain layar edit isi |
