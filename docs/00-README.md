@@ -28,11 +28,12 @@ Status: **Dirombak dari SaaS multi-tenant menjadi aplikasi satu rumah sakit yang
 1. **Satu rumah sakit.** Tidak ada multi-tenant, organisasi, RLS, maupun panel operator.
 2. **Tanpa gambar.** Tidak ada unggah foto, tidak ada R2/MinIO. Semua data berupa teks.
 3. **Hanya barang besar / wadah yang diberi QR.** Isi wadah adalah baris teks + jumlah.
-4. **Dua jalur, tiap barang menempuh satu jalur.** Barang yang perlu sterilisasi:
-   Operasi → CSSD → Operasi. Alat besar tanpa sterilisasi (mesin, meja, TV):
-   Operasi ⇄ Kantor Alkes. Hanya Operasi dan CSSD yang memindahkan barang.
-5. **Empat peran:** `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN`. Alkes memantau dan
-   **mencatat maintenance** (perbaikan, pemeliharaan, kalibrasi) lewat tiga form detail.
+4. **Hanya barang yang perlu sterilisasi yang berpindah:** Operasi → CSSD → Operasi.
+   Alat besar tanpa sterilisasi (mesin, meja, TV) **tidak dikirim ke mana pun**: tetap di
+   ruang operasi, dilihat Alkes, diedit Operasi.
+5. **Empat peran:** `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN`. Alkes hanya melihat.
+   **Maintenance** (perbaikan, pemeliharaan, kalibrasi; tiga form detail) dapat dicatat
+   **semua peran**.
 6. **Jumlah dapat diperbarui** oleh Operasi (selama barang tidak di CSSD) dan CSSD
    (saat pengecekan). `SUPERADMIN` kapan saja. Ada kolom jumlah dan jumlah rusak.
    Form pendaftaran memuat detail alat dan pembelian.

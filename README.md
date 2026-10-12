@@ -1,31 +1,32 @@
 # SIMASET — Pelacakan Barang & Perlengkapan Ruang Operasi
 
 Aplikasi web sederhana untuk melacak barang besar dan wadah perlengkapan (set instrumen)
-yang berpindah dari **Ruang Operasi** ke **CSSD/Steril** (perlu sterilisasi) atau ke
-**Kantor Alkes** (alat besar tanpa sterilisasi), lalu kembali.
+yang berpindah antara **Ruang Operasi** dan **CSSD/Steril** (khusus yang perlu sterilisasi).
+**Kantor Alkes** memantau; semua peran dapat mencatat maintenance.
 
 > **Status: perencanaan selesai (v3.0), belum ada kode.** Dokumen ada di [`docs/`](docs/).
 
 ## Gambaran singkat
 
 ```
-                 barang perlu steril
+   barang perlu steril (set instrumen)
    ┌──────────────┐  kirim   ┌──────────────┐
-   │              │ ───────▶ │ CSSD/Steril  │
-   │ Ruang Operasi│ ◀─────── │ cek & update │
-   │              │ kembali  │    jumlah    │
-   │              │          └──────────────┘
-   │              │  alat besar tanpa steril
-   │              │ ───────▶ ┌──────────────┐
-   │              │ ◀─────── │ Kantor Alkes │
-   └──────────────┘  ambil   │ + maintenance│
-                    kembali  └──────────────┘
+   │ Ruang Operasi│ ───────▶ │ CSSD/Steril  │
+   │              │ ◀─────── │ cek & update │
+   └──────────────┘ kembali  │    jumlah    │
+          ▲                  └──────────────┘
+          │ edit oleh Operasi
+   alat besar tanpa steril (tidak berpindah)
+          │ dilihat saja
+   ┌──────────────┐
+   │ Kantor Alkes │   maintenance: semua peran
+   └──────────────┘
 ```
 
 - Hanya **barang besar / wadah** yang diberi QR (TV, meja, "Perlengkapan 1" berisi jarum,
   pisau, dll). Isi wadah dicatat sebagai teks beserta jumlahnya, tanpa QR sendiri.
 - **Tanpa foto.** Semua informasi berupa teks.
-- **Maintenance** (perbaikan, pemeliharaan rutin, kalibrasi) dicatat Kantor Alkes lewat tiga form detail.
+- **Maintenance** (perbaikan, pemeliharaan rutin, kalibrasi) lewat tiga form detail, dapat dicatat semua peran.
 - Form barang memuat **detail alat dan pembelian** (merek, seri, harga, supplier, garansi).
 - **4 peran:** `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` (akses penuh + kelola pengguna).
 - Contoh daftar inventaris RS ada di [`docs/contoh/`](docs/contoh/).
