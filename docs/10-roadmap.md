@@ -1,247 +1,66 @@
-# 10 — Roadmap dan Urutan Pengerjaan
+# 10 — Roadmap
 
-Estimasi disusun untuk **satu pengembang penuh waktu**. Dua pengembang mempersingkat
-sekitar 35%, bukan setengahnya, karena sebagian pekerjaan berurutan.
+Satu rilis, sekitar **3 minggu** untuk satu pengembang (perkiraan awal). Tidak ada
+pembagian MVP/v1.1 karena lingkupnya sudah kecil.
 
----
+## M0 — Fondasi (± 3 hari)
 
-## Ringkasan
+- Repo, Next.js, Biome, Prisma, Docker Compose lokal, CI
+- Skema 4 tabel + migrasi + pencabutan hak `item_logs`
+- Auth.js, 4 peran, `permissions.ts`, `pnpm user:create` (SUPERADMIN pertama)
+- Halaman Pengguna (SUPERADMIN): tambah, ubah peran, nonaktifkan, reset kata sandi, ganti kata sandi awal
+- Halaman login dan kerangka layout
 
-### MVP — 6 minggu
+**Selesai bila:** SUPERADMIN dapat membuat akun tiga peran lain, dan masing-masing dapat login serta melihat halaman sesuai perannya.
 
-Untuk **demo dan uji internal**. Data pelanggan sungguhan belum boleh masuk.
+## M1 — Barang & Isi (± 4 hari)
 
-| Milestone | Isi | Estimasi |
-|---|---|---|
-| M0 | Fondasi multi-tenant | 1 minggu |
-| M1 | Master data dan panel operator | 1 minggu |
-| M2 | Aset, QR, dan label | 1,5 minggu |
-| M3 | Riwayat dan lampiran | 1,5 minggu |
-| M4 | Peminjaman | 1 minggu |
-| | **Total MVP** | **6 minggu** |
+- Daftar, cari, tambah (dengan `route`), ubah, arsip/pulihkan
+- Isi wadah (tambah/ubah/hapus baris)
+- Log `REGISTER`, `EDIT`, `ARCHIVE`, `RESTORE`
+- Penguncian `version`
 
-### v1.1 — 3 minggu berikutnya
+## M2 — QR, Label, Pindai (± 3 hari)
 
-Wajib selesai **sebelum pelanggan pertama memasukkan data sungguhan**.
+- Endpoint QR, rute `/i/[code]` dengan alihan login
+- Cetak label tunggal dan lembar A4
+- Pemindai kamera dan pencarian cadangan
 
-| Milestone | Isi | Estimasi |
-|---|---|---|
-| M5 | Pemeliharaan dan kalibrasi | 1 minggu |
-| M6 | Dashboard, laporan, notifikasi, impor | 1 minggu |
-| M7 | Pengerasan, 2FA, dan penyebaran | 1 minggu |
+## M3 — Alur Kirim & Kembali (± 4 hari)
 
----
+- `send()` (tujuan menurut `route`) dan `return()` (dari CSSD maupun Alkes), bersyarat + atomik
+- Layar CSSD: edit jumlah + kembalikan dalam satu simpanan; Alkes: kembalikan
+- Nama petugas (diingat di perangkat)
+- Tes konflik: kirim ganda, kembali ganda, versi basi
 
-## Prinsip yang berlaku sepanjang pengerjaan
+## M4 — Tampilan Alkes & Riwayat (± 2 hari)
 
-**Skema basis data dibangun lengkap di M0**, termasuk tabel untuk fitur v1.1 seperti
-kalibrasi dan vendor. Menulis tabel yang belum dipakai itu murah; menambahkannya ke basis
-data yang sudah berisi data pelanggan tidak.
+- Beranda dengan tiga hitungan (Operasi/CSSD/Alkes), daftar, filter lokasi, "lama di lokasi"
+- Linimasa riwayat dengan perubahan jumlah
+- Pastikan tombol dan izin sesuai peran + lokasi (dan server menolak sisanya)
 
-**Isolasi tenant diuji sejak hari pertama.** Seed membuat dua organisasi contoh, bukan satu,
-dan pengujian isolasi berjalan di CI sejak M0. Bug isolasi yang ditemukan di minggu pertama
-adalah gangguan kecil; yang ditemukan setelah ada pelanggan adalah krisis.
+## M5 — Penyebaran & Uji Lapangan (± 3 hari)
 
-**Jangan cetak label sungguhan sebelum domain produksi final.** Selama pengembangan,
-`APP_URL` menunjuk `localhost` dan QR yang dihasilkan hanya berlaku di mesin sendiri.
+- Server, Caddy, HTTPS, cadangan + uji pemulihan
+- Uji label di sterilisasi sungguhan
+- Uji coba kedua jalur dengan petugas Operasi, Steril, Alkes; perbaiki alur yang membingungkan
 
----
-
-## M0 — Fondasi Multi-tenant (1 minggu)
-
-- Inisialisasi proyek Next.js 15, TypeScript, Tailwind, shadcn/ui, pnpm, Node 22 LTS
-- Biome untuk lint dan format, Vitest dan Playwright untuk pengujian
-- GitHub Actions: CI (lint, tes, uji isolasi tenant) dan deploy otomatis ke VPS
-- **Skema Prisma lengkap** dan migrasi pertama: seluruh tabel, enum, dan indeks,
-  termasuk yang baru dipakai di v1.1
-- Row Level Security aktif pada seluruh tabel bertenant
-- `db.ts` yang menetapkan `app.current_org` per transaksi, dan `db-platform.ts` terpisah
-- Penegakan append-only di tingkat basis data: cabut hak `UPDATE`/`DELETE`, pasang rule
-- Auth.js dengan kredensial, alur undangan dan atur ulang kata sandi
-- Sesi 12 jam dengan pilihan "Ingat saya" 7 hari
-- Matriks izin di `lib/permissions.ts` beserta pengujian unitnya
-- Seed: satu `PLATFORM_OWNER`, **dua organisasi contoh** lengkap dengan datanya
-- Docker Compose berjalan di lokal, termasuk MinIO untuk pengembangan
-- Manifest dan ikon PWA agar aplikasi dapat dipasang di ponsel
-- **Pengujian isolasi tenant di CI**
-
-**Selesai bila:** percobaan `UPDATE` pada `asset_events` gagal di tingkat basis data,
-pengguna organisasi A tidak dapat membaca satu baris pun milik organisasi B, dan push ke
-`main` berhasil menjalankan pipeline sampai aplikasi hidup di VPS.
-
-> Menyiapkan deploy otomatis di minggu pertama terasa terlalu dini, tetapi justru di sinilah
-> biayanya paling murah: tidak ada data yang bisa rusak, dan setiap milestone berikutnya
-> langsung bisa diuji di lingkungan yang sebenarnya.
-
----
-
-## M1 — Master Data dan Panel Operator (1 minggu)
-
-- CRUD lokasi berjenjang dengan pemeliharaan kolom `path`
-- CRUD kategori dengan penanda alat medis dan interval kalibrasi bawaan
-- Halaman kategori kosong yang memuat panduan dan contoh pengelompokan
-- Undangan pengguna, penetapan peran, penugasan cakupan lokasi
-- **Panel operator**: daftar organisasi, buat organisasi baru, atur kuota dan status,
-  masuk sebagai organisasi tertentu
-- Pemeriksaan kuota aset, penyimpanan, dan pengguna
-- Pencatatan `platform.impersonate` di audit log organisasi
-- Kerangka tata letak aplikasi dan navigasi
-
-**Selesai bila:** sebuah organisasi pelanggan dapat dibuat dari panel operator sampai
-undangan admin pertamanya terkirim, tanpa menyentuh basis data secara langsung.
-
----
-
-## M2 — Aset, QR, dan Label (1,5 minggu)
-
-- Formulir pendaftaran aset dengan validasi Zod
-- Pembuat `public_id` dan `asset_code`
-- Daftar aset dengan pencarian, filter, dan kursor pagination
-- Halaman detail aset
-- Pembuatan QR sebagai SVG
-- Halaman cetak tiga ukuran label: 50 × 30 mm, 62 × 29 mm, dan lembar A4
-- Pencatatan `label_prints`
-- Halaman publik `/a/{publicId}` dengan pembatasan kolom dan identitas rumah sakit
-- Pemindai kamera di dalam aplikasi
-
-**Selesai bila:** sebuah aset dapat didaftarkan, labelnya dicetak, ditempel, dipindai
-dengan ponsel sungguhan, dan halaman publiknya terbuka.
-
-> Ini milestone yang paling perlu diuji di lapangan, bukan hanya di meja. Cetak sepuluh
-> label percobaan dan pindai dengan ponsel yang sebenarnya akan dipakai petugas.
-
----
-
-## M3 — Riwayat dan Lampiran (1,5 minggu)
-
-- `event.service.ts` sebagai satu-satunya penulis riwayat
-- `status-machine.ts` beserta pengujian seluruh transisi
-- Formulir pencatatan riwayat per jenis
-- Kompresi gambar di sisi klien
-- Penerbitan presigned URL dan unggah langsung ke penyimpanan objek
-- Pembaruan `used_storage_bytes` dan penolakan saat kuota terlampaui
-- URL bertanda tangan untuk membaca lampiran
-- Linimasa riwayat dengan penanda pencatatan mundur
-- Alur koreksi
-- Mutasi antar ruangan
-- Penghapusan aset, halaman aset dihapuskan, dan pembatalan dalam 30 hari
-
-**Selesai bila:** riwayat dapat dicatat lengkap dengan foto, tidak dapat diubah, koreksi
-tampil berpasangan dengan entri aslinya, dan aset yang dihapuskan lalu dipulihkan kembali
-ke status yang benar — bukan selalu ke `AVAILABLE`.
-
----
-
-## M4 — Peminjaman (1 minggu)
-
-- Formulir peminjaman untuk peminjam terdaftar dan peminjam luar
-- Indeks parsial unik dan penanganan perlombaan penyimpanan
-- Formulir pengembalian dengan penilaian kondisi
-- Daftar peminjaman aktif dan yang melewati ambang
-- Integrasi dengan status aset dan riwayat
-- Perapian antarmuka dan pemeriksaan responsif pada lebar 360 px
-
-**Selesai bila:** dua permintaan peminjaman bersamaan atas satu aset menghasilkan satu
-peminjaman dan satu pesan galat yang jelas — dan **MVP siap didemokan**.
-
----
-
-## M5 — Pemeliharaan dan Kalibrasi (1 minggu) · *v1.1*
-
-- CRUD vendor
-- Jadwal kalibrasi dan pemeliharaan preventif
-- Pembuatan jadwal otomatis untuk aset berkategori medis
-- Pencatatan pelaksanaan dengan hasil dan unggah sertifikat
-- Penghitungan ulang jatuh tempo, termasuk dari masa berlaku sertifikat
-- Perlakuan khusus untuk hasil tidak lulus
-- Dashboard jatuh tempo
-
-**Selesai bila:** mencatat kalibrasi memperbarui jadwal, dan hasil tidak lulus mengunci
-alat dari pemakaian.
-
----
-
-## M6 — Dashboard, Laporan, Notifikasi (1 minggu) · *v1.1*
-
-- Dashboard per peran
-- Ekspor Excel dan CSV untuk seluruh laporan yang didaftarkan di PRD
-- Cetak riwayat aset
-- pg-boss dan seluruh tugas terjadwal
-- Templat email dan pengiriman ringkasan harian, dengan zona waktu per organisasi
-- Impor massal dengan pratinjau validasi
-
-**Selesai bila:** email ringkasan harian diterima berisi data yang benar pada jam yang
-benar menurut zona waktu organisasinya, dan impor 100 aset dari Excel berhasil beserta
-labelnya siap dicetak.
-
----
-
-## M7 — Pengerasan dan Penyebaran (1 minggu) · *v1.1*
-
-- Pembatasan laju di seluruh titik yang ditetapkan
-- Header keamanan dan penyetelan CSP
-- Sentry untuk pemantauan galat
-- Autentikasi dua faktor opsional: pengaturan, kode pemulihan, daftar perangkat aktif
-- Audit log lengkap
-- Penanganan galat dan pesan berbahasa Indonesia untuk seluruh kode error
-- Pengujian end-to-end untuk alur utama, termasuk isolasi tenant
-- Penetapan domain produksi dan penyesuaian `APP_URL`
-- Penyiapan Caddy, bucket R2 untuk foto dan bucket terpisah untuk cadangan, pemantauan
-- Penetapan layanan pengirim email beserta SPF, DKIM, dan DMARC
-- Uji pemulihan cadangan
-- Penyusunan panduan pengguna singkat dan materi pelatihan
-
-**Selesai bila:** seluruh daftar periksa go-live di [09-deployment-ops.md](09-deployment-ops.md)
-tercentang. **Baru setelah titik ini data pelanggan sungguhan boleh masuk.**
-
----
-
-## Urutan Ketergantungan
+## Ketergantungan
 
 ```mermaid
 flowchart LR
-    M0["M0 Fondasi<br/>multi-tenant"] --> M1["M1 Master data<br/>+ panel operator"]
-    M1 --> M2["M2 Aset, QR,<br/>label"]
-    M2 --> M3["M3 Riwayat"]
-    M3 --> M4["M4 Peminjaman"]
-    M4 --> DEMO{{"MVP siap<br/>demo"}}
-    DEMO --> M5["M5 Kalibrasi"]
-    DEMO --> M6["M6 Dashboard<br/>laporan"]
-    M5 --> M7["M7 Pengerasan"]
-    M6 --> M7
-    M7 --> LIVE{{"Siap menerima<br/>data pelanggan"}}
+    M0 --> M1 --> M2 --> M3 --> M4 --> M5
 ```
 
-M5 dan M6 dapat dikerjakan paralel bila ada dua pengembang.
+## Setelah rilis (hanya bila terbukti perlu)
 
----
+Ekspor CSV, peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (untuk
+menandai kekurangan otomatis), (manajemen pengguna sudah masuk rilis).
 
-## Rencana v2
+## Risiko jadwal
 
-Diurutkan menurut perkiraan nilai dibanding usahanya:
-
-| Prioritas | Fitur | Alasan |
-|---|---|---|
-| 1 | Notifikasi WhatsApp | Email sering tidak dibaca staf klinis; WhatsApp jauh lebih efektif di lingkungan RS |
-| 2 | Mode offline (PWA dengan antrean) | Bila pemakaian nyata membuktikan ada ruangan yang benar-benar menghambat pencatatan |
-| 3 | Stok barang habis pakai | Permintaan yang hampir pasti muncul setelah aset berjalan |
-| 4 | Pendaftaran mandiri dan penagihan otomatis | Ketika onboarding manual mulai memakan waktu, biasanya setelah pelanggan kelima |
-| 5 | Work order pemeliharaan penuh | Bila tim teknik ingin mengelola antrean pekerjaan di sistem yang sama |
-| 6 | Aset induk dan anak | Bila alat dengan banyak komponen terpisah terasa merepotkan dicatat satu-satu |
-| 7 | Tanda tangan digital serah terima | Bila pertanggungjawaban peminjaman perlu diperkuat |
-| 8 | Prosedur anonimisasi data peminjam | Bila permintaan penghapusan data pribadi benar-benar muncul |
-| 9 | Integrasi SIMRS atau aplikasi aset daerah | Menunggu spesifikasi dari pihak terkait |
-| 10 | Mewajibkan dua faktor untuk peran admin | 2FA sudah ada sebagai pilihan; ini soal mewajibkannya |
-
----
-
-## Risiko terhadap Jadwal
-
-| Risiko | Dampak | Penanganan |
-|---|---|---|
-| Bug isolasi tenant ditemukan terlambat | **Paling berat.** Kepercayaan pelanggan sulit dipulihkan | Seed dua organisasi dan pengujian isolasi di CI sejak M0, bukan di akhir |
-| Domain belum final saat label pertama dicetak | Seluruh label harus dicetak ulang | `APP_URL` menunjuk localhost selama pengembangan; larangan cetak dicantumkan di dokumen dan di halaman cetak |
-| Pemindaian kamera bermasalah pada perangkat tertentu | Alur utama terganggu | Uji pada perangkat sungguhan di M2, bukan menjelang rilis |
-| Kalibrasi ditunda ke v1.1 | Demo terasa seperti aplikasi inventaris biasa | Sadari saat mendemokan: tekankan riwayat yang tidak bisa dihapus dan alur QR, sebutkan kalibrasi sebagai yang berikutnya |
-| Lingkup melebar saat membangun panel operator | MVP mundur | Panel operator di M1 sengaja minimal: daftar, buat, kuota, masuk sebagai. Statistik dan grafik menunggu sampai ada pelanggan |
-| MVP dipakai pelanggan sungguhan sebelum M7 | Data masuk ke sistem yang belum dikeraskan | Tahan sampai M7 selesai; ini bukan soal kehati-hatian berlebihan, melainkan cadangan dan audit yang belum teruji |
+| Risiko | Dampak |
+|---|---|
+| Label gagal sterilisasi | Bahan label perlu diganti; uji **lebih awal** (mulai di M2) |
+| Daftar isi wadah sangat panjang | Antarmuka edit perlu diperbaiki (mis. tempel banyak baris sekaligus) |
+| Petugas tidak memindai | Perbaikan alur, bukan fitur baru |
