@@ -19,7 +19,7 @@
 | Log | Pino ke stdout | |
 
 **Dibuang dari versi sebelumnya:** Cloudflare R2/MinIO, pg-boss, Nodemailer, RLS, PWA
-offline. Tidak ada tugas terjadwal, tidak ada email, tidak ada penyimpanan objek.
+offline, unggah berkas (termasuk sertifikat). Tidak ada tugas terjadwal, tidak ada email, tidak ada penyimpanan objek.
 
 Tidak ada backend terpisah: route handler Next.js sudah cukup.
 
@@ -43,7 +43,8 @@ flowchart LR
 │   ├── migrations/
 │   └── seed.ts                     # 4 akun contoh untuk pengembangan
 ├── scripts/
-│   └── create-user.ts              # pnpm user:create (SUPERADMIN pertama)
+│   ├── create-user.ts              # pnpm user:create (SUPERADMIN pertama)
+│   └── import-csv.ts               # pnpm import:csv — pemuatan data awal sekali pakai
 ├── src/
 │   ├── app/
 │   │   ├── login/page.tsx
@@ -53,7 +54,9 @@ flowchart LR
 │   │   │   ├── users/page.tsx      # hanya SUPERADMIN
 │   │   │   └── items/
 │   │   │       ├── new/page.tsx
-│   │   │       └── [code]/page.tsx # detail, isi, riwayat, tombol aksi
+│   │   │       └── [code]/
+│   │   │           ├── page.tsx    # detail, isi, riwayat, maintenance, tombol aksi
+│   │   │           └── maintenance/new/page.tsx   # 3 form: perbaikan, pemeliharaan, kalibrasi
 │   │   ├── i/[code]/route.ts       # tujuan QR → alihkan ke /items/[code]
 │   │   ├── print/
 │   │   │   ├── label/[code]/page.tsx
@@ -65,11 +68,12 @@ flowchart LR
 │   │   └── services/
 │   │       ├── item.service.ts     # daftar, daftarkan, ubah, arsip
 │   │       ├── user.service.ts     # buat/ubah/nonaktifkan pengguna
+│   │       ├── maintenance.service.ts  # catat maintenance + perbarui jumlah rusak
 │   │       └── flow.service.ts     # send(), return() — satu-satunya pengubah lokasi
 │   ├── lib/
 │   │   ├── permissions.ts          # matriks peran
 │   │   ├── strings.ts              # seluruh teks UI (Indonesia)
-│   │   └── validators/
+│   │   └── validators/             # termasuk skema Zod per jenis maintenance
 │   └── components/
 ├── tests/
 │   ├── flow.test.ts                # kirim/kembali, konflik, atomik
@@ -85,7 +89,8 @@ flowchart LR
 **Aturan struktural:**
 - Semua mutasi lewat `src/server/services`. Route handler hanya validasi → cek peran → panggil servis.
 - Hanya `flow.service.ts` yang boleh mengubah `items.location`.
-- Hanya servis yang menulis `item_logs`, dan selalu dalam transaksi yang sama dengan perubahannya.
+- Hanya servis yang menulis `item_logs` dan `maintenance_records`, selalu dalam transaksi yang sama dengan perubahannya.
+- Isian `details` maintenance divalidasi dengan skema Zod per jenis sebelum disimpan.
 
 ## 4. Konvensi
 
@@ -126,10 +131,36 @@ sequenceDiagram
     end
 ```
 
-### 5.3 Kirim ke CSSD
+### 5.3 Kirim
 Sama, tanpa perubahan jumlah: kondisi `location='OPERASI'`, tujuan dihitung server dari
 `route` (`STERIL` → CSSD, `NON_STERIL` → ALKES), log `SEND`.
 
-### 5.4 Pengembalian dari Alkes
-Sama dengan 5.2 dengan kondisi `location='ALKES'`, dijalankan oleh peran ALKES; tanpa
-perubahan jumlah.
+### 5.4 Ambil kembali dari Alkes
+Sama dengan 5.3 terbalik: kondisi `location='ALKES'`, dijalankan oleh peran OPERASI, tanpa
+perubahan jumlah, log `RETURN`.
+
+### 5.5 Mencatat maintenance
+
+```mermaid
+sequenceDiagram
+    participant B as Peramban (ALKES)
+    participant N as Next.js
+    participant DB as PostgreSQL
+
+    B->>N: POST /api/items/{id}/maintenance {type, details, damagedAfter, …}
+    N->>N: Cek peran ALKES/SUPERADMIN, validasi Zod sesuai type
+    N->>DB: BEGIN
+    N->>DB: INSERT maintenance_records
+    N->>DB: UPDATE items SET damaged_quantity = damagedAfter
+    N->>DB: INSERT item_logs (MAINTENANCE, maintenance_id)
+    N->>DB: COMMIT
+    N-->>B: 201 catatan + barang terbaru
+```
+
+Tidak memakai `version` karena maintenance tidak mengubah lokasi atau isi; hanya jumlah rusak
+barang, dan pembaruan itu dibatasi `CHECK (damaged_quantity <= quantity)`.
+
+### 5.6 Pemuatan data awal
+`pnpm import:csv --items items.csv --contents contents.csv` membuat barang, isi, dan log
+`REGISTER` dalam satu transaksi per barang. Dijalankan sekali oleh pengembang/SA; baris
+yang gagal divalidasi dilaporkan tanpa menghentikan seluruh impor.
