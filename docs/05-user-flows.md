@@ -1,315 +1,156 @@
 # 05 — Alur Penggunaan
 
-Dokumen ini menggambarkan bagaimana sistem dipakai sehari-hari, bukan bagaimana ia dibangun.
-
----
-
-## 1. Peta Besar
+## 1. Peta besar
 
 ```mermaid
 flowchart LR
-    A["PIC mendaftarkan aset"] --> B["Sistem membuat<br/>QR dan kode aset"]
-    B --> C["Label dicetak"]
-    C --> D["Label ditempel<br/>di barang"]
-    D --> E["Barang dipindai<br/>kapan pun"]
-    E --> F{"Punya akun?"}
-    F -->|Tidak| G["Lihat informasi<br/>dan riwayat ringkas"]
-    F -->|Ya| H["Lihat detail penuh<br/>dan catat kegiatan"]
-    H --> I["Pinjam / kembalikan<br/>periksa / perbaiki<br/>kalibrasi / mutasi"]
-    I --> J["Riwayat bertambah<br/>permanen"]
-    J --> E
+    A["Operasi mendaftarkan<br/>barang + detail + isi"] --> B["Cetak & tempel QR"]
+    B --> C{"Perlu sterilisasi?"}
+    C -->|"Ya (set instrumen)"| D["Di RUANG OPERASI"]
+    D -->|"Operasi: Kirim"| E["Di CSSD"]
+    E -->|"Steril: cek isi, update jumlah,<br/>Kembalikan"| D
+    C -->|"Tidak (mesin, meja, TV)"| F["Tetap di RUANG OPERASI<br/>tidak dikirim ke mana pun"]
+    F -.->|"Operasi: edit"| F
+    G["Alkes"] -.->|"hanya melihat"| D
+    G -.-> F
+    H["Semua peran"] -.->|"Maintenance"| M["Catatan maintenance"]
 ```
 
----
-
-## 2. Onboarding Pelanggan Baru (satu kali per rumah sakit)
-
-Dilakukan setiap kali sebuah rumah sakit menjadi pelanggan. Inilah tahap yang paling
-menentukan apakah sistem akan dipakai atau ditinggalkan.
-
-**Dikerjakan oleh pemilik platform:**
-
-1. Buat organisasi dari panel operator: nama RS, kode RS, zona waktu, kuota, dan status.
-   Kategori bawaan tersalin otomatis.
-2. Undang `SUPERADMIN` pertama rumah sakit tersebut lewat email.
-
-**Dikerjakan oleh rumah sakit:**
-
-3. Super Admin melengkapi profil organisasi: alamat dan logo.
-4. Menyusun struktur lokasi: gedung, lantai, instalasi, ruangan, lengkap dengan kode instalasi.
-5. Menyesuaikan kategori bawaan dan menandai interval kalibrasi yang sesuai alatnya.
-6. Mengundang pengguna dan menetapkan peran. PIC Ruangan dikaitkan dengan ruangannya.
-7. **Pendataan per ruangan, bukan serentak.** Ambil satu instalasi sebagai percontohan.
-   Data dapat diinput satu per satu atau diimpor massal dari Excel.
-8. Cetak seluruh label instalasi tersebut sekaligus, tempel dalam satu sesi.
-9. Jalankan satu bulan penuh di instalasi itu sebelum melebar ke instalasi berikutnya.
-
-Daftar informasi yang perlu dikumpulkan dari pelanggan ada di
-[11-open-questions.md bagian C.2](11-open-questions.md#c2-daftar-periksa-onboarding-pelanggan).
-
-> Kesalahan yang paling sering terjadi adalah mencoba mendata seluruh rumah sakit sekaligus.
-> Pendataan menjadi pekerjaan berbulan-bulan, tidak ada yang memakai sistemnya, dan data
-> pertama sudah basi sebelum data terakhir masuk.
+Dua tombol perpindahan, hanya untuk **set yang perlu sterilisasi**: **Kirim** (Operasi) dan
+**Kembalikan** (CSSD). Alat besar tanpa sterilisasi tidak berpindah: Operasi mengeditnya,
+Alkes melihatnya. **Maintenance** dapat dicatat semua peran pada barang apa pun.
+Superadmin dapat melakukan semuanya dan mengelola pengguna.
 
 ---
 
-## 3. Mendaftarkan Aset Baru
+## 2. Mendaftarkan barang (Operasi)
 
-**Pelaku:** PIC Ruangan atau Admin
+1. **Barang → Tambah**.
+2. **Identitas:** nama, *perlu sterilisasi?* (Ya untuk set/wadah; Tidak untuk alat besar),
+   kamar, jumlah (default 1; lebih dari 1 hanya untuk barang sejenis tanpa nomor seri).
+3. **Detail alat** (opsional): merek, model, nomor seri.
+4. **Pembelian** (opsional): tanggal, harga, supplier, sumber dana, garansi sampai.
+5. **Isi** (untuk wadah): **+ Isi** → nama, merek, jumlah, rusak, catatan. Ulangi.
+6. **Simpan** → kode `BRG-xxxx` terbit, halaman barang terbuka. **Cetak Label**, tempel.
+
+Alat besar cukup terisi nama + detail; isi dikosongkan. Alat bernomor seri didaftarkan
+satu per satu (satu QR per unit); meja stainless 4 buah cukup satu entri berjumlah 4. Pendataan awal ratusan barang
+dilakukan lewat impor CSV sekali pakai, bukan satu per satu ([12](12-data-contoh.md)).
+
+---
+
+## 3. Mengubah jumlah (Operasi, CSSD)
+
+- **Operasi:** buka barang → **Ubah** → ubah jumlah/rusak/catatan pada barang atau baris isi →
+  Simpan. Berlaku untuk semua barang, kapan saja barang tidak di CSSD (alat besar tanpa
+  sterilisasi selalu bisa diubah).
+- **CSSD:** lihat bagian 5.
+
+Setiap perubahan tercatat sebagai nilai lama → baru.
+
+---
+
+## 4. Mengirim set ke CSSD (Operasi)
 
 ```mermaid
 flowchart TD
-    A["Buka Aset → Tambah"] --> B["Isi data wajib:<br/>nama, kategori, ruangan,<br/>kondisi, tanggal perolehan"]
-    B --> C["Isi data opsional:<br/>merek, model, nomor seri,<br/>nilai, sumber dana, vendor"]
-    C --> D["Unggah foto utama"]
+    A["Pindai QR barang"] --> B["Halaman barang:<br/>lokasi = Operasi"]
+    B --> C["Ketuk Kirim"]
+    C --> D["Isi nama petugas<br/>(terisi otomatis dari terakhir)"]
     D --> E["Simpan"]
-    E --> F["Sistem membuat public_id<br/>dan asset_code"]
-    F --> G["Entri riwayat CREATED tercatat"]
-    G --> H{"Kategori alat medis?"}
-    H -->|Ya| I["Jadwal kalibrasi dibuat otomatis"]
-    H -->|Tidak| J["Lewati"]
-    I --> K["Halaman aset terbuka<br/>dengan QR siap cetak"]
-    J --> K
+    E --> F["Lokasi → CSSD,<br/>riwayat SEND"]
 ```
 
-**Yang perlu diperhatikan:**
-- Nomor seri yang sudah pernah dipakai akan memunculkan peringatan. Ini biasanya berarti
-  barang yang sama didata dua kali.
-- Kalau barang datang dalam jumlah banyak dan identik, gunakan impor massal, bukan mengisi
-  formulir berulang kali.
+Tiga ketukan: **Kirim → (nama petugas) → Simpan**. Catatan opsional. Barang tanpa
+sterilisasi tidak punya tombol Kirim.
 
 ---
 
-## 4. Mencetak dan Menempel Label
-
-**Pelaku:** PIC Ruangan atau Admin
-
-1. Dari halaman aset, pilih **Cetak Label**; atau dari daftar aset, centang banyak aset lalu
-   pilih **Cetak Lembar A4**.
-2. Pilih ukuran label sesuai printer yang tersedia.
-3. Periksa pratinjau, lalu cetak.
-4. Tempel pada permukaan yang **datar, bersih, dan tidak sering disentuh atau diseka**.
-   Hindari menempel di dekat engsel, roda, permukaan panas, atau bagian yang dibongkar saat servis.
-5. Pindai sendiri label yang baru ditempel untuk memastikan terbaca. Ini langkah yang paling
-   sering dilewatkan dan paling sering disesali.
-
-**Bila label rusak atau hilang:** buka aset lewat pencarian kode, pilih Cetak Ulang, isi
-alasannya. QR yang baru mengarah ke aset yang sama — identitas aset tidak pernah berubah.
-
----
-
-## 5. Memindai QR
-
-### 5.1 Oleh orang tanpa akun
+## 5. Pengecekan dan pengembalian (Steril)
 
 ```mermaid
 flowchart TD
-    A["Buka kamera ponsel<br/>arahkan ke QR"] --> B["Ketuk notifikasi tautan"]
-    B --> C["Halaman publik aset terbuka"]
-    C --> D["Terlihat: nama, kode, kategori,<br/>merek, ruangan, status, kondisi,<br/>PIC ruangan, kalibrasi berikutnya,<br/>10 riwayat terakhir secara ringkas"]
-    D --> E["Tombol: Masuk untuk detail lengkap"]
+    A["Pindai QR barang"] --> B["Halaman barang:<br/>lokasi = CSSD,<br/>daftar isi tampil"]
+    B --> C["Cocokkan isi dengan fisik"]
+    C --> D{"Sesuai?"}
+    D -->|Ya| F["Ketuk Kembalikan ke Operasi"]
+    D -->|Tidak| E["Ubah jumlah / jumlah rusak / catatan<br/>pada baris yang beda"]
+    E --> F
+    F --> G["Isi nama petugas + catatan opsional"]
+    G --> H["Simpan"]
+    H --> I["Lokasi → Operasi,<br/>perubahan tersimpan,<br/>riwayat RETURN"]
 ```
 
-Tidak perlu memasang aplikasi apa pun. Kamera bawaan ponsel sudah cukup.
-
-### 5.2 Oleh petugas yang sudah login
-
-Dari dalam aplikasi, tombol **Pindai** membuka kamera dan langsung menuju halaman aset
-dengan seluruh tombol tindakan tersedia. Bila label rusak sehingga tidak terbaca, tersedia
-isian kode aset manual.
+Pengubahan dan pengembalian terjadi **dalam satu simpanan**. Item hilang → jumlah dikurangi;
+item rusak → isi jumlah rusak; item pengganti → tambah baris. Tulis sebabnya di catatan.
 
 ---
 
-## 6. Peminjaman
-
-**Pelaku:** PIC Ruangan, Admin, atau Teknisi — bukan peminjamnya sendiri.
-
-```mermaid
-sequenceDiagram
-    actor P as Peminjam
-    actor T as Petugas
-    participant S as Sistem
-
-    P->>T: Meminta pinjam barang
-    T->>S: Pindai QR barang
-    S-->>T: Halaman aset, status AVAILABLE
-    T->>S: Ketuk Pinjamkan
-    alt Peminjam punya akun
-        T->>S: Pilih nama dari daftar pengguna
-    else Peminjam tidak punya akun
-        T->>S: Isi nama, nomor HP, keperluan
-    end
-    T->>S: Kondisi saat diserahkan, jatuh tempo (opsional), foto (opsional)
-    T->>S: Simpan
-    S->>S: Status → ON_LOAN, riwayat LOAN_OUT tercatat
-    S-->>T: Berhasil
-    T->>P: Serahkan barang
-```
-
-**Aturan yang berlaku:**
-- Tidak ada persetujuan. Peminjaman langsung berlaku begitu disimpan.
-- Barang yang sedang dipinjam tidak bisa dipinjamkan lagi. Sistem menolak dan menunjukkan
-  siapa yang sedang memegangnya.
-- Jatuh tempo boleh dikosongkan, tetapi peminjaman tanpa jatuh tempo yang berjalan lebih
-  dari tujuh hari akan muncul di dashboard sebagai perlu ditinjau.
-- Yang bertanggung jawab atas pencatatan adalah petugas yang login, bukan peminjam.
-
-### Pengembalian
+## 6. Maintenance (semua peran)
 
 ```mermaid
 flowchart TD
-    A["Peminjam mengembalikan barang"] --> B["Petugas memindai QR"]
-    B --> C["Sistem menampilkan peminjaman aktif"]
-    C --> D["Ketuk Kembalikan"]
-    D --> E["Isi kondisi saat kembali<br/>catatan, foto opsional"]
-    E --> F{"Kondisi barang"}
-    F -->|Baik| G["Status → AVAILABLE"]
-    F -->|Rusak| H["Status → DAMAGED<br/>dan muncul di daftar perlu perbaikan"]
-    G --> I["Riwayat LOAN_RETURN tercatat"]
-    H --> I
-```
-
----
-
-## 7. Pengecekan Rutin
-
-**Pelaku:** PIC Ruangan
-
-Ronde berkala memeriksa barang di ruangannya:
-
-1. Buka daftar aset ruangan, atau langsung pindai satu per satu.
-2. Untuk tiap barang, catat entri **Pengecekan** berisi kondisi saat diperiksa, catatan,
-   dan foto bila ada temuan.
-3. Bila barang tidak ditemukan, ubah statusnya menjadi `LOST` disertai catatan. Status ini
-   dapat dikembalikan bila barang ditemukan lagi — dan perjalanan itu tetap terekam.
-
----
-
-## 8. Perbaikan
-
-**Pelaku:** Teknisi atau Admin
-
-```mermaid
-flowchart TD
-    A["Kerusakan dilaporkan"] --> B["Pindai QR, catat entri Kerusakan"]
-    B --> C["Status → DAMAGED"]
-    C --> D{"Ditangani di mana?"}
-    D -->|Internal| E["Status → UNDER_REPAIR"]
-    D -->|Vendor luar| F["Status → AT_VENDOR<br/>catat vendor dan nomor surat jalan"]
-    E --> G["Catat entri Perbaikan:<br/>tanggal, pelaksana, tindakan,<br/>suku cadang, biaya, foto"]
+    A["Pindai / cari barang"] --> B["Ketuk Maintenance<br/>(semua peran)"]
+    B --> C{"Pilih jenis"}
+    C --> D["Perbaikan"]
+    C --> E["Pemeliharaan rutin"]
+    C --> F["Kalibrasi"]
+    D --> G["Isi form detail"]
+    E --> G
     F --> G
-    G --> H{"Hasil"}
-    H -->|Berhasil| I["Status → AVAILABLE"]
-    H -->|Gagal| J["Status → DAMAGED"]
-    J --> K{"Layak diperbaiki lagi?"}
-    K -->|Tidak| L["Usul penghapusan"]
-    K -->|Ya| D
+    G --> H["Nama petugas → Simpan"]
+    H --> I["Catatan maintenance + riwayat MAINTENANCE,<br/>jumlah rusak & jatuh tempo diperbarui"]
 ```
 
-Barang yang keluar rumah sakit untuk diservis **harus** diberi status `AT_VENDOR`, bukan
-dibiarkan `AVAILABLE`. Inilah titik di mana barang paling sering hilang tanpa jejak.
+| Jenis | Kapan dipakai | Isian utama |
+|---|---|---|
+| **Perbaikan** | Alat rusak, mis. meja operasi bocor oli | Keluhan, tindakan, suku cadang, biaya, jumlah rusak setelahnya |
+| **Pemeliharaan rutin** | Servis berkala | Kegiatan, temuan, jadwal berikutnya |
+| **Kalibrasi** | Alat ukur/medis | Lembaga, nomor sertifikat, hasil, berlaku sampai |
+
+Maintenance bisa dicatat oleh peran mana pun, di lokasi mana pun barang berada (termasuk
+saat di CSSD).
+Barang yang jatuh tempo ≤ 30 hari tampil di Beranda.
 
 ---
 
-## 9. Kalibrasi Alat Medis
+## 7. Memantau (semua peran)
 
-**Pelaku:** Teknisi elektromedik atau Admin
-
-```mermaid
-flowchart TD
-    A["Dashboard menampilkan<br/>jatuh tempo 30 hari"] --> B["Email ringkasan harian<br/>ke Admin dan PIC"]
-    B --> C["Jadwalkan dengan lembaga kalibrasi"]
-    C --> D["Alat dikalibrasi<br/>status AT_VENDOR bila keluar"]
-    D --> E["Catat pelaksanaan:<br/>tanggal, pelaksana, hasil,<br/>nomor sertifikat, berlaku sampai"]
-    E --> F["Unggah berkas sertifikat"]
-    F --> G{"Hasil"}
-    G -->|Lulus| H["Jatuh tempo berikutnya dihitung<br/>dari masa berlaku sertifikat"]
-    G -->|Tidak lulus| I["Status → DAMAGED<br/>peringatan: alat tidak boleh dipakai"]
-    H --> J["Status → AVAILABLE"]
-```
-
-Sertifikat yang terunggah menjadi bukti saat akreditasi. Inilah alasan berkas sertifikat
-disimpan di sistem, bukan hanya nomornya.
+Beranda: hitungan Operasi / CSSD / Rusak / Jatuh tempo, daftar dengan filter dan pencarian,
+lalu detail barang (isi, riwayat, maintenance). **Alkes hanya melihat**; peran tanpa wewenang
+tidak melihat tombol aksi.
 
 ---
 
-## 10. Mutasi Ruangan
+## 8. Superadmin
 
-**Pelaku:** Admin, atau PIC asal dengan sepengetahuan PIC tujuan
-
-1. Buka aset, pilih **Mutasi**.
-2. Pilih ruangan tujuan, isi alasan dan tanggal kejadian.
-3. PIC aset otomatis mengikuti PIC ruangan tujuan, dan dapat diubah manual.
-4. Entri riwayat `TRANSFER` tercatat lengkap dengan ruangan asal dan tujuan.
-
-Kode aset **tidak berubah** saat mutasi. Ventilator berkode `RSXX-RAD-2026-0012` yang pindah
-ke ICU tetap membawa kode itu, sehingga label tidak perlu dicetak ulang dan dokumen lama
-tetap menunjuk kode yang sama.
-
-Mutasi berbeda dari peminjaman: mutasi bersifat permanen dan mengubah siapa yang bertanggung
-jawab, peminjaman bersifat sementara dan menuntut pengembalian. Barang yang sedang dipinjam
-tidak dapat dimutasi sebelum dikembalikan.
+- Melakukan semua tindakan peran lain.
+- **Pengguna → Tambah:** username, nama, peran, kata sandi awal (wajib diganti saat login
+  pertama). Dapat mengubah peran, menonaktifkan, dan mengatur ulang kata sandi.
 
 ---
 
-## 11. Mengoreksi Kesalahan Pencatatan
+## 9. Hal lain
 
-Riwayat tidak dapat diubah maupun dihapus. Bila terjadi salah catat:
-
-1. Buka entri yang keliru pada linimasa.
-2. Pilih **Koreksi**.
-3. Tuliskan apa yang sebenarnya terjadi dan mengapa entri sebelumnya keliru.
-4. Kedua entri tetap tampil. Entri lama diberi tanda telah dikoreksi dan tertaut ke koreksinya.
-
-Ini terasa lebih merepotkan daripada tombol hapus, dan memang disengaja. Riwayat yang bisa
-dihapus tidak bernilai sebagai bukti.
-
----
-
-## 12. Penghapusan Aset
-
-**Pelaku:** Admin atau Super Admin
-
-1. Buka aset, pilih **Hapuskan Aset**.
-2. Pilih alasan: rusak total, hilang, dihibahkan, dijual, atau kedaluwarsa.
-3. Isi tanggal dan nomor dokumen penghapusan bila ada.
-4. Status menjadi `DISPOSED`, aset keluar dari daftar, pencarian, dan dashboard.
-5. Halaman publiknya tetap dapat dibuka dan menampilkan penanda bahwa aset telah dihapuskan,
-   sehingga label yang masih menempel tetap memberi jawaban yang benar.
-
-### Membatalkan penghapusan
-
-Selama **30 hari** sejak dihapuskan, aset masih dapat dipulihkan.
-
-```mermaid
-flowchart TD
-    A["Aset dihapuskan"] --> B["Muncul di halaman<br/>Aset Dihapuskan<br/>dengan sisa hari"]
-    B --> C{"Dalam 30 hari?"}
-    C -->|Ya| D["Admin menekan Batalkan Penghapusan"]
-    D --> E["Status kembali ke keadaan<br/>sebelum dihapuskan"]
-    E --> F["Tercatat sebagai entri koreksi"]
-    C -->|Tidak| G["Tombol pembatalan hilang<br/>penghapusan menjadi final"]
-    G --> H["Data tetap tersimpan:<br/>QR tetap menjawab,<br/>laporan tetap lengkap"]
-```
-
-Pemulihan mengembalikan status ke keadaan **sebelum** dihapuskan, bukan selalu ke
-`AVAILABLE` — alat yang rusak lalu keliru dihapuskan akan kembali berstatus `DAMAGED`.
-
-**Yang perlu dipahami:** setelah 30 hari, aset tidak dihapus dari basis data. Ia hanya
-tidak lagi dapat dipulihkan. Barisnya tetap ada karena tiga alasan: label QR masih menempel
-pada barang yang dihibahkan atau dijual dan pemindaiannya harus tetap menjawab, laporan
-penghapusan aset tahunan membutuhkan daftar lengkapnya, dan riwayat kalibrasi serta
-perbaikan tetap diperlukan sebagai bukti audit jauh setelah alatnya tidak dipakai lagi.
-
----
-
-## 13. Kegiatan Harian per Peran
-
-| Peran | Yang dilakukan setiap hari |
+| Situasi | Tindakan |
 |---|---|
-| **PIC Ruangan** | Mencatat peminjaman dan pengembalian di ruangannya, menanggapi jatuh tempo yang muncul di dashboard, mencatat temuan pengecekan |
-| **Teknisi** | Membuka daftar aset rusak, mencatat perbaikan dan kalibrasi beserta bukti foto |
-| **Admin** | Meninjau peminjaman yang telat, memantau kepatuhan kalibrasi, mendaftarkan aset baru dari pengadaan, mengekspor laporan |
-| **Super Admin** | Mengelola pengguna dan master data organisasinya, memantau pemakaian kuota |
-| **Manajemen** | Membuka dashboard dan laporan, tanpa perlu mengubah apa pun |
-| **Platform Owner** | Memantau pemakaian kuota seluruh pelanggan, menanggapi permintaan dukungan, membuat organisasi baru saat ada pelanggan |
+| Label rusak/tidak terbaca | Cari lewat kode/nama/seri di kolom cari |
+| Cetak ulang label | Halaman barang → Cetak Label (kode tetap) |
+| Barang tidak dipakai lagi | Operasi: **Arsipkan**; bisa **Pulihkan** |
+| Salah kirim | CSSD mengembalikan dengan catatan "salah kirim" |
+| Salah memilih *perlu sterilisasi* | Operasi mengubahnya saat barang masih di Operasi |
+| Salah isi jumlah/maintenance | Isi lagi; nilai lama tetap di riwayat. Maintenance salah dikoreksi dengan catatan baru |
+| Dua orang menyimpan bersamaan | Yang kedua melihat "data sudah berubah", muat ulang |
+
+Riwayat dan catatan maintenance tidak dapat dihapus.
+
+---
+
+## 10. Siapa melakukan apa
+
+| Peran | Tugas |
+|---|---|
+| **OPERASI** | Daftar & ubah barang/isi/jumlah (termasuk alat besar), cetak label, kirim set ke CSSD, arsipkan, maintenance |
+| **STERIL** | Cek isi, update jumlah/rusak, kembalikan dari CSSD, maintenance |
+| **ALKES** | Melihat semua; maintenance |
+| **SUPERADMIN** | Semua di atas + kelola pengguna |

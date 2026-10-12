@@ -1,667 +1,242 @@
-# 03 — ERD dan Skema Data
+# 03 — ERD & Skema Data
 
-Basis data: **PostgreSQL 16**. Seluruh identitas primer memakai **UUID v7** (terurut waktu,
-ramah indeks). Seluruh kolom waktu bertipe `timestamptz` dan disimpan dalam **UTC**.
-
----
-
-## 1. Diagram Relasi
+Lima tabel. Tidak ada `organization_id`, tidak ada tabel lampiran/gambar.
 
 ```mermaid
 erDiagram
-    ORGANIZATIONS ||--o{ USERS : "memiliki"
-    ORGANIZATIONS ||--o{ LOCATIONS : "memiliki"
-    ORGANIZATIONS ||--o{ CATEGORIES : "memiliki"
-    ORGANIZATIONS ||--o{ VENDORS : "memiliki"
-    ORGANIZATIONS ||--o{ ASSETS : "memiliki"
+    users ||--o{ item_logs : "mencatat"
+    users ||--o{ maintenance_records : "mencatat"
+    items ||--o{ item_contents : "berisi"
+    items ||--o{ item_logs : "punya riwayat"
+    items ||--o{ maintenance_records : "dirawat"
+    maintenance_records ||--o| item_logs : "tercatat di"
 
-    LOCATIONS ||--o{ LOCATIONS : "induk dari"
-    LOCATIONS ||--o{ ASSETS : "menampung"
-    LOCATIONS ||--o{ USER_LOCATIONS : "cakupan"
-    USERS ||--o{ USER_LOCATIONS : "ditugaskan"
-    USERS ||--o{ LOCATIONS : "PIC ruangan"
-
-    CATEGORIES ||--o{ CATEGORIES : "induk dari"
-    CATEGORIES ||--o{ ASSETS : "mengelompokkan"
-
-    VENDORS ||--o{ ASSETS : "memasok"
-    VENDORS ||--o{ MAINTENANCE_RECORDS : "melaksanakan"
-
-    ASSETS ||--o{ ASSET_EVENTS : "riwayat"
-    ASSETS ||--o{ LOANS : "dipinjam"
-    ASSETS ||--o{ MAINTENANCE_SCHEDULES : "dijadwalkan"
-    ASSETS ||--o{ MAINTENANCE_RECORDS : "dikerjakan"
-    ASSETS ||--o{ LABEL_PRINTS : "dicetak"
-
-    ASSET_EVENTS ||--o{ ATTACHMENTS : "lampiran"
-    ASSET_EVENTS ||--o| ASSET_EVENTS : "mengoreksi"
-    USERS ||--o{ ASSET_EVENTS : "mencatat"
-
-    LOANS ||--|| ASSET_EVENTS : "event keluar"
-    LOANS ||--o| ASSET_EVENTS : "event kembali"
-    USERS ||--o{ LOANS : "peminjam terdaftar"
-
-    MAINTENANCE_SCHEDULES ||--o{ MAINTENANCE_RECORDS : "realisasi"
-    MAINTENANCE_RECORDS ||--|| ASSET_EVENTS : "event"
-
-    USERS ||--o{ AUDIT_LOGS : "pelaku"
-    ORGANIZATIONS ||--o{ EMAIL_LOGS : "pengiriman"
+    users {
+        uuid id PK
+        text username UK
+        text name
+        text password_hash
+        enum role "OPERASI | STERIL | ALKES | SUPERADMIN"
+        bool must_change_password
+        bool is_active
+        timestamptz created_at
+    }
+    items {
+        uuid id PK
+        text code UK "BRG-0001"
+        text name
+        text description
+        bool needs_sterilization
+        enum location "OPERASI | CSSD"
+        text room "Kamar Operasi 101"
+        int quantity "default 1"
+        int damaged_quantity "default 0"
+        text brand
+        text model
+        text serial_number
+        date purchase_date
+        bigint purchase_price
+        text supplier
+        text funding_source
+        date warranty_until
+        timestamptz location_since
+        int version "optimistic lock"
+        bool is_archived
+        timestamptz created_at
+    }
+    item_contents {
+        uuid id PK
+        uuid item_id FK
+        text name
+        text brand
+        int quantity "CHECK >= 0"
+        int damaged_quantity "CHECK 0..quantity"
+        text note
+        timestamptz updated_at
+    }
+    item_logs {
+        uuid id PK
+        uuid item_id FK
+        enum action "REGISTER | EDIT | SEND | RETURN | MAINTENANCE | ARCHIVE | RESTORE"
+        uuid user_id FK
+        text actor_name "nama petugas"
+        text note
+        jsonb changes "perubahan isi/jumlah"
+        uuid maintenance_id FK "bila MAINTENANCE"
+        timestamptz created_at
+    }
+    maintenance_records {
+        uuid id PK
+        uuid item_id FK
+        enum type "PERBAIKAN | PEMELIHARAAN | KALIBRASI"
+        date performed_on
+        text performer "teknisi / vendor"
+        bigint cost
+        text note
+        jsonb details "isi form sesuai type"
+        date next_due "jatuh tempo berikutnya"
+        int damaged_after "jumlah rusak sesudahnya"
+        uuid user_id FK
+        text actor_name
+        timestamptz created_at
+    }
 ```
 
----
+## Enum
 
-## 2. Enumerasi
-
-```sql
--- Peran pengguna
-CREATE TYPE user_role AS ENUM (
-  'PLATFORM_OWNER', -- pemilik SaaS, lintas organisasi. Tidak terikat satu organisasi
-  'SUPERADMIN',   -- pengelola sistem di organisasi pelanggan, akses penuh termasuk konfigurasi
-  'ADMIN',        -- pengelola aset lintas ruangan
-  'PIC_ROOM',     -- penanggung jawab ruangan, terbatas pada cakupannya
-  'TECHNICIAN',   -- teknisi, boleh mencatat perbaikan/kalibrasi lintas ruangan
-  'VIEWER'        -- hanya baca
-);
-
-CREATE TYPE user_status AS ENUM ('INVITED', 'ACTIVE', 'DISABLED');
-
--- Tingkat lokasi
-CREATE TYPE location_type AS ENUM ('BUILDING', 'FLOOR', 'DEPARTMENT', 'ROOM');
-
--- Status aset
-CREATE TYPE asset_status AS ENUM (
-  'AVAILABLE',     -- ada di tempat, siap dipakai
-  'IN_USE',        -- terpasang/dipakai rutin di ruangannya
-  'ON_LOAN',       -- sedang dipinjam, harus kembali
-  'UNDER_REPAIR',  -- diperbaiki di dalam RS
-  'AT_VENDOR',     -- keluar RS untuk servis/kalibrasi
-  'DAMAGED',       -- rusak, belum ditangani
-  'LOST',          -- dinyatakan hilang
-  'DISPOSED'       -- dihapuskan dari daftar aset
-);
-
--- Kondisi fisik
-CREATE TYPE asset_condition AS ENUM ('GOOD', 'MINOR_ISSUE', 'NEEDS_REPAIR', 'UNUSABLE');
-
--- Jenis entri riwayat
-CREATE TYPE event_type AS ENUM (
-  'CREATED', 'INSPECTION', 'MAINTENANCE', 'REPAIR', 'CALIBRATION',
-  'LOAN_OUT', 'LOAN_RETURN', 'TRANSFER', 'STATUS_CHANGE',
-  'NOTE', 'DISPOSAL', 'CORRECTION', 'LABEL_PRINTED'
-);
-
-CREATE TYPE borrower_type AS ENUM ('INTERNAL_USER', 'EXTERNAL_PERSON');
-
-CREATE TYPE maintenance_type AS ENUM ('CALIBRATION', 'PREVENTIVE', 'CORRECTIVE');
-
-CREATE TYPE maintenance_result AS ENUM ('PASS', 'PASS_WITH_NOTE', 'FAIL');
-
-CREATE TYPE funding_source AS ENUM ('APBD', 'APBN', 'BLUD', 'HIBAH', 'KSO', 'LAINNYA');
-
-CREATE TYPE vendor_type AS ENUM ('SUPPLIER', 'SERVICE', 'CALIBRATION');
-
-CREATE TYPE disposal_reason AS ENUM ('RUSAK_TOTAL', 'HILANG', 'DIHIBAHKAN', 'DIJUAL', 'KEDALUWARSA', 'LAINNYA');
-
-CREATE TYPE print_reason AS ENUM ('FIRST_PRINT', 'LABEL_DAMAGED', 'LABEL_LOST', 'LABEL_FADED', 'RELOCATED');
-
--- Status organisasi pelanggan
-CREATE TYPE organization_status AS ENUM (
-  'ACTIVE',     -- berlangganan, dapat dipakai penuh
-  'SUSPENDED',  -- tunggakan atau dihentikan sementara: hanya baca
-  'TRIAL'       -- masa uji coba
-);
-```
-
----
-
-## 3. Tabel
-
-### 3.1 `organizations`
-
-Akar multi-tenant: satu baris per rumah sakit pelanggan. Setiap kueri memfilter dengannya.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `name` | text NOT NULL | Nama rumah sakit |
-| `code` | text NOT NULL UNIQUE | Kode pendek untuk `asset_code`, mis. `RSXX`. Unik lintas pelanggan |
-| `status` | organization_status NOT NULL DEFAULT 'TRIAL' | |
-| `address` | text | |
-| `logo_object_key` | text | Kunci objek di penyimpanan |
-| `timezone` | text NOT NULL DEFAULT 'Asia/Jakarta' | Ditetapkan per pelanggan: WIB, WITA, atau WIT |
-| `loan_overdue_threshold_days` | int NOT NULL DEFAULT 7 | Ambang peringatan pinjam tanpa jatuh tempo |
-| `quota_assets` | int NOT NULL DEFAULT 2000 | Batas jumlah aset aktif |
-| `quota_storage_bytes` | bigint NOT NULL DEFAULT 21474836480 | 20 GB |
-| `quota_users` | int NOT NULL DEFAULT 50 | |
-| `used_storage_bytes` | bigint NOT NULL DEFAULT 0 | Diperbarui saat lampiran ditambah |
-| `show_government_fields` | boolean NOT NULL DEFAULT true | Menyembunyikan sumber dana dan nomor dokumen bagi RS swasta |
-| `contact_name` / `contact_email` / `contact_phone` | text | Narahubung pelanggan, untuk keperluan operator |
-| `notes_internal` | text | Catatan pemilik platform; tidak terlihat oleh pelanggan |
-| `created_at` / `updated_at` | timestamptz | |
-
-**Aturan kuota:**
-- Pendaftaran aset ditolak bila jumlah aset dengan status selain `DISPOSED` sudah mencapai
-  `quota_assets`.
-- Penerbitan presigned URL ditolak bila `used_storage_bytes` sudah melewati
-  `quota_storage_bytes`.
-- Undangan pengguna ditolak bila jumlah pengguna aktif sudah mencapai `quota_users`.
-- Organisasi berstatus `SUSPENDED` hanya dapat membaca; seluruh operasi tulis ditolak,
-  tetapi halaman publik hasil pemindaian tetap berfungsi agar label yang sudah tertempel
-  tidak mati.
-- Seluruh batas dapat dinaikkan per organisasi dari panel operator.
-
-### 3.2 `users`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK → organizations NULL | NULL hanya untuk `PLATFORM_OWNER` |
-| `email` | citext NOT NULL | Unik per organisasi |
-| `name` | text NOT NULL | |
-| `phone` | text | |
-| `password_hash` | text | NULL selama status `INVITED` |
-| `role` | user_role NOT NULL | |
-| `status` | user_status NOT NULL DEFAULT 'INVITED' | |
-| `employee_number` | text | NIP/NIK pegawai |
-| `job_title` | text | |
-| `invite_token_hash` | text | |
-| `invite_expires_at` | timestamptz | |
-| `totp_secret` | text NULL | Terenkripsi. NULL berarti 2FA tidak aktif |
-| `totp_enabled_at` | timestamptz NULL | |
-| `recovery_codes` | text[] NULL | Di-hash satu per satu, dihapus dari larik setelah dipakai |
-| `last_login_at` | timestamptz | |
-| `created_at` / `updated_at` | timestamptz | |
-
-```sql
-CREATE UNIQUE INDEX users_org_email_uq ON users (organization_id, email);
-```
-
-**Aturan:**
-- Pengguna tidak pernah dihapus, hanya di-`DISABLED`, agar riwayat yang pernah dicatatnya
-  tetap memiliki pelaku yang valid.
-- `PLATFORM_OWNER` adalah satu-satunya peran dengan `organization_id` bernilai NULL, dan
-  satu-satunya yang berada di luar Row Level Security. Peran ini tidak pernah diberikan
-  kepada pengguna pelanggan.
-- Ketika `PLATFORM_OWNER` masuk sebagai sebuah organisasi untuk troubleshooting, setiap
-  sesi semacam itu menulis baris `audit_logs` bertindakan `platform.impersonate` yang
-  **dapat dilihat oleh pelanggan tersebut**.
-
-### 3.3 `user_locations`
-
-Pembatas cakupan untuk peran `PIC_ROOM`.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `user_id` | uuid FK → users | |
-| `location_id` | uuid FK → locations | Boleh menunjuk `DEPARTMENT`, cakupan menurun ke seluruh anaknya |
-
-PK gabungan (`user_id`, `location_id`).
-
-### 3.4 `locations`
-
-Pohon lokasi yang mereferensi dirinya sendiri.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `parent_id` | uuid FK → locations NULL | NULL berarti `BUILDING` |
-| `type` | location_type NOT NULL | |
-| `name` | text NOT NULL | |
-| `code` | text | Dipakai pada `asset_code`, biasanya pada tingkat `DEPARTMENT`, mis. `RAD` |
-| `pic_user_id` | uuid FK → users NULL | Penanggung jawab ruangan |
-| `path` | ltree atau text NOT NULL | Jalur terwujud untuk kueri subtree cepat |
-| `is_active` | boolean NOT NULL DEFAULT true | |
-| `created_at` / `updated_at` | timestamptz | |
-
-```sql
-CREATE INDEX locations_path_idx ON locations USING GIST (path);
-CREATE INDEX locations_parent_idx ON locations (parent_id);
-```
-
-**Aturan:**
-- `type` harus konsisten dengan induknya: `FLOOR` berinduk `BUILDING`, `DEPARTMENT` berinduk
-  `FLOOR`, `ROOM` berinduk `DEPARTMENT`. Dijaga di lapisan aplikasi.
-- Aset hanya boleh menunjuk lokasi bertipe `ROOM`.
-- Lokasi yang memiliki aset atau anak tidak dapat dihapus, hanya `is_active = false`.
-- `path` menyimpan jalur id leluhur sehingga filter "seluruh aset di Instalasi Radiologi"
-  menjadi satu kueri tanpa rekursi.
-
-### 3.5 `categories`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `parent_id` | uuid FK → categories NULL | Maksimal dua tingkat |
-| `name` | text NOT NULL | |
-| `code` | text | |
-| `is_medical_device` | boolean NOT NULL DEFAULT false | Memicu kewajiban kalibrasi |
-| `default_calibration_interval_months` | int NULL | Mengisi otomatis jadwal saat aset dibuat |
-| `default_economic_life_years` | int NULL | |
-| `is_active` | boolean NOT NULL DEFAULT true | |
-
-### 3.6 `vendors`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `name` | text NOT NULL | |
-| `type` | vendor_type[] NOT NULL | Satu vendor bisa pemasok sekaligus penyedia servis |
-| `contact_person` / `phone` / `email` / `address` | text | |
-| `is_active` | boolean NOT NULL DEFAULT true | |
-
-### 3.7 `assets`
-
-Tabel inti.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | Identitas internal |
-| `organization_id` | uuid FK | |
-| `public_id` | text NOT NULL UNIQUE | 12 karakter acak, isi QR. Tidak pernah berubah |
-| `asset_code` | text NOT NULL | Kode terbaca manusia, unik per organisasi |
-| `name` | text NOT NULL | |
-| `category_id` | uuid FK → categories | |
-| `location_id` | uuid FK → locations | Wajib bertipe `ROOM` |
-| `status` | asset_status NOT NULL DEFAULT 'AVAILABLE' | |
-| `condition` | asset_condition NOT NULL DEFAULT 'GOOD' | |
-| `brand` | text | |
-| `model` | text | |
-| `serial_number` | text | |
-| `year_manufactured` | int | |
-| `acquisition_date` | date | |
-| `acquisition_cost` | numeric(16,2) | |
-| `funding_source` | funding_source NULL | |
-| `acquisition_document_no` | text | Nomor SPK/BAST |
-| `vendor_id` | uuid FK → vendors NULL | |
-| `warranty_until` | date NULL | |
-| `economic_life_years` | int NULL | |
-| `responsible_user_id` | uuid FK → users NULL | PIC perorangan, dapat berbeda dari PIC ruangan |
-| `primary_photo_key` | text NULL | Foto utama aset |
-| `notes` | text | |
-| `disposal_reason` | disposal_reason NULL | Terisi saat status `DISPOSED` |
-| `disposed_at` | date NULL | Tanggal penghapusan menurut dokumen |
-| `disposed_recorded_at` | timestamptz NULL | Waktu tombol hapuskan ditekan; dasar hitungan masa pembatalan |
-| `disposal_revert_until` | timestamptz NULL | `disposed_recorded_at` + 30 hari. Lewat dari ini, pembatalan tidak mungkin |
-| `status_before_disposal` | asset_status NULL | Status yang dipulihkan bila penghapusan dibatalkan |
-| `qr_first_printed_at` | timestamptz NULL | |
-| `created_by` | uuid FK → users | |
-| `created_at` / `updated_at` | timestamptz | |
-
-```sql
-CREATE UNIQUE INDEX assets_public_id_uq ON assets (public_id);
-CREATE UNIQUE INDEX assets_org_code_uq  ON assets (organization_id, asset_code);
-CREATE INDEX assets_location_idx ON assets (organization_id, location_id);
-CREATE INDEX assets_status_idx   ON assets (organization_id, status);
-CREATE INDEX assets_category_idx ON assets (organization_id, category_id);
-CREATE INDEX assets_serial_idx   ON assets (organization_id, serial_number)
-  WHERE serial_number IS NOT NULL;
-
--- Daftar aset yang masih dalam masa pembatalan penghapusan
-CREATE INDEX assets_revertible_idx ON assets (organization_id, disposal_revert_until)
-  WHERE status = 'DISPOSED' AND disposal_revert_until IS NOT NULL;
-
--- Pencarian teks bebas
-CREATE INDEX assets_search_idx ON assets USING GIN (
-  to_tsvector('simple',
-    coalesce(name,'') || ' ' || coalesce(asset_code,'') || ' ' ||
-    coalesce(brand,'') || ' ' || coalesce(model,'') || ' ' || coalesce(serial_number,''))
-);
-```
-
-**Aturan:**
-- Aset tidak pernah dihapus secara fisik. Penghapusan berarti `status = 'DISPOSED'`.
-- `status` tidak boleh diubah langsung lewat UPDATE tanpa menulis `asset_events`;
-  dijaga oleh satu fungsi layanan tunggal di aplikasi.
-- Penghapusan dapat dibatalkan selama `now() < disposal_revert_until`. Pembatalan
-  mengembalikan `status` ke nilai `status_before_disposal`, mengosongkan keempat kolom
-  penghapusan, dan menulis entri riwayat `CORRECTION`.
-- Setelah `disposal_revert_until` terlewat, pembatalan ditolak. Baris tetap disimpan
-  selamanya; tidak ada pekerjaan terjadwal yang menghapusnya.
-- Seluruh daftar, pencarian, dan dashboard memfilter `status <> 'DISPOSED'` secara bawaan,
-  sehingga dari sudut pandang pengguna aset tersebut memang hilang.
-- Tidak ada relasi aset induk dan anak di v1. Bila kelak diperlukan, tambahkan satu kolom
-  `parent_asset_id` yang nullable.
-
-### 3.8 `asset_events`
-
-Riwayat **append-only**. Tabel ini tidak menerima UPDATE maupun DELETE.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `asset_id` | uuid FK → assets | |
-| `type` | event_type NOT NULL | |
-| `title` | text NOT NULL | Ringkasan satu baris, tampil di linimasa publik |
-| `notes` | text | Detail, tidak tampil di halaman publik |
-| `occurred_at` | timestamptz NOT NULL | Waktu kejadian sebenarnya, boleh mundur |
-| `recorded_at` | timestamptz NOT NULL DEFAULT now() | Waktu tersimpan, tidak dapat diisi klien |
-| `recorded_by` | uuid FK → users NOT NULL | Pencatat |
-| `location_id` | uuid FK → locations NULL | Lokasi aset saat kejadian (snapshot) |
-| `status_before` | asset_status NULL | |
-| `status_after` | asset_status NULL | |
-| `corrects_event_id` | uuid FK → asset_events NULL | Diisi hanya pada tipe `CORRECTION` |
-| `metadata` | jsonb NOT NULL DEFAULT '{}' | Muatan spesifik per tipe |
-
-```sql
-CREATE INDEX events_asset_time_idx ON asset_events (asset_id, occurred_at DESC);
-CREATE INDEX events_org_type_idx   ON asset_events (organization_id, type, occurred_at DESC);
-CREATE INDEX events_corrects_idx   ON asset_events (corrects_event_id)
-  WHERE corrects_event_id IS NOT NULL;
-
--- Penegakan append-only di tingkat basis data
-CREATE RULE asset_events_no_update AS ON UPDATE TO asset_events DO INSTEAD NOTHING;
-CREATE RULE asset_events_no_delete AS ON DELETE TO asset_events DO INSTEAD NOTHING;
-```
-
-**Aturan:**
-- `occurred_at` tidak boleh lebih besar dari `now()`.
-- Peran aplikasi terhadap tabel ini hanya `INSERT` dan `SELECT`; hak `UPDATE`/`DELETE`
-  dicabut di tingkat PostgreSQL.
-- `CORRECTION` wajib mengisi `corrects_event_id` dan `notes` sebagai alasan.
-- Contoh isi `metadata` per tipe:
-  - `TRANSFER`: `{ "from_location_id": "...", "to_location_id": "...", "reason": "..." }`
-  - `LOAN_OUT`: `{ "loan_id": "...", "borrower_name": "...", "due_at": "..." }`
-  - `CALIBRATION`: `{ "record_id": "...", "result": "PASS", "valid_until": "2027-05-01" }`
-  - `DISPOSAL`: `{ "reason": "RUSAK_TOTAL", "document_no": "..." }`
-  - `LABEL_PRINTED`: `{ "print_id": "...", "reason": "LABEL_FADED" }`
-
-### 3.9 `attachments`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `event_id` | uuid FK → asset_events | |
-| `object_key` | text NOT NULL | Kunci di penyimpanan objek |
-| `mime_type` | text NOT NULL | |
-| `size_bytes` | bigint NOT NULL | |
-| `width` / `height` | int NULL | Untuk gambar |
-| `original_filename` | text | |
-| `uploaded_by` | uuid FK → users | |
-| `created_at` | timestamptz | |
-
-```sql
-CREATE INDEX attachments_event_idx ON attachments (event_id);
-```
-
-**Aturan:** maksimal 5 baris per `event_id`, dijaga di aplikasi. Lampiran mengikuti sifat
-append-only entri induknya: tidak dihapus setelah entri tersimpan.
-
-Pola penamaan kunci objek:
-`{organization_id}/assets/{asset_id}/events/{event_id}/{uuid}.{ext}`
-
-### 3.10 `loans`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `asset_id` | uuid FK → assets | |
-| `borrower_type` | borrower_type NOT NULL | |
-| `borrower_user_id` | uuid FK → users NULL | Diisi bila `INTERNAL_USER` |
-| `borrower_name` | text NULL | Wajib bila `EXTERNAL_PERSON` |
-| `borrower_phone` | text NULL | Wajib bila `EXTERNAL_PERSON` |
-| `borrower_unit` | text NULL | Opsional |
-| `purpose` | text NOT NULL | Keperluan peminjaman |
-| `borrowed_at` | timestamptz NOT NULL | |
-| `due_at` | timestamptz NULL | Opsional |
-| `returned_at` | timestamptz NULL | NULL berarti masih dipinjam |
-| `condition_out` | asset_condition NOT NULL | |
-| `condition_in` | asset_condition NULL | |
-| `return_notes` | text | |
-| `checkout_event_id` | uuid FK → asset_events NOT NULL | |
-| `checkin_event_id` | uuid FK → asset_events NULL | |
-| `recorded_by` | uuid FK → users NOT NULL | Petugas yang mencatat, bukan peminjam |
-| `returned_recorded_by` | uuid FK → users NULL | |
-| `created_at` | timestamptz | |
-
-```sql
--- Satu aset hanya boleh punya satu peminjaman aktif
-CREATE UNIQUE INDEX loans_one_active_per_asset
-  ON loans (asset_id) WHERE returned_at IS NULL;
-
-CREATE INDEX loans_active_idx ON loans (organization_id, borrowed_at DESC)
-  WHERE returned_at IS NULL;
-```
-
-**Aturan:**
-- `CHECK`: bila `borrower_type = 'EXTERNAL_PERSON'` maka `borrower_name` dan `borrower_phone`
-  tidak boleh NULL; bila `INTERNAL_USER` maka `borrower_user_id` tidak boleh NULL.
-- `CHECK`: `returned_at >= borrowed_at`.
-- Indeks parsial unik di atas adalah penjaga sesungguhnya terhadap peminjaman ganda —
-  jangan hanya mengandalkan pengecekan di aplikasi.
-
-### 3.11 `maintenance_schedules`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `asset_id` | uuid FK → assets | |
-| `type` | maintenance_type NOT NULL | `CALIBRATION` atau `PREVENTIVE` |
-| `interval_months` | int NOT NULL | |
-| `last_performed_at` | date NULL | |
-| `next_due_at` | date NOT NULL | Dihitung otomatis, dapat ditimpa manual |
-| `is_active` | boolean NOT NULL DEFAULT true | |
-| `notes` | text | |
-
-```sql
-CREATE INDEX schedules_due_idx ON maintenance_schedules (organization_id, next_due_at)
-  WHERE is_active = true;
-```
-
-### 3.12 `maintenance_records`
-
-Realisasi pelaksanaan pemeliharaan, perbaikan, atau kalibrasi.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `asset_id` | uuid FK → assets | |
-| `schedule_id` | uuid FK → maintenance_schedules NULL | NULL untuk perbaikan insidental |
-| `type` | maintenance_type NOT NULL | |
-| `performed_at` | date NOT NULL | |
-| `performed_by_vendor_id` | uuid FK → vendors NULL | |
-| `performed_by_internal` | text NULL | Nama teknisi internal |
-| `result` | maintenance_result NULL | Wajib untuk `CALIBRATION` |
-| `valid_until` | date NULL | Masa berlaku sertifikat |
-| `certificate_number` | text NULL | |
-| `certificate_object_key` | text NULL | Berkas sertifikat |
-| `cost` | numeric(16,2) NULL | |
-| `parts_replaced` | text NULL | |
-| `description` | text | |
-| `event_id` | uuid FK → asset_events NOT NULL | |
-| `created_by` | uuid FK → users | |
-| `created_at` | timestamptz | |
-
-**Aturan:** menyimpan record dengan `schedule_id` terisi akan memperbarui
-`last_performed_at` dan menghitung ulang `next_due_at` pada jadwalnya.
-Bila `valid_until` diisi, nilai itu yang dipakai sebagai `next_due_at`.
-`result = 'FAIL'` mengubah status aset menjadi `DAMAGED`.
-
-### 3.13 `label_prints`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `asset_id` | uuid FK → assets | |
-| `reason` | print_reason NOT NULL | |
-| `label_size` | text NOT NULL | mis. `50x30mm`, `A4_SHEET` |
-| `printed_by` | uuid FK → users | |
-| `printed_at` | timestamptz NOT NULL DEFAULT now() | |
-
-### 3.14 `audit_logs`
-
-Untuk aksi yang bukan riwayat aset: login, manajemen pengguna, perubahan master data,
-perubahan konfigurasi.
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK NULL | NULL untuk aksi tingkat sistem |
-| `actor_user_id` | uuid FK → users NULL | NULL untuk aksi anonim |
-| `action` | text NOT NULL | mis. `user.invite`, `location.update`, `auth.login_failed` |
-| `entity_type` | text | |
-| `entity_id` | uuid NULL | |
-| `changes` | jsonb | Sebelum/sesudah |
-| `ip_address` | inet NULL | |
-| `user_agent` | text NULL | |
-| `created_at` | timestamptz NOT NULL DEFAULT now() | |
-
-### 3.15 `email_logs`
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | uuid PK | |
-| `organization_id` | uuid FK | |
-| `to_email` | text NOT NULL | |
-| `template` | text NOT NULL | `daily_digest`, `user_invite`, `password_reset` |
-| `subject` | text | |
-| `status` | text NOT NULL | `SENT`, `FAILED` |
-| `error` | text NULL | |
-| `sent_at` | timestamptz NOT NULL DEFAULT now() | |
-
-### 3.16 Tabel sesi
-
-Mengikuti skema bawaan Auth.js: `sessions`, `verification_tokens`. Tidak ada tabel
-`accounts` karena v1 hanya memakai kredensial email dan kata sandi.
-
-Kolom tambahan pada `sessions`:
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `remembered` | boolean NOT NULL DEFAULT false | true bila pengguna memilih "Ingat saya" |
-| `expires_at` | timestamptz NOT NULL | 12 jam, atau 7 hari bila `remembered` |
-| `ip_address` / `user_agent` | inet / text | Untuk daftar perangkat aktif di halaman profil |
-
----
-
-## 4. State Machine Status Aset
-
-```mermaid
-stateDiagram-v2
-    [*] --> AVAILABLE: pendaftaran aset
-
-    AVAILABLE --> IN_USE: mulai dipakai rutin
-    IN_USE --> AVAILABLE: selesai dipakai
-
-    AVAILABLE --> ON_LOAN: peminjaman
-    IN_USE --> ON_LOAN: peminjaman
-    ON_LOAN --> AVAILABLE: kembali, kondisi baik
-    ON_LOAN --> DAMAGED: kembali, kondisi rusak
-    ON_LOAN --> LOST: dinyatakan hilang
-
-    AVAILABLE --> DAMAGED: ditemukan rusak
-    IN_USE --> DAMAGED: ditemukan rusak
-    DAMAGED --> UNDER_REPAIR: mulai diperbaiki internal
-    DAMAGED --> AT_VENDOR: dikirim ke vendor
-
-    AVAILABLE --> UNDER_REPAIR: pemeliharaan terjadwal
-    AVAILABLE --> AT_VENDOR: kalibrasi eksternal
-    IN_USE --> AT_VENDOR: kalibrasi eksternal
-
-    UNDER_REPAIR --> AVAILABLE: perbaikan berhasil
-    UNDER_REPAIR --> AT_VENDOR: perlu vendor
-    UNDER_REPAIR --> DAMAGED: perbaikan gagal
-    AT_VENDOR --> AVAILABLE: kembali dari vendor
-    AT_VENDOR --> DAMAGED: vendor menyatakan rusak
-
-    AVAILABLE --> LOST: tidak ditemukan
-    IN_USE --> LOST: tidak ditemukan
-    LOST --> AVAILABLE: ditemukan kembali
-
-    DAMAGED --> DISPOSED: dihapuskan
-    LOST --> DISPOSED: dihapuskan
-    AVAILABLE --> DISPOSED: dihapuskan
-    DISPOSED --> AVAILABLE: pembatalan dalam 30 hari
-    DISPOSED --> DAMAGED: pembatalan dalam 30 hari
-    DISPOSED --> LOST: pembatalan dalam 30 hari
-    DISPOSED --> [*]: lewat 30 hari, final
-```
-
-**Aturan penegakan:**
-
-| Aturan | Alasan |
+| Enum | Nilai |
 |---|---|
-| Transisi yang tidak tergambar ditolak | Mencegah status tidak masuk akal, mis. `DISPOSED` → `ON_LOAN` |
-| `ON_LOAN` hanya dapat dimasuki lewat pembuatan peminjaman | Status dan tabel peminjaman tidak boleh berbeda cerita |
-| `ON_LOAN` hanya dapat ditinggalkan lewat pengembalian atau pernyataan hilang | Sama seperti di atas |
-| `DISPOSED` dapat dibatalkan selama 30 hari, sesudahnya final | Memaafkan salah klik tanpa membuat penghapusan terasa main-main. Pemulihan mengembalikan status ke nilai sebelum dihapuskan, bukan selalu ke `AVAILABLE` |
-| Aset `ON_LOAN` tidak dapat dimutasi | Lokasi fisik tidak diketahui selama dipinjam |
-| Setiap transisi menulis satu `asset_events` | Tidak ada perubahan status tanpa jejak |
+| `Role` | `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` |
+| `Location` | `OPERASI`, `CSSD` |
+| `LogAction` | `REGISTER`, `EDIT`, `SEND`, `RETURN`, `MAINTENANCE`, `ARCHIVE`, `RESTORE` |
+| `MaintenanceType` | `PERBAIKAN`, `PEMELIHARAAN`, `KALIBRASI` |
 
----
+## Mengapa kolom ini ada (dari daftar contoh)
 
-## 5. Aturan Integritas Lintas Tabel
+Lihat [12 — Data Contoh](12-data-contoh.md).
 
-1. **Isolasi organisasi — aturan terpenting dalam skema ini.** Setiap kueri dari aplikasi
-   wajib menyertakan `organization_id`, dan **Row Level Security wajib aktif** pada seluruh
-   tabel bertenant sebagai jaring pengaman. Ini bukan anjuran: satu kueri yang lupa
-   difilter berarti data sebuah rumah sakit terlihat oleh rumah sakit lain, dan sebuah
-   produk SaaS tidak pulih dari kejadian semacam itu.
+- `room` — daftar Juni dikelompokkan per kamar (Kamar Operasi 101, 102, RR, Ruang Transit).
+- `brand`, `model`, `serial_number`, `purchase_*`, `supplier`, `warranty_until` — detail
+  pembelian barang besar (mesin anestesi, meja operasi, lampu operasi, USG).
+- `item_contents.brand` — daftar Mei mencatat merek per instrumen (Aesculap, B.Braun, Storz).
+- `damaged_quantity` + `note` — kolom "Alat Rusak" dan "Keterangan" pada daftar Juni.
+  Jumlah baik = `quantity − damaged_quantity`.
+- `items.quantity` / `damaged_quantity` — barang sejenis tanpa nomor seri dicatat per jumlah di daftar Mei
+  ("Meja Stainless 4", "Tempat sampah 2"); satu QR untuk kelompok itu. Alat bernomor seri
+  satu QR per unit. Kondisi RUSAK = `damaged_quantity > 0`.
 
-   ```sql
-   ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
-   CREATE POLICY assets_tenant_isolation ON assets
-     USING (organization_id = current_setting('app.current_org')::uuid);
-   ```
+## Skema (ringkas)
 
-   `app.current_org` ditetapkan di awal setiap transaksi dari sesi pengguna, bukan dari
-   parameter permintaan. Peran basis data `PLATFORM_OWNER` memakai koneksi terpisah yang
-   melewati RLS, dan hanya dipakai oleh panel operator.
+```sql
+CREATE TABLE users (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  username      text NOT NULL UNIQUE,
+  name          text NOT NULL,
+  password_hash text NOT NULL,
+  role          "Role" NOT NULL,
+  must_change_password boolean NOT NULL DEFAULT true,
+  is_active     boolean NOT NULL DEFAULT true,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
 
-   Pengujian wajib: satu kasus uji yang mencoba membaca aset milik organisasi lain dan
-   memastikan hasilnya kosong — dijalankan di CI, bukan sekali saja saat pengembangan.
-2. **Aset hanya pada ruangan.** Ditegakkan lewat pemeriksaan aplikasi ditambah trigger
-   yang memastikan `locations.type = 'ROOM'`.
-3. **Konsistensi peminjaman.** `assets.status = 'ON_LOAN'` bila dan hanya bila terdapat
-   baris `loans` dengan `returned_at IS NULL`. Disediakan kueri pemeriksa konsistensi
-   yang dijalankan harian bersama tugas terjadwal.
-4. **Tidak ada penghapusan keras** pada `assets`, `asset_events`, `loans`,
-   `maintenance_records`, `users`. Seluruh FK memakai `ON DELETE RESTRICT`.
-5. **Waktu.** `occurred_at <= now()`, `recorded_at` selalu berasal dari server.
+CREATE SEQUENCE item_code_seq;
 
----
+CREATE TABLE items (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code           text NOT NULL UNIQUE
+                 DEFAULT 'BRG-' || lpad(nextval('item_code_seq')::text, 4, '0'),
+  name           text NOT NULL,
+  description    text,
+  needs_sterilization boolean NOT NULL,
+  location       "Location" NOT NULL DEFAULT 'OPERASI',
+  room           text,
+  quantity       int NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+  damaged_quantity int NOT NULL DEFAULT 0,
+  brand          text,
+  model          text,
+  serial_number  text,
+  purchase_date  date,
+  purchase_price bigint CHECK (purchase_price >= 0),   -- rupiah, tanpa desimal
+  supplier       text,
+  funding_source text,
+  warranty_until date,
+  location_since timestamptz NOT NULL DEFAULT now(),
+  version        int NOT NULL DEFAULT 1,
+  is_archived    boolean NOT NULL DEFAULT false,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  CHECK (damaged_quantity BETWEEN 0 AND quantity),
+  CHECK (serial_number IS NULL OR quantity = 1),       -- satu QR = satu unit bernomor seri
+  CHECK (needs_sterilization OR location = 'OPERASI')  -- barang tanpa steril tidak pernah ke CSSD
+);
 
-## 6. Data Awal (Seed)
+CREATE TABLE item_contents (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id          uuid NOT NULL REFERENCES items(id),
+  name             text NOT NULL,
+  brand            text,
+  quantity         int  NOT NULL CHECK (quantity >= 0),
+  damaged_quantity int  NOT NULL DEFAULT 0,
+  note             text,
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  CHECK (damaged_quantity BETWEEN 0 AND quantity),
+  UNIQUE (item_id, name)
+);
 
-Perlu disiapkan sebagai bagian instalasi:
+CREATE TABLE maintenance_records (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id         uuid NOT NULL REFERENCES items(id),
+  type            "MaintenanceType" NOT NULL,
+  performed_on    date NOT NULL,
+  performer       text NOT NULL,
+  cost            bigint CHECK (cost >= 0),
+  note            text,
+  details         jsonb NOT NULL,
+  next_due        date,
+  damaged_after   int NOT NULL CHECK (damaged_after >= 0),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  actor_name      text NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON maintenance_records (item_id, performed_on DESC);
+CREATE INDEX ON maintenance_records (next_due) WHERE next_due IS NOT NULL;
 
-- Satu pengguna `PLATFORM_OWNER` dengan `organization_id` bernilai NULL.
-- **Dua organisasi contoh** untuk pengembangan, bukan satu. Isolasi antar tenant hanya
-  dapat diuji bila ada tenant kedua, dan bug isolasi yang ditemukan di minggu pertama jauh
-  lebih murah daripada yang ditemukan setelah ada pelanggan.
-- Satu `SUPERADMIN` pada masing-masing organisasi contoh.
-- Kategori contoh pada masing-masing organisasi **pengembangan** saja: Elektromedik
-  (medis, 12 bulan), Alat Penunjang Medis (medis, 12 bulan), Furnitur, Perangkat IT.
-- Struktur lokasi contoh: satu gedung, satu lantai, satu instalasi, beberapa ruangan.
-- Beberapa aset contoh pada masing-masing organisasi, agar pengujian isolasi punya bahan.
+CREATE TABLE item_logs (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id        uuid NOT NULL REFERENCES items(id),
+  action         "LogAction" NOT NULL,
+  user_id        uuid NOT NULL REFERENCES users(id),
+  actor_name     text NOT NULL,
+  note           text,
+  changes        jsonb,
+  maintenance_id uuid REFERENCES maintenance_records(id),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON item_logs (item_id, created_at DESC);
+CREATE INDEX ON items (location) WHERE NOT is_archived;
+```
 
-**Penting: seed ini hanya untuk pengembangan.** Organisasi pelanggan yang dibuat lewat panel
-operator **tidak** menerima kategori apa pun — tiap rumah sakit menyusun pengelompokannya
-sendiri. Halaman kategori yang masih kosong menampilkan panduan beserta contoh, tetapi tidak
-ada yang mengisinya secara otomatis.
+## Bentuk `changes`
 
----
+```json
+[
+  { "name": "Jarum", "field": "quantity", "from": 10, "to": 8 },
+  { "name": "Jarum", "field": "damaged_quantity", "from": 0, "to": 1 },
+  { "name": "Pisau", "field": "quantity", "from": null, "to": 3 },
+  { "name": "Gunting", "field": "quantity", "from": 2, "to": null }
+]
+```
 
-## 7. Ruang untuk v2
+`from: null` = baris baru, `to: null` = baris dihapus. `field` ∈ `quantity`,
+`damaged_quantity`, `brand`, `note`. Perubahan jumlah/jumlah rusak pada barang itu sendiri
+(bukan isi) memakai `name` = nama barang.
 
-Skema sudah menyiapkan tempat untuk pengembangan berikut tanpa migrasi besar:
+## Bentuk `maintenance_records.details` (per jenis)
 
-| Rencana v2 | Cara masuk ke skema saat ini |
+| Jenis | Isi `details` |
 |---|---|
-| Stok barang habis pakai | Tabel baru `stock_items` dan `stock_movements`, terpisah dari `assets` |
-| Pendaftaran mandiri organisasi | Menambah status `PENDING_APPROVAL` pada `organization_status` |
-| Penagihan berlangganan | Tabel `plans` dan `subscriptions` yang menunjuk `organizations` |
-| Work order penuh | Tabel `work_orders` yang menunjuk `maintenance_records` |
-| Mode offline | Menambahkan `client_generated_id` unik pada `asset_events` untuk idempotensi sinkronisasi |
-| Tanda tangan digital | Kolom `signature_object_key` pada `loans` |
-| Integrasi SIMRS | Kolom `external_ref` bertipe jsonb pada `assets` |
-| Aset induk dan anak | Kolom `parent_asset_id` nullable pada `assets`, ditambahkan saat dibutuhkan |
-| Anonimisasi data peminjam | Kolom `anonymized_at` pada `loans`; nama dan nomor HP diganti, barisnya tetap |
+| `PERBAIKAN` | `complaint` (keluhan/kerusakan), `action` (tindakan), `parts` (suku cadang diganti, teks), `finished_on` (tanggal selesai, opsional) |
+| `PEMELIHARAAN` | `activities` (kegiatan yang dilakukan, teks), `findings` (temuan) |
+| `KALIBRASI` | `institution` (lembaga), `certificate_no`, `result` (`LULUS` \| `TIDAK_LULUS`), `valid_until` |
+
+Divalidasi dengan skema Zod per jenis. `next_due` terisi dari `valid_until` (kalibrasi) atau dari
+isian "jadwal berikutnya" (pemeliharaan). `damaged_after` mengubah `items.damaged_quantity` (tidak boleh melebihi `quantity`).
+
+## Aturan integritas
+
+1. **Riwayat append-only.** Peran basis data aplikasi hanya diberi `INSERT, SELECT` pada
+   `item_logs` dan `maintenance_records`; `UPDATE` dan `DELETE` dicabut. Salah isi maintenance
+   dikoreksi dengan catatan baru.
+2. **Perpindahan lokasi bersyarat.** Hanya barang `needs_sterilization`.
+   - Kirim (OPERASI): `UPDATE items SET location='CSSD', version=version+1
+     WHERE id=$1 AND location='OPERASI' AND needs_sterilization`.
+   - Kembali (STERIL): `... SET location='OPERASI' WHERE id=$1 AND location='CSSD'`.
+   - Nol baris terpengaruh → 409. Barang tanpa sterilisasi tidak punya jalur perpindahan.
+3. **Pengembalian atomik.** Update lokasi, update jumlah, dan penulisan log dalam satu
+   transaksi. Begitu juga maintenance: insert record + update `damaged_quantity` + insert log.
+4. **Penguncian optimistis.** Ubah isi mengirim `version`; tidak cocok → 409.
+5. `location_since` diperbarui setiap kali lokasi berubah.
+6. Barang tidak pernah dihapus; hanya `is_archived`. Terarsip tidak dapat dikirim/dikembalikan.
+7. `needs_sterilization` hanya dapat diubah saat barang di Operasi.
+8. Selalu ada minimal satu `SUPERADMIN` aktif.
+9. `serial_number` yang sudah dipakai barang lain memunculkan peringatan (bukan penolakan).
+10. "Terakhir dicek CSSD" dihitung dari log `RETURN` terakhir, bukan kolom sendiri.

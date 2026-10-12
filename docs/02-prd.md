@@ -1,450 +1,165 @@
-# 02 — Product Requirements Document (PRD)
+# 02 — Product Requirements
 
-Dokumen ini mendefinisikan **apa** yang dibangun. Bagaimana membangunnya ada di
-[04-technical-architecture.md](04-technical-architecture.md).
+Peran: **O** = OPERASI, **S** = STERIL, **A** = ALKES, **SA** = SUPERADMIN (SA dapat melakukan semua yang dapat dilakukan peran lain).
 
-Penomoran kebutuhan: `FR-xx` fungsional, `NFR-xx` non-fungsional.
+## F1. Autentikasi
 
-Prioritas:
-- **P0** — masuk MVP (6 minggu)
-- **P1** — masuk v1.1, wajib selesai sebelum data pelanggan sungguhan masuk
-- **P2** — v2
+- Login dengan username + kata sandi. Sesi 30 hari di perangkat yang sama (ponsel dipakai
+  sambil bekerja; login ulang berulang akan membuat alat ditinggalkan).
+- Akun pertama (`SUPERADMIN`) dibuat lewat CLI (`pnpm user:create`). Selanjutnya
+  **SA membuat pengguna baru dari UI** (lihat F10).
 
-SIMASET adalah produk SaaS multi-tenant. Seluruh kebutuhan di bawah ini berlaku
-**di dalam satu organisasi**, kecuali FR-01, FR-01b, dan FR-01c yang mengatur lapisan
-platform itu sendiri.
+**Acceptance:**
+- Salah kata sandi 5 kali dalam 10 menit → ditolak sementara.
+- Tanpa sesi, semua halaman selain `/login` mengalihkan ke login.
 
----
+## F2. Barang (alat besar / wadah)
 
-## A. Master Data
+**Form pendaftaran (O).** Hanya *nama* dan *perlu sterilisasi* wajib; sisanya boleh kosong agar
+pendataan tidak tertahan.
 
-### FR-01 — Organisasi dan Isolasi Tenant (P0)
-
-Setiap rumah sakit pelanggan adalah satu organisasi berisi nama, kode, alamat, logo,
-zona waktu, status langganan, dan kuota. Seluruh data lain terikat ke organisasi.
-
-**Acceptance criteria**
-- Admin organisasi dapat mengubah profil dan zona waktu organisasinya.
-- Zona waktu ditetapkan per organisasi, sehingga pelanggan di WITA dan WIT melihat waktu
-  yang benar. Waktu tetap disimpan dalam UTC.
-- Logo dan nama organisasi muncul di label QR yang dicetak dan di halaman publik.
-- **Tidak ada satu pun kueri yang berjalan tanpa filter organisasi**, dan Row Level
-  Security aktif sebagai jaring pengaman di tingkat basis data.
-- Pengguna sebuah organisasi tidak dapat membaca, mengubah, atau bahkan mengetahui
-  keberadaan data organisasi lain — dibuktikan lewat pengujian otomatis di CI.
-- Organisasi berstatus `SUSPENDED` hanya dapat membaca. Halaman publik hasil pemindaian
-  tetap berfungsi, agar label yang sudah tertempel tidak mati karena urusan langganan.
-
-### FR-01b — Panel Operator (P0)
-
-Halaman khusus `PLATFORM_OWNER` untuk mengelola pelanggan.
-
-**Acceptance criteria**
-- Menampilkan daftar organisasi beserta pemakaian kuota aset, penyimpanan, dan pengguna.
-- Dapat membuat organisasi baru: nama, kode, zona waktu, kuota, dan data admin pertamanya.
-- Membuat organisasi mengirim undangan `SUPERADMIN` pertama. **Kategori tidak diisi
-  otomatis** — lihat FR-03.
-- Dapat mengubah kuota dan status organisasi.
-- Dapat masuk sebagai organisasi tertentu untuk dukungan teknis. Setiap sesi semacam itu
-  menulis `audit_logs` bertindakan `platform.impersonate` yang **terlihat oleh pelanggan**,
-  dan antarmuka menampilkan penanda tetap selama sesi berlangsung.
-- Panel ini memakai koneksi basis data terpisah yang melewati RLS. Koneksi tersebut tidak
-  boleh dapat diakses dari bagian aplikasi mana pun selain panel operator.
-
-### FR-01c — Kuota (P0)
-
-**Acceptance criteria**
-- Kuota bawaan tiap organisasi: **2.000 aset, 20 GB penyimpanan, 50 pengguna**.
-- Pendaftaran aset ditolak dengan pesan yang jelas bila kuota aset tercapai.
-- Penerbitan URL unggah ditolak bila kuota penyimpanan terlampaui.
-- Undangan pengguna ditolak bila kuota pengguna tercapai.
-- Pemakaian penyimpanan diperbarui setiap kali lampiran ditambahkan, dan dihitung ulang
-  oleh tugas pembersih mingguan.
-- Admin organisasi dapat melihat pemakaian kuotanya sendiri.
-
-### FR-02 — Lokasi Berjenjang (P0)
-
-Lokasi disimpan sebagai pohon dengan empat tingkat: **Gedung → Lantai → Instalasi/Departemen → Ruangan**.
-Aset selalu ditempatkan pada node bertipe `ROOM`.
-
-**Acceptance criteria**
-- Admin dapat membuat, mengubah, dan menonaktifkan lokasi pada setiap tingkat.
-- Lokasi yang masih memiliki aset tidak dapat dihapus, hanya dinonaktifkan.
-- Setiap ruangan dapat ditetapkan satu **PIC** (pengguna bertanggung jawab).
-- UI menampilkan jalur lengkap, contoh: `Gedung A / Lantai 2 / Instalasi Radiologi / Ruang CT-Scan`.
-
-### FR-03 — Kategori Aset (P0)
-
-Kategori bersusun dua tingkat dan menandai apakah kategori tersebut termasuk **alat medis**.
-Penanda ini yang mengaktifkan kewajiban kalibrasi.
-
-**Acceptance criteria**
-- Kategori memiliki atribut `is_medical_device`.
-- Kategori medis memiliki `default_calibration_interval_months` yang mengisi otomatis saat aset dibuat.
-- **Organisasi baru dimulai tanpa kategori sama sekali.** Tidak ada penyalinan otomatis;
-  tiap rumah sakit menyusun pengelompokannya sendiri.
-- Halaman kategori yang masih kosong menampilkan panduan singkat beserta contoh pengelompokan
-  yang lazim di rumah sakit — sebagai penjelasan di layar, **bukan** tombol yang mengisinya.
-- Contoh yang ditampilkan: Elektromedik dan Alat Penunjang Medis sebagai kategori medis
-  berinterval kalibrasi, serta Furnitur, Perangkat IT, dan Kendaraan sebagai non-medis.
-
-**Konsekuensi yang perlu disadari:** pelanggan baru tidak dapat mendaftarkan satu aset pun
-sebelum membuat kategori pertamanya. Karena itu panduan di layar kosong bukan hiasan —
-itu penahan agar onboarding tidak berhenti di langkah pertama.
-
-### FR-04 — Vendor / Penyedia (P1 — v1.1)
-
-Menyimpan data penyedia barang dan penyedia jasa servis/kalibrasi: nama, kontak, alamat,
-jenis (penyedia barang, jasa servis, lembaga kalibrasi).
-
-### FR-05 — Manajemen Pengguna (P0)
-
-Tidak ada pendaftaran mandiri. Admin mengundang pengguna lewat email; pengguna menetapkan
-kata sandi melalui tautan undangan.
-
-**Acceptance criteria**
-- Admin dapat mengundang, menonaktifkan, dan mengubah peran pengguna.
-- Pengguna berperan `PIC_ROOM` wajib dikaitkan dengan satu atau lebih lokasi.
-- Menonaktifkan pengguna tidak menghapus riwayat yang pernah dicatatnya.
-- Undangan kedaluwarsa dalam 7 hari dan dapat dikirim ulang.
-
-### FR-05b — Sesi dan Autentikasi Dua Faktor (P0 sesi, P1 dua faktor)
-
-**Acceptance criteria**
-- Sesi login bertahan **12 jam** secara bawaan, kira-kira satu shift kerja.
-- Tersedia pilihan **"Ingat saya"** saat login yang memperpanjang sesi menjadi **7 hari**,
-  ditujukan untuk perangkat pribadi. Pilihan ini tidak aktif secara bawaan.
-- Setiap pengguna dapat **mengaktifkan autentikasi dua faktor** sendiri dari halaman profil,
-  memakai aplikasi authenticator berbasis TOTP. Sifatnya opsional, tidak diwajibkan peran mana pun.
-- Saat mengaktifkan 2FA, sistem menampilkan **kode pemulihan** sekali saja untuk dicatat
-  pengguna, agar ponsel yang hilang tidak mengunci akunnya.
-- Super Admin dapat menonaktifkan 2FA milik pengguna lain bila kode pemulihannya ikut hilang.
-  Tindakan ini tercatat di audit log.
-- Menonaktifkan pengguna langsung mencabut seluruh sesinya, termasuk sesi "Ingat saya".
-
----
-
-## B. Manajemen Aset
-
-### FR-06 — Pendaftaran Aset (P0)
-
-Formulir pendaftaran aset baru.
-
-**Field wajib:** nama, kategori, lokasi (ruangan), kondisi awal, tanggal perolehan.
-**Field opsional:** merek, model, nomor seri, sumber dana, nilai perolehan, nomor dokumen
-perolehan, vendor, garansi berakhir, umur ekonomis, PIC perorangan, foto utama, catatan.
-
-**Acceptance criteria**
-- Sistem menghasilkan `public_id` acak 12 karakter dan `asset_code` yang dapat dibaca manusia
-  dengan pola `{KODE_RS}-{KODE_INSTALASI}-{TAHUN}-{URUTAN}`, contoh `RSXX-RAD-2026-0012`.
-- `asset_code` unik dalam satu organisasi. `public_id` unik secara global.
-- Nomor seri, bila diisi, tidak boleh duplikat dalam satu organisasi — sistem memperingatkan
-  bila ditemukan kembar, tetapi tetap mengizinkan setelah konfirmasi.
-- Setelah tersimpan, aset otomatis memiliki entri riwayat pertama bertipe `CREATED`.
-- Aset berkategori medis otomatis dibuatkan jadwal kalibrasi bila intervalnya tersedia.
-- Aset baru berstatus `AVAILABLE` kecuali dipilih lain.
-
-### FR-07 — Aset Induk dan Anak — *tidak masuk v1*
-
-Hubungan induk dan anak antar aset (contoh: sirkuit dan troli milik satu ventilator)
-**tidak dibangun di v1**. Setiap aset berdiri sendiri.
-
-Komponen yang menyatu dengan sebuah alat dicatat pada kolom catatan aset induknya, dan
-diberi label tersendiri hanya bila komponen itu bernilai dan benar-benar dapat terpisah.
-
-Dipindahkan ke rencana v2. Ketika dibangun nanti, cukup menambahkan satu kolom nullable
-pada tabel aset — tidak memerlukan migrasi besar.
-
-### FR-08 — Pencarian dan Daftar Aset (P0)
-
-**Acceptance criteria**
-- Pencarian teks bebas atas nama, kode aset, nomor seri, merek, dan model.
-- Filter: lokasi (termasuk seluruh anaknya), kategori, status, kondisi, PIC, rentang tanggal perolehan,
-  jatuh tempo kalibrasi.
-- Pengurutan dan pagination.
-- Ekspor hasil yang sedang terfilter ke Excel/CSV.
-
-### FR-09 — Status Aset dan Transisi (P0)
-
-Status yang berlaku: `AVAILABLE`, `IN_USE`, `ON_LOAN`, `UNDER_REPAIR`, `AT_VENDOR`,
-`DAMAGED`, `LOST`, `DISPOSED`.
-
-**Acceptance criteria**
-- Perubahan status hanya melalui transisi yang sah (lihat [03-erd.md](03-erd.md) bagian State Machine).
-- Setiap perubahan status menghasilkan entri riwayat berisi status sebelum dan sesudah.
-- Aset berstatus `DISPOSED` tidak dapat dipinjam, dipindah, atau diubah; hanya dapat dibaca,
-  kecuali pembatalan penghapusan selama masa 30 hari (lihat FR-11).
-- Status `ON_LOAN` hanya boleh diubah melalui proses pengembalian, bukan pengubahan manual.
-
-### FR-10 — Mutasi / Transfer Ruangan (P0)
-
-Perpindahan permanen aset ke ruangan lain, berbeda dari peminjaman.
-
-**Acceptance criteria**
-- Formulir memerlukan ruangan tujuan, alasan, dan tanggal kejadian; foto opsional.
-- PIC aset otomatis mengikuti PIC ruangan tujuan, tetapi dapat ditimpa manual.
-- Menghasilkan entri riwayat `TRANSFER` yang menyimpan ruangan asal dan tujuan.
-- Aset berstatus `ON_LOAN` tidak dapat dimutasi sebelum dikembalikan.
-
-### FR-11 — Penghapusan Aset (P0)
-
-Aset tidak pernah benar-benar dihapus dari basis data. Penghapusan memiliki masa pembatalan
-**30 hari**, setelah itu menjadi final.
-
-**Acceptance criteria**
-- Hanya peran Admin dan Super Admin yang dapat menghapuskan aset.
-- Wajib mengisi alasan (rusak total, hilang, dihibahkan, dijual, kedaluwarsa) dan tanggal.
-- Status berubah menjadi `DISPOSED`. Aset hilang dari daftar, pencarian, dan dashboard.
-- **Selama 30 hari sejak penghapusan**, Admin dan Super Admin dapat membatalkannya.
-  Aset kembali ke status sebelum dihapuskan, dan pembatalan itu sendiri tercatat sebagai
-  entri riwayat bertipe `CORRECTION`.
-- Tersedia halaman "Aset Dihapuskan" berisi daftar aset yang masih dalam masa pembatalan,
-  lengkap dengan sisa harinya.
-- **Setelah 30 hari lewat**, pembatalan tidak lagi mungkin dan tombolnya hilang. Barisnya
-  tetap tersimpan di basis data — tidak pernah dihapus secara fisik.
-- Halaman publik aset yang dihapuskan tetap dapat diakses, baik selama maupun setelah masa
-  pembatalan, dan menampilkan penanda "Aset telah dihapuskan" beserta tanggalnya.
-
-**Mengapa barisnya tetap disimpan:** label QR masih menempel pada barang yang dihibahkan
-atau dijual, sehingga pemindaian tetap harus menjawab; laporan penghapusan aset tahunan
-membutuhkan seluruh daftarnya; dan riwayat kalibrasi serta perbaikan alat tetap diperlukan
-sebagai bukti audit jauh setelah alatnya sendiri tidak dipakai lagi.
-
----
-
-## C. QR Code dan Label
-
-### FR-12 — Generate QR (P0)
-
-**Acceptance criteria**
-- QR berisi URL absolut `https://{domain}/a/{public_id}` — tidak ada data aset di dalam QR.
-- QR dihasilkan on-demand, tidak disimpan sebagai berkas.
-- Tingkat koreksi kesalahan **M**, dengan `quiet zone` minimal 4 modul.
-
-### FR-13 — Cetak Label (P0)
-
-Dua mode cetak.
-
-**Acceptance criteria**
-- Tiga ukuran tersedia sejak MVP:
-  - **50 × 30 mm** — label thermal standar
-  - **62 × 29 mm** — label thermal lebar, umum pada Brother QL
-  - **Lembar A4** berisi 24 label (3 × 8) untuk printer biasa
-- Lembar A4 memungkinkan memilih banyak aset sekaligus dari daftar.
-- Tersedia pengaturan geser margin pada lembar A4 untuk mengoreksi ketidakpresisian printer.
-- Isi label: QR, `asset_code`, nama aset dipotong, nama ruangan, logo/nama RS.
-- Pratinjau cetak sesuai hasil akhir, dengan CSS `@media print` yang tidak menyertakan
-  elemen antarmuka.
-
-### FR-14 — Cetak Ulang Label (P0)
-
-**Acceptance criteria**
-- Mencetak ulang **tidak pernah** mengubah `public_id`. Label pengganti mengarah ke aset yang sama.
-- Setiap pencetakan tercatat: siapa, kapan, alasan (label pertama, rusak, hilang, pudar).
-- Riwayat pencetakan terlihat di halaman aset.
-
----
-
-## D. Riwayat Aset
-
-### FR-15 — Pencatatan Riwayat (P0)
-
-Inti sistem. Riwayat bersifat **append-only**.
-
-Jenis entri: `CREATED`, `INSPECTION`, `MAINTENANCE`, `REPAIR`, `CALIBRATION`, `LOAN_OUT`,
-`LOAN_RETURN`, `TRANSFER`, `STATUS_CHANGE`, `NOTE`, `DISPOSAL`, `CORRECTION`, `LABEL_PRINTED`.
-
-**Acceptance criteria**
-- Setiap entri menyimpan: jenis, **waktu kejadian** (dapat diisi mundur), **waktu pencatatan**
-  (otomatis, tidak dapat diubah), pencatat, judul, catatan, dan lampiran.
-- Waktu kejadian tidak boleh melewati waktu sekarang.
-- Bila waktu kejadian berbeda lebih dari 24 jam dari waktu pencatatan, UI menampilkan
-  penanda "dicatat mundur" pada linimasa.
-- Entri tidak dapat diubah maupun dihapus oleh peran mana pun, termasuk Super Admin.
-- Linimasa ditampilkan berurutan berdasarkan waktu kejadian, terbaru di atas.
-
-### FR-16 — Koreksi Riwayat (P0)
-
-**Acceptance criteria**
-- Pengguna dengan izin menulis dapat membuat entri `CORRECTION` yang menunjuk satu entri lama.
-- Entri yang dikoreksi tetap tampil, diberi tanda "telah dikoreksi" dan tautan ke koreksinya.
-- Entri koreksi wajib berisi alasan.
-
-### FR-17 — Lampiran Foto (P0)
-
-**Acceptance criteria**
-- Maksimal **5 lampiran** per entri riwayat.
-- Format yang diterima: JPEG, PNG, WebP, dan PDF (untuk sertifikat).
-- Gambar dikompresi di sisi peramban sebelum diunggah, sisi terpanjang maksimum 1.600 px,
-  target di bawah 500 KB. Batas keras 10 MB per berkas.
-- Unggahan langsung ke penyimpanan objek memakai presigned URL; berkas tidak melewati server aplikasi.
-- Basis data hanya menyimpan kunci objek dan metadata.
-- Lampiran hanya dapat dilihat setelah login, melalui URL bertanda tangan berumur pendek.
-- Lampiran disimpan selama asetnya masih tercatat, termasuk setelah aset dihapuskan.
-  Tidak ada penghapusan foto otomatis berdasarkan umur.
-
----
-
-## E. Peminjaman
-
-### FR-18 — Peminjaman Keluar (P0)
-
-**Acceptance criteria**
-- Peminjam dapat berupa pengguna terdaftar **atau** orang luar. Untuk orang luar wajib:
-  **nama**, **nomor HP**, **keperluan**. Unit/ruangan asal bersifat opsional.
-- Tanggal jatuh tempo **opsional**.
-- Tidak ada persetujuan. Peminjaman langsung aktif saat disimpan.
-- Aset yang sedang `ON_LOAN`, `UNDER_REPAIR`, `AT_VENDOR`, `LOST`, atau `DISPOSED`
-  tidak dapat dipinjam; sistem menolak dengan pesan yang menyebut status saat ini.
-- Menyimpan peminjaman mengubah status aset menjadi `ON_LOAN` dan membuat entri riwayat `LOAN_OUT`.
-- Pencatat selalu tersimpan sebagai `recorded_by`, terpisah dari identitas peminjam.
-- Foto kondisi saat serah terima bersifat opsional tetapi dianjurkan.
-
-### FR-19 — Pengembalian (P0)
-
-**Acceptance criteria**
-- Formulir pengembalian mencatat waktu kembali, kondisi saat kembali, catatan, dan foto opsional.
-- Status aset kembali ke `AVAILABLE`, atau ke `DAMAGED` bila kondisi dilaporkan rusak.
-- Membuat entri riwayat `LOAN_RETURN` yang tertaut ke peminjamannya.
-
-### FR-20 — Pemantauan Peminjaman (P0)
-
-**Acceptance criteria**
-- Daftar seluruh peminjaman aktif dengan lama pinjam.
-- Penanda otomatis untuk peminjaman yang melewati jatuh tempo, dan untuk peminjaman tanpa
-  jatuh tempo yang sudah berjalan lebih dari **7 hari**.
-- Ambang 7 hari tersebut dapat dikonfigurasi pada tingkat organisasi.
-
----
-
-## F. Pemeliharaan dan Kalibrasi
-
-### FR-21 — Jadwal (P1 — v1.1)
-
-**Acceptance criteria**
-- Satu aset dapat memiliki beberapa jadwal bertipe `CALIBRATION` atau `PREVENTIVE`.
-- Jadwal berisi interval dalam bulan, tanggal pelaksanaan terakhir, dan tanggal jatuh tempo berikutnya.
-- Jatuh tempo berikutnya dihitung otomatis dari tanggal pelaksanaan terakhir ditambah interval,
-  tetapi dapat ditimpa manual (mengikuti tanggal yang tertera pada sertifikat).
-
-### FR-22 — Pencatatan Pelaksanaan (P1 — v1.1)
-
-**Acceptance criteria**
-- Mencatat pelaksanaan kalibrasi memerlukan tanggal pelaksanaan, pelaksana (vendor atau internal),
-  hasil (lulus / lulus bersyarat / tidak lulus), dan berlaku sampai kapan.
-- Nomor sertifikat dan berkas sertifikat dapat diunggah.
-- Hasil "tidak lulus" mengubah status aset menjadi `DAMAGED` dan memunculkan peringatan
-  bahwa alat tidak boleh digunakan.
-- Menghasilkan entri riwayat `CALIBRATION` atau `MAINTENANCE`.
-
-### FR-23 — Dashboard Jatuh Tempo (P1 — v1.1)
-
-**Acceptance criteria**
-- Pengelompokan: sudah lewat, jatuh tempo 7 hari ke depan, 30 hari ke depan, 90 hari ke depan.
-- Dapat difilter per instalasi dan per kategori.
-- Dapat diekspor.
-
----
-
-## G. Halaman Publik Hasil Scan
-
-### FR-24 — Halaman Publik (P0)
-
-URL `/a/{public_id}` dapat diakses tanpa login.
-
-**Yang ditampilkan:** nama aset, kode aset, kategori, merek dan model, ruangan saat ini,
-status saat ini, kondisi, nama PIC ruangan, tanggal kalibrasi berikutnya bila ada,
-dan **riwayat ringkas 10 entri terakhir** berisi tanggal, jenis, dan judul.
-
-**Yang disembunyikan:** nomor seri, nilai perolehan, sumber dana, vendor, nomor dokumen,
-seluruh lampiran foto, isi catatan lengkap, identitas dan nomor HP peminjam, nama pencatat.
-
-**Acceptance criteria**
-- Halaman dapat dibuka tanpa sesi login dan responsif untuk layar ponsel.
-- Terdapat tombol "Masuk untuk detail lengkap" yang mengembalikan pengguna ke halaman aset
-  yang sama setelah login.
-- Pengguna yang sudah login dan berwenang langsung diarahkan ke tampilan penuh.
-- `public_id` yang tidak dikenal menampilkan halaman 404 netral tanpa membocorkan informasi apa pun.
-- Terdapat pembatasan laju permintaan per alamat IP.
-
-### FR-24b — Aplikasi Dapat Dipasang di Ponsel (P0)
-
-**Acceptance criteria**
-- Aplikasi menyediakan manifest dan ikon sehingga dapat ditambahkan ke layar utama ponsel
-  dan terbuka tanpa bilah alamat peramban.
-- **Tetap memerlukan jaringan.** Tidak ada cache offline maupun antrean sinkronisasi;
-  keputusan online-only tidak berubah.
-- Halaman yang gagal dimuat karena jaringan menampilkan pesan yang jelas, bukan layar kosong
-  atau halaman galat bawaan peramban.
-
-### FR-25 — Pemindaian QR dari Aplikasi (P0)
-
-**Acceptance criteria**
-- Tombol pindai di dalam aplikasi membuka kamera peramban dan langsung menuju aset saat terbaca.
-- Tersedia isian manual `asset_code` sebagai cadangan bila kamera tidak tersedia atau label rusak.
-- Bila akses kamera ditolak, sistem menampilkan panduan yang jelas, bukan layar kosong.
-
----
-
-## H. Dashboard, Laporan, Notifikasi
-
-### FR-26 — Dashboard (P1 — v1.1)
-
-Menampilkan: total aset per status, aset per instalasi, kalibrasi jatuh tempo, peminjaman
-aktif dan yang telat, aset dalam perbaikan, dan aktivitas terakhir.
-Pengguna `PIC_ROOM` hanya melihat cakupan ruangannya.
-
-### FR-27 — Laporan dan Ekspor (P1 — v1.1)
-
-- Daftar aset per ruangan (berita acara inventaris ruangan)
-- Riwayat aset lengkap untuk satu aset (dapat dicetak)
-- Rekap peminjaman dalam rentang tanggal
-- Rekap kalibrasi dan kepatuhannya
-- Rekap aset hilang dan dihapuskan
-
-Format ekspor: Excel (XLSX) dan CSV.
-
-### FR-28 — Notifikasi Email (P1 — v1.1)
-
-**Acceptance criteria**
-- Ringkasan harian pukul 07:00 **menurut zona waktu masing-masing organisasi**, ke Admin
-  dan PIC terkait, berisi jatuh tempo kalibrasi dalam 30 hari dan peminjaman yang telah
-  melewati ambang.
-- Email undangan pengguna dan email atur ulang kata sandi.
-- Email tidak dikirim bila tidak ada isi yang perlu dilaporkan.
-- Setiap pengiriman tercatat pada log agar kegagalan dapat ditelusuri.
-
-### FR-29 — Impor Massal (P1 — v1.1)
-
-**Acceptance criteria**
-- Unggah Excel/CSV dengan templat yang disediakan.
-- Pratinjau dan validasi sebelum menyimpan; baris bermasalah dilaporkan beserta nomor barisnya.
-- Impor bersifat transaksional per batch dan menghasilkan entri `CREATED` untuk setiap aset.
-- Setelah impor, tersedia tautan langsung untuk mencetak seluruh label hasil impor.
-
----
-
-## I. Kebutuhan Non-Fungsional
-
-| ID | Kebutuhan | Target |
+| Kelompok | Field | Catatan |
 |---|---|---|
-| NFR-01 | Waktu muat halaman publik hasil scan | < 1,5 detik pada jaringan 4G |
-| NFR-02 | Waktu tanggap pencarian aset | < 500 ms untuk 2.000 aset |
-| NFR-03 | Ketersediaan layanan | 99% pada jam kerja |
-| NFR-04 | Cadangan basis data | Otomatis harian, disimpan 30 hari, diuji pulih tiap kuartal |
-| NFR-05 | Enkripsi transit | HTTPS wajib, HSTS aktif |
-| NFR-06 | Kata sandi | Minimal 10 karakter, di-hash dengan Argon2id |
-| NFR-07 | Sesi | Kedaluwarsa 12 jam, atau 7 hari bila "Ingat saya" dipilih; dapat dicabut dari sisi admin |
-| NFR-08 | Audit | Seluruh aksi tulis tercatat dengan pelaku dan waktu |
-| NFR-09 | Responsif | Berfungsi penuh pada lebar layar 360 px |
-| NFR-10 | Aksesibilitas | Kontras memenuhi WCAG AA, seluruh form dapat dioperasikan dengan keyboard |
-| NFR-11 | Bahasa dan waktu | Antarmuka Bahasa Indonesia; waktu disimpan UTC dan ditampilkan menurut zona waktu organisasi |
-| NFR-12 | Retensi lampiran | Foto disimpan selama asetnya masih tercatat, termasuk setelah dihapuskan; tidak ada penghapusan otomatis |
+| **Identitas** | Kode | otomatis `BRG-0001`, tidak berubah |
+| | Nama * | "Mesin Anestesi Drager", "MAYOR 1" |
+| | Perlu sterilisasi * | Ya (set/wadah instrumen; bisa dikirim ke CSSD) atau Tidak (alat besar; tidak berpindah) |
+| | Kamar/ruang | "Kamar Operasi 101", "RR", "Ruang Transit" (teks, ada saran dari yang pernah dipakai) |
+| | Keterangan | teks bebas |
+| **Jumlah** | Jumlah | default 1. **Lebih dari 1 hanya untuk barang sejenis tanpa nomor seri** (meja stainless 4, tempat sampah 2). Alat bernomor seri didaftarkan satu per satu |
+| | Jumlah rusak | default 0 |
+| **Detail alat** | Merek, Model/tipe, Nomor seri | |
+| **Pembelian** | Tanggal pembelian, Harga (Rp), Supplier/penyedia, Sumber dana | |
+| | Garansi sampai | |
+| **Isi** | Daftar isi | lihat F3; untuk wadah/set |
 
-## J. Metrik Keberhasilan Produk
+Sistem otomatis mengisi: lokasi awal `OPERASI`, `location_since`, versi.
 
-- Rasio aset berlabel terhadap total aset terdaftar
-- Jumlah entri riwayat per aset per bulan (indikator pemakaian nyata)
-- Rata-rata selisih antara waktu kejadian dan waktu pencatatan (indikator disiplin)
-- Persentase peminjaman yang ditutup dengan pengembalian tercatat
-- Persentase alat medis dengan kalibrasi berlaku
+- **O** mendaftarkan dan mengubah semua isian di atas **selama barang tidak sedang di CSSD**.
+  Barang tanpa sterilisasi tidak pernah ke CSSD, sehingga selalu dapat diubah O.
+- **A** hanya melihat. **S** hanya mengubah isi saat barang di CSSD (F3).
+- Arsip = disembunyikan dari daftar, tetap ada di riwayat. Tidak ada hapus permanen.
+
+**Acceptance:**
+- Barang baru langsung punya kode dan QR siap cetak.
+- Nomor seri yang sudah dipakai barang lain memunculkan peringatan (bukan penolakan).
+- Jumlah rusak tidak boleh melebihi jumlah.
+- Nomor seri hanya boleh diisi bila jumlah = 1 (satu QR untuk satu unit bernomor seri).
+- Jenis "Perlu sterilisasi" tidak dapat diubah saat barang di CSSD.
+- Barang terarsip tidak muncul di daftar default tetapi bisa dicari dengan filter "arsip".
+
+## F3. Isi wadah
+
+Setiap baris isi:
+
+| Field | Catatan |
+|---|---|
+| Nama * | "DOEK KLEM", "Blade MAC 3" |
+| Merek | "AESCULAP", "STORZ" |
+| Jumlah * | bilangan bulat ≥ 0 |
+| Jumlah rusak | 0 sampai jumlah |
+| Catatan | "oli bocor", "menunggu pengadaan" |
+
+- **O** menambah/menghapus/mengubah baris **dan jumlahnya** kapan pun barang tidak di CSSD
+  (tidak harus saat mengirim).
+- **S** mengubah jumlah, jumlah rusak, dan catatan saat barang di CSSD, serta boleh menambah
+  baris baru (mis. item pengganti).
+- **SA** mengubah di mana saja. **A** tidak mengubah isi.
+- Setiap perubahan tersimpan di riwayat: nama, kolom, nilai lama → nilai baru.
+- Daftar isi bisa panjang (20+ baris, ratusan di satu set besar): edit harus nyaman, dengan
+  pencarian di dalam daftar dan tombol tambah baris cepat.
+
+**Acceptance:**
+- Jumlah negatif atau rusak > jumlah ditolak.
+- Dua orang menyimpan bersamaan → yang kedua mendapat "data sudah berubah, muat ulang".
+
+## F4. Alur perpindahan (hanya barang yang perlu sterilisasi)
+
+Hanya dua tindakan, dan hanya untuk barang yang **perlu sterilisasi**. Barang tanpa
+sterilisasi tidak punya tombol Kirim/Kembalikan dan tidak pernah berpindah dari Operasi.
+
+| Tindakan | Siapa | Syarat | Hasil |
+|---|---|---|---|
+| **Kirim ke CSSD** | O | Perlu sterilisasi, di Operasi | Lokasi → CSSD |
+| **Kembalikan ke Operasi** | S | Di CSSD | Lokasi → Operasi; perubahan jumlah disimpan bersamaan |
+
+- Tiap tindakan meminta **nama petugas** (diingat di perangkat) dan catatan opsional.
+- Tidak ada approval dan tidak ada status antara.
+
+**Acceptance:**
+- Mengirim barang yang sudah tidak di Operasi → ditolak dengan pesan lokasi sebenarnya.
+- Mengirim barang yang tidak perlu sterilisasi → ditolak.
+- Pengembalian + perubahan jumlah atomik.
+
+## F5. Maintenance (semua peran)
+
+Tombol **Maintenance** di halaman barang terlihat oleh **semua peran** (O, S, A, SA) dan dapat
+dipakai pada barang di lokasi mana pun, termasuk yang sedang di CSSD. Tiga form, masing-masing dengan isian detail:
+
+| Form | Isian |
+|---|---|
+| **Perbaikan** | Tanggal, pelaksana (teknisi/vendor) *, **keluhan/kerusakan** *, **tindakan**, **suku cadang diganti**, biaya, tanggal selesai, **jumlah rusak setelahnya** *, catatan |
+| **Pemeliharaan rutin** | Tanggal, pelaksana *, **kegiatan yang dilakukan** *, **temuan**, biaya, **jadwal berikutnya**, jumlah rusak setelahnya, catatan |
+| **Kalibrasi** | Tanggal, pelaksana *, **lembaga kalibrasi** *, **nomor sertifikat**, **hasil** (Lulus/Tidak lulus) *, **berlaku sampai** *, biaya, jumlah rusak setelahnya, catatan |
+
+- Menyimpan form menambah catatan maintenance + entri riwayat `MAINTENANCE`, dan memperbarui
+  jumlah rusak barang bila berubah.
+- Catatan maintenance tidak dapat diubah/dihapus. Salah isi dikoreksi dengan catatan baru.
+- Halaman barang menampilkan tab **Maintenance** (daftar catatan, terbaru dulu) dan
+  **jatuh tempo berikutnya** bila ada.
+- Hasil kalibrasi "Tidak lulus" otomatis menandai minimal 1 unit rusak bila jumlah rusak masih 0.
+
+**Acceptance:**
+- Semua peran yang login dapat mencatat maintenance; pengguna nonaktif atau tanpa sesi ditolak.
+- Field wajib per form divalidasi; `berlaku sampai` tidak boleh sebelum tanggal kalibrasi.
+
+## F6. Riwayat
+
+Dibuat otomatis, tidak bisa diubah/dihapus: `REGISTER`, `EDIT`, `SEND`, `RETURN`,
+`MAINTENANCE`, `ARCHIVE`, `RESTORE`. Setiap entri memuat waktu, akun, nama petugas,
+catatan, dan perubahan jumlah bila ada.
+
+**Acceptance:** tidak ada endpoint maupun tombol untuk mengubah atau menghapus riwayat;
+peran basis data aplikasi tidak punya hak `UPDATE`/`DELETE` pada `item_logs` dan
+`maintenance_records`.
+
+## F7. QR dan label
+
+- QR berisi `https://{DOMAIN}/i/{kode}`.
+- Cetak label tunggal atau lembar A4. Detail di [08](08-qr-labeling.md).
+- Memindai QR tanpa login → halaman login, lalu kembali ke barang tersebut.
+
+## F8. Pindai & cari
+
+- Tombol **Pindai** membuka kamera dan langsung ke halaman barang.
+- Kolom cari: kode, nama, merek, nomor seri, atau kamar (cadangan bila label rusak).
+
+## F9. Beranda (semua peran)
+
+- Hitungan: di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
+- Daftar barang dengan filter lokasi/kamar/rusak/jatuh tempo + pencarian. Baris: kode, nama,
+  kamar, lokasi, jumlah (rusak), sudah berapa lama di lokasi itu.
+- Detail barang: identitas, pembelian, isi, riwayat, maintenance. Tombol aksi hanya
+  tampil sesuai peran dan lokasi barang.
+
+## F10. Manajemen pengguna (SA)
+
+- Halaman **Pengguna**: daftar, tambah, ubah nama/peran, nonaktifkan/aktifkan, atur ulang
+  kata sandi.
+- Membuat pengguna: username, nama, peran, kata sandi awal (wajib diganti saat login pertama).
+- Pengguna tidak dihapus, hanya dinonaktifkan.
+- SA tidak dapat menonaktifkan atau menurunkan peran dirinya bila ia SA aktif terakhir.
+
+**Acceptance:** peran selain SA mendapat 403 pada semua endpoint pengguna.
+
+## F11. Pemuatan data awal
+
+Skrip impor CSV sekali pakai (`pnpm import:csv`) untuk barang dan isinya; bukan fitur UI.
+Lihat [12](12-data-contoh.md).
+
+## Non-fungsional
+
+- Semua halaman terbaca di ponsel (360 px) dan desktop.
+- Online-only. HTTPS wajib di produksi (kamera tidak jalan di HTTP).
+- Antarmuka Bahasa Indonesia; teks dikumpulkan di satu tempat.
+- Skala: ratusan barang, ribuan baris isi, puluhan perpindahan per hari.
+- Tanpa gambar: tidak ada unggah berkas apa pun (termasuk sertifikat; nomor sertifikat saja).

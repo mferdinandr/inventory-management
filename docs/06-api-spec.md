@@ -1,513 +1,155 @@
 # 06 — Spesifikasi API
 
-Sebagian besar mutasi di antarmuka internal dijalankan lewat **Server Actions** Next.js.
-Endpoint HTTP di bawah ini disediakan untuk hal-hal yang memang memerlukannya: unggahan,
-pemindaian, pembuatan QR, dan integrasi di masa depan.
+Semua endpoint butuh sesi, kecuali `/api/auth/*`. Format JSON. Peran per endpoint mengikuti
+[07](07-rbac-security.md); lokasi barang ikut diperiksa.
 
-**Basis URL:** `https://{domain}/api`
-**Autentikasi:** cookie sesi. Endpoint publik ditandai secara eksplisit.
-**Format:** JSON. Seluruh waktu dikirim dan diterima dalam ISO 8601 UTC.
-
----
-
-## 1. Bentuk Respons
-
-Berhasil:
+## 1. Bentuk respons
 
 ```json
-{ "ok": true, "data": { } }
+{ "data": { } }
 ```
-
-Gagal:
-
 ```json
-{
-  "ok": false,
-  "error": {
-    "code": "ASSET_NOT_AVAILABLE",
-    "message": "Aset sedang dipinjam oleh Budi Santoso sejak 12 September 2026.",
-    "details": { "currentStatus": "ON_LOAN", "loanId": "..." }
-  }
-}
+{ "error": { "code": "STATE_CONFLICT", "message": "Barang sudah berada di CSSD." } }
 ```
-
-### Kode error
 
 | Kode | HTTP | Arti |
 |---|---|---|
-| `UNAUTHENTICATED` | 401 | Tidak ada sesi yang sah |
-| `FORBIDDEN` | 403 | Sesi ada, tetapi peran atau cakupan lokasi tidak mengizinkan |
-| `NOT_FOUND` | 404 | Sumber daya tidak ada, atau ada tetapi di luar organisasi pemanggil |
-| `VALIDATION_ERROR` | 422 | Masukan tidak lolos validasi; `details` berisi kesalahan per field |
-| `ASSET_NOT_AVAILABLE` | 409 | Aset tidak berada pada status yang memungkinkan tindakan ini |
-| `INVALID_STATUS_TRANSITION` | 409 | Transisi status tidak sah |
-| `LOAN_ALREADY_ACTIVE` | 409 | Aset sudah memiliki peminjaman aktif |
-| `ASSET_DISPOSED` | 409 | Aset telah dihapuskan dan tidak dapat diubah |
-| `DISPOSAL_REVERT_EXPIRED` | 409 | Masa pembatalan penghapusan 30 hari sudah lewat |
-| `TOTP_REQUIRED` | 401 | Akun mengaktifkan 2FA; kode dari aplikasi authenticator diperlukan |
-| `TOTP_INVALID` | 401 | Kode 2FA atau kode pemulihan tidak cocok |
-| `EVENT_IMMUTABLE` | 409 | Percobaan mengubah atau menghapus riwayat |
-| `UPLOAD_TOO_LARGE` | 413 | Berkas melebihi batas |
-| `UNSUPPORTED_MEDIA_TYPE` | 415 | Jenis berkas tidak diizinkan |
-| `RATE_LIMITED` | 429 | Terlalu banyak permintaan |
-| `INTERNAL_ERROR` | 500 | Galat tak terduga; `details.ref` berisi nomor rujukan untuk log |
+| `UNAUTHENTICATED` | 401 | Belum login |
+| `FORBIDDEN` | 403 | Peran/lokasi tidak mengizinkan |
+| `NOT_FOUND` | 404 | Tidak ada |
+| `STATE_CONFLICT` | 409 | Lokasi tidak sesuai tindakan |
+| `VERSION_CONFLICT` | 409 | `version` basi; muat ulang |
+| `LAST_SUPERADMIN` | 409 | Tindakan menyisakan nol SUPERADMIN aktif |
+| `VALIDATION_ERROR` | 422 | Masukan tidak valid (jumlah negatif, rusak > jumlah) |
+| `RATE_LIMITED` | 429 | Terlalu banyak percobaan login |
 
----
+## 2. Barang
 
-## 2. Endpoint Publik
+### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false`
+Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
+`code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
 
-### `GET /a/{publicId}` — halaman, bukan JSON
+### `POST /api/items` — OPERASI, SUPERADMIN
+```json
+{
+  "name": "Mesin Anestesi Drager",
+  "needsSterilization": false,
+  "room": "Kamar Operasi 103",
+  "description": "",
+  "quantity": 1,
+  "damagedQuantity": 0,
+  "brand": "Drager", "model": "…", "serialNumber": "…",
+  "purchaseDate": "2024-03-01", "purchasePrice": 450000000,
+  "supplier": "PT …", "fundingSource": "APBD", "warrantyUntil": "2027-03-01",
+  "contents": [
+    { "name": "Jarum", "brand": "…", "quantity": 10, "damagedQuantity": 0, "note": "" }
+  ]
+}
+```
+Hanya `name` dan `needsSterilization` wajib. `serialNumber` hanya boleh bila `quantity` = 1. Membuat barang + isi + log `REGISTER` dalam satu transaksi.
+Respons menyertakan `code` dan `warnings` (mis. `DUPLICATE_SERIAL`).
 
-Halaman hasil pemindaian. Mengembalikan HTML. Tanpa autentikasi.
-Dibatasi 60 permintaan per menit per alamat IP.
+### `GET /api/items/{code}`
+Semua peran. Seluruh kolom barang, `contents`, 50 riwayat terakhir, 10 catatan maintenance
+terakhir, dan `nextDue`.
 
-### `GET /api/public/assets/{publicId}`
+### `GET /api/items/{code}/logs?cursor=` · `GET /api/items/{code}/maintenance?cursor=`
+Semua peran. Daftar lengkap, terbaru dulu.
 
-Versi JSON dari halaman publik. Tanpa autentikasi, dibatasi laju yang sama.
+### `PATCH /api/items/{id}` — OPERASI, SUPERADMIN
+```json
+{ "version": 3, "name": "…", "needsSterilization": true, "room": "…", "quantity": 4,
+  "damagedQuantity": 1, "brand": "…", "purchasePrice": 1000000,
+  "contents": [ { "id": "…", "name": "Jarum", "quantity": 8, "damagedQuantity": 0 } ] }
+```
+Barang tidak boleh sedang di CSSD (kecuali SUPERADMIN). Alat tanpa sterilisasi selalu di Operasi sehingga selalu dapat diubah. Field yang dikirim saja yang berubah;
+`contents`, bila ada, menggantikan seluruh daftar. Selisih menjadi `changes` pada log `EDIT`.
+
+### `PATCH /api/items/{id}/contents` — STERIL (barang di CSSD), SUPERADMIN
+Mengubah `quantity`, `damagedQuantity`, `note`, atau menambah baris, tanpa memindahkan
+barang. Body: `{ "version", "actorName", "contents": [...] }`.
+
+### `POST /api/items/{id}/archive` · `/restore` — OPERASI, SUPERADMIN
+
+## 3. Perpindahan (hanya barang yang perlu sterilisasi)
+
+### `POST /api/items/{id}/send` — OPERASI, SUPERADMIN
+```json
+{ "actorName": "Sari", "note": "" }
+```
+Syarat `location = OPERASI` dan `needsSterilization = true`. Lokasi → `CSSD`, log `SEND`.
+Barang tanpa sterilisasi → `STATE_CONFLICT`.
+
+### `POST /api/items/{id}/return` — STERIL, SUPERADMIN
+```json
+{ "version": 4, "actorName": "Budi", "note": "1 gunting diganti",
+  "contents": [ { "id": "…", "quantity": 3, "damagedQuantity": 0 } ] }
+```
+Syarat `location = CSSD`. Satu transaksi: lokasi → `OPERASI`, perubahan isi, log `RETURN`.
+`contents` boleh kosong bila tidak ada perubahan.
+
+## 4. Maintenance — semua peran
+
+### `POST /api/items/{id}/maintenance`
+Berlaku di lokasi mana pun, oleh peran mana pun yang login. Badan bergantung pada `type`:
 
 ```json
 {
-  "ok": true,
-  "data": {
-    "publicId": "x7Kp92mQr4Lt",
-    "assetCode": "RSXX-RAD-2026-0012",
-    "organizationName": "RS Contoh Sejahtera",
-    "organizationLogoUrl": "https://...",
-    "name": "Ventilator Dewasa",
-    "category": "Elektromedik",
-    "brand": "Contoh",
-    "model": "V-200",
-    "location": "Gedung A / Lantai 2 / Instalasi Radiologi / Ruang CT-Scan",
-    "status": "AVAILABLE",
-    "condition": "GOOD",
-    "roomPicName": "Siti Aminah",
-    "nextCalibrationDue": "2027-03-15",
-    "isDisposed": false,
-    "recentEvents": [
-      { "type": "CALIBRATION", "title": "Kalibrasi tahunan, lulus", "occurredAt": "2026-03-15T02:00:00Z" },
-      { "type": "INSPECTION",  "title": "Pengecekan rutin bulanan",  "occurredAt": "2026-08-01T01:30:00Z" }
-    ]
+  "type": "PERBAIKAN",
+  "actorName": "Andi",
+  "performedOn": "2026-10-12",
+  "performer": "Teknisi Skytron",
+  "cost": 1500000,
+  "damagedAfter": 0,
+  "note": "",
+  "details": {
+    "complaint": "Oli hidrolik bocor",
+    "action": "Ganti seal silinder",
+    "parts": "Seal kit",
+    "finishedOn": "2026-10-13"
   }
 }
 ```
-
-Respons ini **tidak pernah** memuat nomor seri, nilai perolehan, sumber dana, vendor,
-lampiran, isi catatan, identitas peminjam, maupun nama pencatat.
-
-Nama dan logo rumah sakit disertakan karena seluruh pelanggan berbagi satu domain — tanpa
-itu, orang yang memindai tidak tahu label tersebut milik rumah sakit mana.
-
-### `GET /api/qr/{publicId}?format=svg&size=512`
-
-Mengembalikan gambar QR. Tanpa autentikasi — isinya hanya sebuah URL yang memang tercetak
-di label fisik. Disajikan dengan header cache panjang karena tidak pernah berubah.
-
----
-
-## 3. Aset
-
-### `GET /api/assets`
-
-Parameter: `q`, `locationId` (termasuk seluruh sublokasi), `categoryId`, `status`,
-`condition`, `responsibleUserId`, `dueBefore`, `includeDisposed`, `cursor`, `limit` (maks 100),
-`sort`.
-
 ```json
-{
-  "ok": true,
-  "data": {
-    "items": [ { "id": "...", "assetCode": "...", "name": "...", "status": "AVAILABLE" } ],
-    "nextCursor": "eyJpZCI6...",
-    "total": 1834
-  }
-}
+{ "type": "PEMELIHARAAN", "details": { "activities": "Cek tegangan, pelumasan", "findings": "Normal" },
+  "nextDue": "2027-04-12", … }
 ```
-
-### `POST /api/assets`
-
 ```json
-{
-  "name": "Ventilator Dewasa",
-  "categoryId": "...",
-  "locationId": "...",
-  "condition": "GOOD",
-  "acquisitionDate": "2026-01-20",
-  "brand": "Contoh",
-  "model": "V-200",
-  "serialNumber": "SN-99812",
-  "acquisitionCost": 185000000,
-  "fundingSource": "BLUD",
-  "vendorId": "...",
-  "warrantyUntil": "2028-01-20",
-  "responsibleUserId": "...",
-  "parentAssetId": null,
-  "primaryPhotoKey": "...",
-  "notes": ""
-}
+{ "type": "KALIBRASI", "details": { "institution": "BPFK", "certificateNo": "…",
+  "result": "LULUS", "validUntil": "2027-10-12" }, … }
 ```
 
-Efek: membuat aset, menghasilkan `publicId` dan `assetCode`, menulis entri `CREATED`, dan
-membuat jadwal kalibrasi bila kategorinya alat medis.
+Wajib per jenis: `performedOn, performer, actorName, damagedAfter` + `complaint` (perbaikan),
+`activities` (pemeliharaan), `institution`/`result`/`validUntil` (kalibrasi).
+`nextDue` untuk kalibrasi diisi otomatis dari `validUntil`. Satu transaksi: insert record,
+update `damaged_quantity`, insert log `MAINTENANCE`.
 
-`409 DUPLICATE_SERIAL` dikembalikan bila nomor seri sudah dipakai, kecuali permintaan
-menyertakan `"confirmDuplicateSerial": true`.
+## 5. Ringkasan
 
-### `GET /api/assets/{id}`
-
-Detail penuh termasuk lokasi, kategori, vendor, PIC, jadwal, peminjaman aktif, dan
-ringkasan riwayat.
-
-### `PATCH /api/assets/{id}`
-
-Mengubah data deskriptif. **Tidak dapat** mengubah `status`, `locationId`, `publicId`,
-maupun `assetCode` — masing-masing punya endpoint tersendiri agar selalu meninggalkan jejak.
-
-### `POST /api/assets/{id}/transfer`
-
+### `GET /api/summary`
+Semua peran.
 ```json
-{
-  "toLocationId": "...",
-  "reason": "Realokasi ke Instalasi Bedah",
-  "occurredAt": "2026-09-19T03:00:00Z",
-  "newResponsibleUserId": "...",
-  "attachmentKeys": []
-}
+{ "operasi": 120, "cssd": 5, "damaged": 2, "dueSoon": 4 }
 ```
+(tidak menghitung barang terarsip; `dueSoon` = `next_due` ≤ 30 hari ke depan).
 
-### `POST /api/assets/{id}/status`
+## 6. QR
 
-```json
-{
-  "status": "DAMAGED",
-  "reason": "Layar tidak menyala setelah pemadaman listrik",
-  "occurredAt": "2026-09-19T03:00:00Z",
-  "attachmentKeys": []
-}
-```
+### `GET /api/qr/{code}?format=svg&size=512`
+Semua peran. SVG QR berisi `https://{DOMAIN}/i/{code}`.
 
-Ditolak dengan `INVALID_STATUS_TRANSITION` bila transisi tidak sah, dan tidak dapat dipakai
-untuk memasuki atau meninggalkan `ON_LOAN`.
+## 7. Pengguna — SUPERADMIN saja
 
-### `POST /api/assets/{id}/dispose`
-
-```json
-{
-  "reason": "RUSAK_TOTAL",
-  "disposedAt": "2026-09-19",
-  "documentNo": "BA-HPS/2026/014",
-  "notes": "Tidak ekonomis diperbaiki, usia 12 tahun",
-  "attachmentKeys": []
-}
-```
-
-Respons menyertakan `revertUntil`, yaitu batas waktu pembatalan.
-
-### `POST /api/assets/{id}/undispose`
-
-Membatalkan penghapusan. Hanya untuk peran Admin dan Super Admin.
-
-```json
-{ "reason": "Salah pilih aset, yang dimaksud RSXX-RAD-2026-0015" }
-```
-
-Efek: status kembali ke `status_before_disposal`, seluruh kolom penghapusan dikosongkan,
-dan entri riwayat `CORRECTION` ditulis.
-
-Gagal dengan `DISPOSAL_REVERT_EXPIRED` (409) bila masa 30 hari sudah lewat. Pesannya
-menyebutkan tanggal kedaluwarsanya.
-
-### `GET /api/assets/disposed`
-
-Daftar aset yang dihapuskan. Parameter `revertible=true` menyaring yang masih dalam masa
-pembatalan, lengkap dengan sisa hari masing-masing.
-
-### `POST /api/assets/import`
-
-Impor massal. Menerima berkas Excel/CSV yang sudah diunggah, mengembalikan hasil validasi
-per baris. Menyimpan hanya bila `"commit": true`.
-
----
-
-## 4. Riwayat
-
-### `GET /api/assets/{id}/events`
-
-Parameter: `type`, `from`, `to`, `cursor`, `limit`.
-Terurut menurun berdasarkan `occurredAt`. Entri yang telah dikoreksi ditandai
-`"correctedBy": "<eventId>"`.
-
-### `POST /api/events`
-
-```json
-{
-  "assetId": "...",
-  "type": "INSPECTION",
-  "title": "Pengecekan rutin bulanan",
-  "notes": "Kabel daya mulai getas, dijadwalkan penggantian",
-  "occurredAt": "2026-09-18T07:00:00Z",
-  "attachmentKeys": ["org/assets/.../a1b2.jpg"],
-  "newCondition": "MINOR_ISSUE"
-}
-```
-
-Aturan: `occurredAt` tidak boleh melewati waktu sekarang. `recordedAt` dan `recordedBy`
-selalu ditetapkan server dan mengabaikan nilai dari klien. Maksimal 5 lampiran.
-
-### `POST /api/events/{id}/correction`
-
-```json
-{
-  "title": "Koreksi: pengecekan dilakukan 17 September, bukan 18",
-  "notes": "Salah input tanggal saat pencatatan mundur",
-  "occurredAt": "2026-09-19T02:00:00Z",
-  "attachmentKeys": []
-}
-```
-
-### `PUT` / `DELETE` pada `/api/events/{id}`
-
-Selalu mengembalikan `409 EVENT_IMMUTABLE`. Endpoint ini sengaja ada agar kesalahan
-pemakaian API terjawab dengan jelas, bukan dengan 404 yang membingungkan.
-
----
-
-## 5. Peminjaman
-
-### `POST /api/loans`
-
-Peminjam terdaftar:
-
-```json
-{
-  "assetId": "...",
-  "borrowerType": "INTERNAL_USER",
-  "borrowerUserId": "...",
-  "purpose": "Pemeriksaan pasien di Ruang IGD",
-  "borrowedAt": "2026-09-19T04:00:00Z",
-  "dueAt": "2026-09-20T04:00:00Z",
-  "conditionOut": "GOOD",
-  "attachmentKeys": []
-}
-```
-
-Peminjam luar:
-
-```json
-{
-  "assetId": "...",
-  "borrowerType": "EXTERNAL_PERSON",
-  "borrowerName": "Budi Santoso",
-  "borrowerPhone": "081234567890",
-  "borrowerUnit": "Instalasi Gizi",
-  "purpose": "Kegiatan penyuluhan di aula",
-  "borrowedAt": "2026-09-19T04:00:00Z",
-  "dueAt": null,
-  "conditionOut": "GOOD",
-  "attachmentKeys": []
-}
-```
-
-Gagal dengan `ASSET_NOT_AVAILABLE` bila status aset tidak memungkinkan, atau
-`LOAN_ALREADY_ACTIVE` bila ada permintaan lain yang menang dalam perlombaan penyimpanan.
-
-### `POST /api/loans/{id}/return`
-
-```json
-{
-  "returnedAt": "2026-09-20T09:00:00Z",
-  "conditionIn": "MINOR_ISSUE",
-  "notes": "Roda depan longgar",
-  "attachmentKeys": []
-}
-```
-
-`conditionIn` bernilai `NEEDS_REPAIR` atau `UNUSABLE` membuat status aset menjadi `DAMAGED`.
-
-### `GET /api/loans`
-
-Parameter: `active`, `overdue`, `assetId`, `borrowerUserId`, `locationId`, `from`, `to`.
-
----
-
-## 6. Pemeliharaan dan Kalibrasi
-
-### `GET /api/maintenance/due`
-
-Parameter: `within` (`overdue`, `7d`, `30d`, `90d`), `locationId`, `categoryId`, `type`.
-
-### `POST /api/maintenance/schedules`
-
-```json
-{ "assetId": "...", "type": "CALIBRATION", "intervalMonths": 12, "nextDueAt": "2027-03-15" }
-```
-
-### `POST /api/maintenance/records`
-
-```json
-{
-  "assetId": "...",
-  "scheduleId": "...",
-  "type": "CALIBRATION",
-  "performedAt": "2026-09-15",
-  "performedByVendorId": "...",
-  "result": "PASS",
-  "validUntil": "2027-09-15",
-  "certificateNumber": "KAL/2026/0881",
-  "certificateObjectKey": "...",
-  "cost": 2500000,
-  "description": "Kalibrasi tahunan sesuai standar pabrikan",
-  "attachmentKeys": []
-}
-```
-
-Efek: menulis entri riwayat, memperbarui jadwal, dan pada `result = "FAIL"` mengubah status
-aset menjadi `DAMAGED`.
-
----
-
-## 7. Unggahan
-
-### `POST /api/uploads/presign`
-
-```json
-{ "purpose": "EVENT_ATTACHMENT", "assetId": "...", "filename": "kerusakan.jpg", "contentType": "image/jpeg", "sizeBytes": 412880 }
-```
-
-Respons:
-
-```json
-{
-  "ok": true,
-  "data": {
-    "uploadUrl": "https://<bucket>.r2.cloudflarestorage.com/...?X-Amz-Signature=...",
-    "objectKey": "org/assets/.../a1b2c3.jpg",
-    "expiresIn": 300
-  }
-}
-```
-
-Nilai `purpose` yang berlaku: `EVENT_ATTACHMENT`, `ASSET_PHOTO`, `CERTIFICATE`,
-`ORG_LOGO`, `IMPORT_FILE`. Jenis berkas yang diizinkan: `image/jpeg`, `image/png`,
-`image/webp`, dan `application/pdf` khusus untuk `CERTIFICATE`.
-
-Kunci objek yang dikembalikan **ditentukan server**; klien tidak boleh menyusunnya sendiri.
-
-### `GET /api/uploads/signed-url?key=...`
-
-Menerbitkan URL baca berumur pendek. Memerlukan sesi dan memeriksa bahwa pemanggil berhak
-atas aset pemilik berkas tersebut.
-
----
-
-## 8. Cetak Label
-
-### `GET /print/label/{assetId}?size=50x30`
-### `GET /print/sheet?ids=a,b,c&layout=a4-3x8`
-
-Halaman HTML dengan gaya cetak. Mengakses keduanya mencatat baris pada `label_prints`,
-dengan `reason` diambil dari parameter kueri `reason`.
-
----
-
-## 9. Master Data dan Pengguna
-
-Pola CRUD yang seragam, seluruhnya memerlukan peran Admin atau Super Admin:
-
-```
-GET|POST        /api/locations         PATCH /api/locations/{id}
-GET|POST        /api/categories        PATCH /api/categories/{id}
-GET|POST        /api/vendors           PATCH /api/vendors/{id}
-GET|POST        /api/users             PATCH /api/users/{id}
-POST            /api/users/{id}/resend-invite
-POST            /api/users/{id}/disable
-POST            /api/users/{id}/disable-2fa      # hanya Super Admin, tercatat di audit log
-```
-
-### Sesi dan dua faktor, untuk akun sendiri
-
-```
-POST   /api/auth/login                  # menerima { email, password, rememberMe, totpCode? }
-POST   /api/auth/2fa/setup              # mengembalikan secret dan QR untuk aplikasi authenticator
-POST   /api/auth/2fa/confirm            # verifikasi kode pertama, mengembalikan kode pemulihan
-POST   /api/auth/2fa/disable            # memerlukan kata sandi
-GET    /api/auth/sessions               # daftar perangkat yang sedang aktif
-DELETE /api/auth/sessions/{id}          # keluar dari satu perangkat
-```
-
-`rememberMe` bernilai true membuat sesi berumur 7 hari; bila tidak, 12 jam.
-
-Tidak ada `DELETE` pada satu pun sumber daya di atas. Penonaktifan dilakukan dengan
-`is_active` atau `status`.
-
----
-
-## 9b. Panel Operator
-
-Seluruh endpoint di bawah ini hanya dapat diakses oleh `PLATFORM_OWNER`, memakai koneksi
-basis data terpisah yang melewati Row Level Security.
-
-```
-GET    /api/platform/organizations                 # daftar + pemakaian kuota
-POST   /api/platform/organizations                 # buat organisasi pelanggan baru
-GET    /api/platform/organizations/{id}
-PATCH  /api/platform/organizations/{id}            # kuota, status, narahubung
-POST   /api/platform/organizations/{id}/impersonate # masuk sebagai organisasi ini
-```
-
-Membuat organisasi baru:
-
-```json
-{
-  "name": "RS Contoh Sejahtera",
-  "code": "RSCS",
-  "timezone": "Asia/Makassar",
-  "status": "TRIAL",
-  "showGovernmentFields": true,
-  "contactName": "Budi Santoso",
-  "contactEmail": "budi@rs-contoh.co.id",
-  "adminEmail": "admin@rs-contoh.co.id",
-  "adminName": "Siti Aminah",
-  "quotaAssets": 2000,
-  "quotaStorageBytes": 21474836480,
-  "quotaUsers": 50
-}
-```
-
-Efek: membuat organisasi, menyalin kategori bawaan ke dalamnya, dan mengirim undangan
-`SUPERADMIN` pertama ke `adminEmail`.
-
-`POST .../impersonate` menulis baris `audit_logs` bertindakan `platform.impersonate` pada
-organisasi tersebut — dan baris itu terlihat oleh pelanggan.
-
-### Kode error kuota
-
-| Kode | HTTP | Arti |
-|---|---|---|
-| `QUOTA_ASSETS_EXCEEDED` | 402 | Jumlah aset sudah mencapai batas organisasi |
-| `QUOTA_STORAGE_EXCEEDED` | 402 | Pemakaian penyimpanan sudah melewati batas |
-| `QUOTA_USERS_EXCEEDED` | 402 | Jumlah pengguna aktif sudah mencapai batas |
-| `ORGANIZATION_SUSPENDED` | 403 | Organisasi ditangguhkan; hanya operasi baca yang diizinkan |
-
-## 10. Laporan
-
-```
-GET /api/reports/assets-by-room?locationId=...&format=xlsx
-GET /api/reports/asset-history/{assetId}?format=pdf
-GET /api/reports/loans?from=...&to=...&format=xlsx
-GET /api/reports/calibration-compliance?format=xlsx
-GET /api/reports/disposed?from=...&to=...&format=xlsx
-```
-
-Laporan besar dibuat secara sinkron pada skala v1. Bila kelak melampaui sekitar 5.000 baris,
-alihkan ke pekerjaan latar dengan pemberitahuan lewat email.
-
----
-
-## 11. Pembatasan Laju
-
-| Kelompok | Batas |
+| Endpoint | Fungsi |
 |---|---|
-| Endpoint publik | 60 per menit per IP |
-| Login | 5 kegagalan per 15 menit per IP dan per akun |
-| Penerbitan presign | 30 per menit per pengguna |
-| Umum bagi pengguna terautentikasi | 300 per menit per pengguna |
+| `GET /api/users` | Daftar pengguna |
+| `POST /api/users` | `{ username, name, role, password }` — `mustChangePassword` otomatis true |
+| `PATCH /api/users/{id}` | Ubah `name`, `role`, `isActive` |
+| `POST /api/users/{id}/reset-password` | `{ password }` baru |
+
+`POST /api/auth/change-password` (semua peran) untuk mengganti kata sandi sendiri.
+
+## 8. Yang tidak ada
+
+Tidak ada `PUT`/`DELETE` pada barang, riwayat, maintenance, maupun pengguna. Tidak ada
+endpoint unggah berkas. Impor data awal lewat skrip CLI, bukan API.
