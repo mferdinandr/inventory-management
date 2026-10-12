@@ -27,13 +27,13 @@ Semua endpoint butuh sesi, kecuali `/api/auth/*`. Format JSON. Peran per endpoin
 
 ### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false`
 Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
-`code, name, room, route, location, locationSince, quantity, damagedQuantity, nextDue`.
+`code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
 
 ### `POST /api/items` — OPERASI, SUPERADMIN
 ```json
 {
   "name": "Mesin Anestesi Drager",
-  "route": "NON_STERIL",
+  "needsSterilization": false,
   "room": "Kamar Operasi 103",
   "description": "",
   "quantity": 1,
@@ -46,7 +46,7 @@ Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
   ]
 }
 ```
-Hanya `name` dan `route` wajib. Membuat barang + isi + log `REGISTER` dalam satu transaksi.
+Hanya `name` dan `needsSterilization` wajib. `serialNumber` hanya boleh bila `quantity` = 1. Membuat barang + isi + log `REGISTER` dalam satu transaksi.
 Respons menyertakan `code` dan `warnings` (mis. `DUPLICATE_SERIAL`).
 
 ### `GET /api/items/{code}`
@@ -58,11 +58,11 @@ Semua peran. Daftar lengkap, terbaru dulu.
 
 ### `PATCH /api/items/{id}` — OPERASI, SUPERADMIN
 ```json
-{ "version": 3, "name": "…", "route": "STERIL", "room": "…", "quantity": 4,
+{ "version": 3, "name": "…", "needsSterilization": true, "room": "…", "quantity": 4,
   "damagedQuantity": 1, "brand": "…", "purchasePrice": 1000000,
   "contents": [ { "id": "…", "name": "Jarum", "quantity": 8, "damagedQuantity": 0 } ] }
 ```
-Barang tidak boleh sedang di CSSD (kecuali SUPERADMIN). Field yang dikirim saja yang berubah;
+Barang tidak boleh sedang di CSSD (kecuali SUPERADMIN). Alat tanpa sterilisasi selalu di Operasi sehingga selalu dapat diubah. Field yang dikirim saja yang berubah;
 `contents`, bila ada, menggantikan seluruh daftar. Selisih menjadi `changes` pada log `EDIT`.
 
 ### `PATCH /api/items/{id}/contents` — STERIL (barang di CSSD), SUPERADMIN
@@ -71,16 +71,16 @@ barang. Body: `{ "version", "actorName", "contents": [...] }`.
 
 ### `POST /api/items/{id}/archive` · `/restore` — OPERASI, SUPERADMIN
 
-## 3. Perpindahan
+## 3. Perpindahan (hanya barang yang perlu sterilisasi)
 
 ### `POST /api/items/{id}/send` — OPERASI, SUPERADMIN
 ```json
 { "actorName": "Sari", "note": "" }
 ```
-Syarat `location = OPERASI`. Tujuan dihitung server dari `route`: `STERIL` → `CSSD`,
-`NON_STERIL` → `ALKES`. Log `SEND`.
+Syarat `location = OPERASI` dan `needsSterilization = true`. Lokasi → `CSSD`, log `SEND`.
+Barang tanpa sterilisasi → `STATE_CONFLICT`.
 
-### `POST /api/items/{id}/return` — STERIL (dari CSSD), SUPERADMIN
+### `POST /api/items/{id}/return` — STERIL, SUPERADMIN
 ```json
 { "version": 4, "actorName": "Budi", "note": "1 gunting diganti",
   "contents": [ { "id": "…", "quantity": 3, "damagedQuantity": 0 } ] }
@@ -88,16 +88,10 @@ Syarat `location = OPERASI`. Tujuan dihitung server dari `route`: `STERIL` → `
 Syarat `location = CSSD`. Satu transaksi: lokasi → `OPERASI`, perubahan isi, log `RETURN`.
 `contents` boleh kosong bila tidak ada perubahan.
 
-### `POST /api/items/{id}/retrieve` — OPERASI, SUPERADMIN
-```json
-{ "actorName": "Sari", "note": "" }
-```
-Syarat `location = ALKES`. Lokasi → `OPERASI`, log `RETURN`.
-
-## 4. Maintenance — ALKES, SUPERADMIN
+## 4. Maintenance — semua peran
 
 ### `POST /api/items/{id}/maintenance`
-Berlaku di lokasi mana pun. Badan bergantung pada `type`:
+Berlaku di lokasi mana pun, oleh peran mana pun yang login. Badan bergantung pada `type`:
 
 ```json
 {
@@ -135,7 +129,7 @@ update `damaged_quantity`, insert log `MAINTENANCE`.
 ### `GET /api/summary`
 Semua peran.
 ```json
-{ "operasi": 12, "cssd": 5, "alkes": 3, "damaged": 2, "dueSoon": 4 }
+{ "operasi": 120, "cssd": 5, "damaged": 2, "dueSoon": 4 }
 ```
 (tidak menghitung barang terarsip; `dueSoon` = `next_due` ≤ 30 hari ke depan).
 

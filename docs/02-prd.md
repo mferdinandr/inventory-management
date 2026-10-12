@@ -15,7 +15,7 @@ Peran: **O** = OPERASI, **S** = STERIL, **A** = ALKES, **SA** = SUPERADMIN (SA d
 
 ## F2. Barang (alat besar / wadah)
 
-**Form pendaftaran (O).** Hanya *nama* dan *jalur* wajib; sisanya boleh kosong agar
+**Form pendaftaran (O).** Hanya *nama* dan *perlu sterilisasi* wajib; sisanya boleh kosong agar
 pendataan tidak tertahan.
 
 | Kelompok | Field | Catatan |

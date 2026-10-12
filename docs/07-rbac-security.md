@@ -18,7 +18,7 @@ Peran hanya dapat diubah oleh SUPERADMIN.
 | Lihat daftar, detail, riwayat, maintenance | ✅ | ✅ | ✅ | ✅ |
 | Cari / pindai | ✅ | ✅ | ✅ | ✅ |
 | Daftarkan barang | ✅ | ❌ | ❌ | ✅ |
-| Ubah identitas/detail/pembelian/jalur | ✅ (tidak di CSSD) | ❌ | ❌ | ✅ |
+| Ubah identitas/detail/pembelian | ✅ (tidak di CSSD) | ❌ | ❌ | ✅ |
 | Ubah isi & jumlah/rusak | ✅ (tidak di CSSD) | ✅ (di CSSD) | ❌ | ✅ (di mana saja) |
 | Kirim ke CSSD (hanya yang perlu sterilisasi) | ✅ | ❌ | ❌ | ✅ |
 | Kembalikan dari CSSD | ❌ | ✅ | ❌ | ✅ |

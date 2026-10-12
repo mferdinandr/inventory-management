@@ -7,9 +7,9 @@
 | D1 | Satu rumah sakit, single-tenant (menggantikan arah SaaS multi-tenant) |
 | D2 | Tanpa gambar; semua data berupa teks |
 | D3 | QR hanya untuk barang besar dan wadah; isi wadah berupa teks + jumlah |
-| D4 | Tiga lokasi (Operasi, CSSD, Alkes). Jalur `STERIL`: Operasi → CSSD → Operasi. Jalur `NON_STERIL` (alat besar, meja, TV): Operasi ⇄ Alkes |
-| D5 | Alkes memantau semua barang dan mencatat **maintenance**; ia tidak memindahkan barang. Operasi yang mengirim dan mengambil kembali |
-| D5b | Maintenance punya tiga form detail: Perbaikan, Pemeliharaan rutin, Kalibrasi |
+| D4 | Dua lokasi (Operasi, CSSD). Hanya barang yang **perlu sterilisasi** (set instrumen) berpindah: Operasi → CSSD → Operasi. Alat besar tanpa sterilisasi (mesin, meja, TV) **tidak dikirim ke mana pun** |
+| D5 | Alkes hanya melihat. Operasi mengedit alat besar |
+| D5b | Maintenance punya tiga form detail (Perbaikan, Pemeliharaan rutin, Kalibrasi) dan dapat dicatat **semua peran** |
 | D5c | Form pendaftaran barang memuat detail alat dan pembelian (merek, model, seri, tanggal, harga, supplier, sumber dana, garansi) |
 | D5d | Barang punya `kamar` (Kamar Operasi 101, RR, …), `jumlah`, dan `jumlah rusak`; isi wadah punya merek, jumlah, rusak, catatan (dari daftar contoh) |
 | D5e | Data awal dimuat lewat skrip impor CSV, bukan UI |
@@ -32,13 +32,13 @@
 | AS-4 | Pengecekan CSSD cukup mengubah jumlah per baris | Bila perlu kolom "kondisi", tambah satu kolom teks |
 | AS-5 | Barang besar (TV, meja) tidak punya isi | Tidak ada perubahan; isi tinggal diisi |
 | AS-6 | Nama isi wadah unik per wadah | Hapus constraint `UNIQUE (item_id, name)` |
-| AS-7 | **Dikonfirmasi pengguna:** Alkes hanya memantau (+ maintenance); Operasi yang memindahkan dan mengubah jumlah barang non-steril | — |
-| AS-10 | **Maintenance dilakukan oleh peran Alkes** (dan Superadmin), bukan Operasi atau Steril | Ubah kolom Maintenance di matriks 07 |
+| AS-7 | **Dikonfirmasi pengguna:** barang tanpa sterilisasi tidak dikirim; Alkes hanya melihat; Operasi mengedit | — |
+| AS-10 | **Dikonfirmasi pengguna:** maintenance dicatat semua peran | — |
 | AS-11 | Tiga jenis form maintenance (perbaikan, pemeliharaan rutin, kalibrasi) dan isian di PRD F5 sudah cukup | Sesuaikan field di `details` |
-| AS-12 | Kondisi rusak dicatat sebagai **jumlah rusak** (seperti daftar Juni), bukan status per unit | Bila perlu per unit, pecah jadi barang terpisah |
-| AS-13 | Alat besar sejenis boleh berbagi satu QR dengan `jumlah` > 1 (mis. Meja Stainless 4) | Bila perlu per unit, daftarkan satu per satu |
+| AS-12 | **Dikonfirmasi pengguna:** kondisi rusak dicatat sebagai jumlah rusak, bukan status per unit | — |
+| AS-13 | **Diputuskan (pilihan terbaik):** satu QR per unit untuk alat bernomor seri atau yang punya riwayat maintenance sendiri; `jumlah` > 1 hanya untuk barang sejenis tanpa nomor seri (meja stainless, tempat sampah, kursi). Sistem menolak nomor seri bila jumlah > 1. Alasan: maintenance, garansi, dan pembelian melekat pada unit, bukan kelompok | Bila perlu per unit untuk barang sejenis, daftarkan satu per satu |
 | AS-8 | Jalur ditetapkan per barang saat didaftarkan (bukan per kategori) | Tambah tabel kategori |
-| AS-9 | Wadah dengan isi selalu jalur steril; barang besar tanpa isi selalu non-steril — tapi tidak dipaksa sistem | Tambah validasi |
+| AS-9 | Set instrumen selalu "perlu sterilisasi" dan alat besar "tidak" — dipilih petugas, tidak dipaksa sistem | Tambah validasi |
 
 ## C. Pertanyaan terbuka
 

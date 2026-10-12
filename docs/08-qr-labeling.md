@@ -37,7 +37,7 @@ Satu ukuran standar dulu; tambah bila pelanggan butuh.
 
 ## 4. Bahan — hal yang paling menentukan
 
-Wadah jalur `STERIL` di CSSD melewati **pembersihan dan sterilisasi**. Label kertas biasa akan rusak.
+Set instrumen yang dikirim ke CSSD melewati **pembersihan dan sterilisasi**. Label kertas biasa akan rusak.
 
 - Konfirmasi ke CSSD: **metode sterilisasi** yang dipakai (uap/autoklaf, suhu, dll).
 - Gunakan label/tag yang **tahan proses itu** (mis. label tahan autoklaf atau tag logam

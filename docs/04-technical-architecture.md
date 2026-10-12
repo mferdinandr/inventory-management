@@ -132,23 +132,19 @@ sequenceDiagram
 ```
 
 ### 5.3 Kirim
-Sama, tanpa perubahan jumlah: kondisi `location='OPERASI'`, tujuan dihitung server dari
-`route` (`STERIL` → CSSD, `NON_STERIL` → ALKES), log `SEND`.
+Sama, tanpa perubahan jumlah: kondisi `location='OPERASI' AND needs_sterilization`, hasil
+`location='CSSD'`, log `SEND`. Barang tanpa sterilisasi tidak punya jalur perpindahan sama sekali.
 
-### 5.4 Ambil kembali dari Alkes
-Sama dengan 5.3 terbalik: kondisi `location='ALKES'`, dijalankan oleh peran OPERASI, tanpa
-perubahan jumlah, log `RETURN`.
-
-### 5.5 Mencatat maintenance
+### 5.4 Mencatat maintenance
 
 ```mermaid
 sequenceDiagram
-    participant B as Peramban (ALKES)
+    participant B as Peramban (semua peran)
     participant N as Next.js
     participant DB as PostgreSQL
 
     B->>N: POST /api/items/{id}/maintenance {type, details, damagedAfter, …}
-    N->>N: Cek peran ALKES/SUPERADMIN, validasi Zod sesuai type
+    N->>N: Cek sesi aktif, validasi Zod sesuai type
     N->>DB: BEGIN
     N->>DB: INSERT maintenance_records
     N->>DB: UPDATE items SET damaged_quantity = damagedAfter
@@ -160,7 +156,7 @@ sequenceDiagram
 Tidak memakai `version` karena maintenance tidak mengubah lokasi atau isi; hanya jumlah rusak
 barang, dan pembaruan itu dibatasi `CHECK (damaged_quantity <= quantity)`.
 
-### 5.6 Pemuatan data awal
+### 5.5 Pemuatan data awal
 `pnpm import:csv --items items.csv --contents contents.csv` membuat barang, isi, dan log
 `REGISTER` dalam satu transaksi per barang. Dijalankan sekali oleh pengembang/SA; baris
 yang gagal divalidasi dilaporkan tanpa menghentikan seluruh impor.

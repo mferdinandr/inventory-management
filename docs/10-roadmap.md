@@ -32,21 +32,21 @@ melihat halaman sesuai perannya.
 
 ## M3 — Alur Kirim & Kembali (± 4 hari)
 
-- `send()` (tujuan menurut `route`), `return()` dari CSSD, `retrieve()` dari Alkes — bersyarat + atomik
+- `send()` (hanya barang yang perlu sterilisasi) dan `return()` dari CSSD — bersyarat + atomik
 - Layar CSSD: edit jumlah + kembalikan dalam satu simpanan
 - Nama petugas (diingat di perangkat)
-- Tes konflik: kirim ganda, kembali ganda, versi basi, peran × lokasi
+- Tes konflik: kirim ganda, kembali ganda, kirim barang tanpa sterilisasi, versi basi, peran × lokasi
 
 ## M4 — Maintenance (± 4 hari)
 
 - Tabel `maintenance_records`, `maintenance.service.ts`
 - Tiga form (perbaikan, pemeliharaan, kalibrasi) dengan validasi Zod per jenis
 - Tab Maintenance di halaman barang; jatuh tempo berikutnya; pembaruan jumlah rusak
-- Tes izin: hanya ALKES dan SUPERADMIN
+- Tes: semua peran yang login dapat mencatat; pengguna nonaktif ditolak
 
 ## M5 — Beranda & Riwayat (± 2 hari)
 
-- Hitungan Operasi/CSSD/Alkes/Rusak/Jatuh tempo, daftar, filter
+- Hitungan Operasi/CSSD/Rusak/Jatuh tempo, daftar, filter; Alkes hanya melihat
 - Linimasa riwayat dengan perubahan jumlah
 
 ## M6 — Data Awal, Penyebaran & Uji Lapangan (± 4 hari)
@@ -54,7 +54,7 @@ melihat halaman sesuai perannya.
 - `pnpm import:csv`; uji dengan data contoh ([12](12-data-contoh.md))
 - Server, Caddy, HTTPS, cadangan + uji pemulihan
 - Uji label di sterilisasi sungguhan
-- Uji coba kedua jalur dan maintenance dengan petugas Operasi, Steril, Alkes
+- Uji coba alur set, pengeditan alat besar, tampilan Alkes, dan maintenance dengan petugas Operasi, Steril, Alkes
 
 ## Ketergantungan
 
