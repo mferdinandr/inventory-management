@@ -7,10 +7,14 @@
 | D1 | Satu rumah sakit, single-tenant (menggantikan arah SaaS multi-tenant) |
 | D2 | Tanpa gambar; semua data berupa teks |
 | D3 | QR hanya untuk barang besar dan wadah; isi wadah berupa teks + jumlah |
-| D4 | Tiga lokasi (Operasi, CSSD, Alkes). Jalur `STERIL`: Operasi → CSSD → Operasi. Jalur `NON_STERIL` (TV, meja): Operasi → Alkes → Operasi |
-| D5 | Alkes memantau semua barang dan mengembalikan barang non-steril |
+| D4 | Tiga lokasi (Operasi, CSSD, Alkes). Jalur `STERIL`: Operasi → CSSD → Operasi. Jalur `NON_STERIL` (alat besar, meja, TV): Operasi ⇄ Alkes |
+| D5 | Alkes memantau semua barang dan mencatat **maintenance**; ia tidak memindahkan barang. Operasi yang mengirim dan mengambil kembali |
+| D5b | Maintenance punya tiga form detail: Perbaikan, Pemeliharaan rutin, Kalibrasi |
+| D5c | Form pendaftaran barang memuat detail alat dan pembelian (merek, model, seri, tanggal, harga, supplier, sumber dana, garansi) |
+| D5d | Barang punya `kamar` (Kamar Operasi 101, RR, …), `jumlah`, dan `jumlah rusak`; isi wadah punya merek, jumlah, rusak, catatan (dari daftar contoh) |
+| D5e | Data awal dimuat lewat skrip impor CSV, bukan UI |
 | D6 | Empat peran: `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` |
-| D6b | Operasi dan CSSD sama-sama dapat mengubah jumlah isi (Operasi di Operasi, CSSD di CSSD); SUPERADMIN di mana saja |
+| D6b | Operasi dapat mengubah detail dan jumlah selama barang tidak di CSSD; CSSD mengubah jumlah saat di CSSD; SUPERADMIN di mana saja |
 | D6c | SUPERADMIN akses penuh dan membuat/mengelola pengguna dari UI |
 | D7 | Riwayat append-only |
 | D8 | Login wajib; tidak ada halaman publik |
@@ -28,7 +32,11 @@
 | AS-4 | Pengecekan CSSD cukup mengubah jumlah per baris | Bila perlu kolom "kondisi", tambah satu kolom teks |
 | AS-5 | Barang besar (TV, meja) tidak punya isi | Tidak ada perubahan; isi tinggal diisi |
 | AS-6 | Nama isi wadah unik per wadah | Hapus constraint `UNIQUE (item_id, name)` |
-| AS-7 | Barang non-steril **kembali ke Operasi** dari Alkes (tombol Kembalikan oleh peran Alkes) | Bila barang menetap di Alkes, hapus tombol dan tambah status akhir |
+| AS-7 | **Dikonfirmasi pengguna:** Alkes hanya memantau (+ maintenance); Operasi yang memindahkan dan mengubah jumlah barang non-steril | — |
+| AS-10 | **Maintenance dilakukan oleh peran Alkes** (dan Superadmin), bukan Operasi atau Steril | Ubah kolom Maintenance di matriks 07 |
+| AS-11 | Tiga jenis form maintenance (perbaikan, pemeliharaan rutin, kalibrasi) dan isian di PRD F5 sudah cukup | Sesuaikan field di `details` |
+| AS-12 | Kondisi rusak dicatat sebagai **jumlah rusak** (seperti daftar Juni), bukan status per unit | Bila perlu per unit, pecah jadi barang terpisah |
+| AS-13 | Alat besar sejenis boleh berbagi satu QR dengan `jumlah` > 1 (mis. Meja Stainless 4) | Bila perlu per unit, daftarkan satu per satu |
 | AS-8 | Jalur ditetapkan per barang saat didaftarkan (bukan per kategori) | Tambah tabel kategori |
 | AS-9 | Wadah dengan isi selalu jalur steril; barang besar tanpa isi selalu non-steril — tapi tidak dipaksa sistem | Tambah validasi |
 
@@ -43,3 +51,7 @@
 | Q-5 | Berapa perkiraan jumlah barang dan panjang isi tiap wadah? | Desain layar edit isi |
 | Q-6 | Siapa yang mengelola sistem setelah selesai? | Cadangan, akun, pembaruan |
 | Q-7 | Apakah ruang operasi dan CSSD punya sinyal/Wi-Fi yang stabil? | Online-only dapat dipakai |
+| Q-8 | **Berkas Excel asli** dari kedua daftar contoh? | Skrip impor (PDF sulit diurai andal) |
+| Q-9 | Daftar kamar/ruang yang tetap (Kamar Operasi 101–104, 205–206, RR, Ruang Transit, …)? | Saran isian kamar |
+| Q-10 | Lembaga kalibrasi dan interval kalibrasi/pemeliharaan umum per jenis alat? | Nilai bawaan form maintenance |
+| Q-11 | Daftar sumber dana yang dipakai (APBD, BLUD, hibah, …)? | Pilihan isian Sumber dana |
