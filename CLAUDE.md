@@ -15,6 +15,10 @@ sebaiknya bisa dijelaskan dalam satu kalimat dan membangun/lulus tes sendiri.
 
 - Format: Conventional Commits berbahasa Inggris (`feat:`, `fix:`, `docs:`, `refactor:`,
   `test:`, `chore:`).
+- **Setiap commit langsung di-push** (`git push -u origin <branch>`), jangan hanya tersimpan
+  di lokal. Commit lalu push adalah satu langkah yang tidak dipisah.
+- Bila push gagal (mis. remote belum ada atau ditolak), laporkan ke pengguna; jangan
+  dilewati diam-diam dan jangan memakai `--force`.
 - Jangan menggabungkan perubahan yang tidak berkaitan dalam satu commit.
 - Jangan menunggu diminta; commit adalah bagian dari menyelesaikan setiap langkah.
 - Bekerja di branch, bukan langsung di `main`.
