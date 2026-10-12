@@ -220,7 +220,7 @@ export async function createOrganization(
     return created
   })
 
-  const mail = await sendAdminInvite(input.adminEmail, input.adminName, org.name, token)
+  const mail = await sendAdminInvite(input.adminEmail, input.adminName, org.name, token, org.id)
   return { organizationId: org.id, inviteToken: token, mailSent: mail.ok }
 }
 
@@ -255,11 +255,23 @@ export async function resendAdminInvite(
     return updated
   })
 
-  const mail = await sendAdminInvite(user.email, user.name, user.organization?.name ?? "", token)
+  const mail = await sendAdminInvite(
+    user.email,
+    user.name,
+    user.organization?.name ?? "",
+    token,
+    organizationId,
+  )
   return { inviteToken: token, mailSent: mail.ok }
 }
 
-function sendAdminInvite(email: string, name: string, orgName: string, token: string) {
+function sendAdminInvite(
+  email: string,
+  name: string,
+  orgName: string,
+  token: string,
+  organizationId: string,
+) {
   return sendMail({
     to: email,
     subject: `Undangan Super Admin SIMASET — ${orgName}`,
@@ -269,6 +281,8 @@ function sendAdminInvite(email: string, name: string, orgName: string, token: st
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>
     `,
+    template: "operator-admin-invite",
+    organizationId,
   })
 }
 

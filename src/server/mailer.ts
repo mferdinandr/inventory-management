@@ -1,5 +1,6 @@
 import "server-only"
 import nodemailer from "nodemailer"
+import { dbPlatform } from "@/server/db-platform"
 
 let transport: nodemailer.Transporter | undefined
 
@@ -32,24 +33,58 @@ export type MailInput = {
   to: string
   subject: string
   html: string
+  /** FR-28: nama templat untuk email_logs, mis. "invite", "reset-password", "daily-digest". */
+  template: string
+  /** null untuk email lintas-organisasi/pra-sesi (mis. undangan sebelum akun aktif). */
+  organizationId?: string | null
 }
 
+/**
+ * FR-28: "setiap pengiriman tercatat pada log agar kegagalan dapat
+ * ditelusuri" — dicatat di sini, satu titik untuk semua pemanggil, bukan
+ * diulang di setiap tempat yang mengirim email. Memakai dbPlatform karena
+ * pengiriman terjadi lintas konteks (pra-sesi, job terjadwal tanpa sesi
+ * pengguna sama sekali) yang tidak selalu punya app.current_org.
+ */
 export async function sendMail(input: MailInput): Promise<{ ok: boolean; error?: string }> {
   const t = getTransport()
+  let ok: boolean
+  let error: string | undefined
+
   if (!t) {
     console.warn(
       `[mailer] SMTP belum dikonfigurasi — email ke ${input.to} tidak terkirim: ${input.subject}`,
     )
-    return { ok: false, error: "Not configured" }
+    ok = false
+    error = "SMTP belum dikonfigurasi"
+  } else {
+    try {
+      await t.sendMail({
+        from: process.env.MAIL_FROM ?? "SIMASET <noreply@simaset.id>",
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+      })
+      ok = true
+    } catch (err) {
+      console.error("[mailer] gagal mengirim:", err)
+      ok = false
+      error = err instanceof Error ? err.message : String(err)
+    }
   }
-  try {
-    await t.sendMail({
-      from: process.env.MAIL_FROM ?? "SIMASET <noreply@simaset.id>",
-      ...input,
+
+  await dbPlatform.emailLog
+    .create({
+      data: {
+        organizationId: input.organizationId ?? null,
+        toEmail: input.to,
+        template: input.template,
+        subject: input.subject,
+        status: ok ? "SENT" : "FAILED",
+        error: error ?? null,
+      },
     })
-    return { ok: true }
-  } catch (err) {
-    console.error("[mailer] gagal mengirim:", err)
-    return { ok: false, error: err instanceof Error ? err.message : String(err) }
-  }
+    .catch((e) => console.error("[mailer] gagal mencatat email_logs:", e))
+
+  return ok ? { ok: true } : { ok: false, error }
 }
