@@ -67,6 +67,8 @@ export async function inviteUser(
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>
     `,
+    template: "invite",
+    organizationId: input.organizationId,
   })
 
   return { userId: user.id, inviteToken: token }
@@ -106,6 +108,8 @@ export async function resendInvite(
       <p><a href="${process.env.APP_URL}/invite/${token}">Terima undangan dan atur kata sandi</a></p>
       <p>Tautan ini berlaku 7 hari.</p>
     `,
+    template: "invite-resend",
+    organizationId,
   })
 
   return { inviteToken: token }

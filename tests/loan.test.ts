@@ -33,7 +33,7 @@ beforeAll(async () => {
   })
   adminId = admin.id
   const room = await setup.location.findFirstOrThrow({
-    where: { organizationId: orgId, type: "ROOM" },
+    where: { organizationId: orgId, type: "ROOM", parent: { code: { not: null } } },
     select: { id: true },
   })
   roomId = room.id

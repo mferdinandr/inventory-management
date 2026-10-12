@@ -82,6 +82,10 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  // email_logs sekarang ditulis oleh mailer.ts untuk setiap pengiriman
+  // (FR-28) — termasuk undangan SUPERADMIN yang dikirim saat organisasi
+  // uji dibuat di sini, jadi harus dibersihkan sebelum organizations juga.
+  await setup.emailLog.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
   await setup.auditLog.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
   await setup.category.deleteMany({ where: { organizationId: { in: createdOrgIds } } })
   await setup.user.deleteMany({ where: { organizationId: { in: createdOrgIds } } })

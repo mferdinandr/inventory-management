@@ -83,126 +83,144 @@ async function nextSequence(
 
 export type CreateAssetResult = { id: string; publicId: string; assetCode: string }
 
+/**
+ * Inti createAsset, dipisah agar bisa dipanggil di dalam transaksi yang
+ * sudah ada (impor massal, FR-29: satu batch = satu transaksi) tanpa
+ * membuka withOrg() bersarang. createAsset() di bawah adalah pembungkusnya
+ * untuk pemanggilan tunggal biasa.
+ */
+export async function createAssetInTx(
+  tx: Tx,
+  organizationId: string,
+  actorUserId: string,
+  input: AssetFormInput,
+): Promise<CreateAssetResult> {
+  await assertOrgWritable(organizationId, tx)
+  await assertAssetQuota(organizationId, tx)
+
+  if (input.serialNumber && !input.confirmDuplicateSerial) {
+    const dupe = await tx.asset.findFirst({
+      where: { organizationId, serialNumber: input.serialNumber },
+      select: { assetCode: true },
+    })
+    if (dupe) {
+      throw new DuplicateSerialError(
+        `Nomor seri ini sudah dipakai oleh aset ${dupe.assetCode}.`,
+        dupe.assetCode,
+      )
+    }
+  }
+
+  const org = await tx.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { code: true },
+  })
+  const departmentCode = await departmentCodeForRoom(tx, input.locationId)
+  const category = await tx.category.findFirst({
+    where: { id: input.categoryId, organizationId },
+    select: { isMedicalDevice: true, defaultCalibrationIntervalMonths: true },
+  })
+  if (!category) throw new AssetError("Kategori tidak ditemukan.")
+
+  const year = input.acquisitionDate.getFullYear()
+
+  // Tabrakan public_id astronomis kecil kemungkinannya (docs/08: 57^12
+  // kombinasi), tapi asset_code (hitungan count+1 per departemen+tahun,
+  // bukan sequence/lock DB) jauh lebih mudah bertabrakan saat banyak
+  // transaksi bersamaan menghitung nomor urut yang sama sebelum salah satu
+  // commit — makin banyak test paralel menulis ke departemen yang sama,
+  // makin sering. 20 percobaan (naik dari 5) dipilih setelah suite ini
+  // nyata gagal di 5 pada beban M6 yang menambah lebih banyak test paralel.
+  // Postgres membatalkan SELURUH transaksi begitu satu statement gagal
+  // (unique violation termasuk) — tanpa SAVEPOINT di sini, percobaan ulang
+  // di dalam tx yang sama akan langsung gagal lagi dengan "current
+  // transaction is aborted" pada percobaan berikutnya.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const publicId = generatePublicId()
+    const sequence = await nextSequence(tx, organizationId, org.code, departmentCode, year)
+    const assetCode = formatAssetCode({
+      orgCode: org.code,
+      departmentCode,
+      year,
+      sequence,
+    })
+    await tx.$executeRawUnsafe("SAVEPOINT asset_create_attempt")
+    try {
+      const asset = await tx.asset.create({
+        data: {
+          organizationId,
+          publicId,
+          assetCode,
+          name: input.name,
+          categoryId: input.categoryId,
+          locationId: input.locationId,
+          condition: input.condition,
+          status: "AVAILABLE",
+          brand: input.brand,
+          model: input.model,
+          serialNumber: input.serialNumber,
+          yearManufactured: input.yearManufactured,
+          acquisitionDate: input.acquisitionDate,
+          acquisitionCost: input.acquisitionCost,
+          fundingSource: input.fundingSource,
+          acquisitionDocumentNo: input.acquisitionDocumentNo,
+          warrantyUntil: input.warrantyUntil,
+          economicLifeYears: input.economicLifeYears,
+          notes: input.notes,
+          createdBy: actorUserId,
+        },
+        select: { id: true, publicId: true, assetCode: true, locationId: true },
+      })
+
+      // FR-15: entri riwayat pertama, otomatis, bertipe CREATED.
+      await tx.assetEvent.create({
+        data: {
+          organizationId,
+          assetId: asset.id,
+          type: "CREATED",
+          title: "Aset didaftarkan",
+          occurredAt: input.acquisitionDate,
+          recordedBy: actorUserId,
+          locationId: asset.locationId,
+          statusAfter: "AVAILABLE",
+        },
+      })
+
+      // FR-06: aset berkategori medis otomatis dibuatkan jadwal kalibrasi
+      // bila intervalnya tersedia. Pencatatan pelaksanaan (M5) belum ada;
+      // ini hanya membuat jadwalnya.
+      if (category.isMedicalDevice && category.defaultCalibrationIntervalMonths) {
+        const nextDue = new Date(input.acquisitionDate)
+        nextDue.setMonth(nextDue.getMonth() + category.defaultCalibrationIntervalMonths)
+        await tx.maintenanceSchedule.create({
+          data: {
+            organizationId,
+            assetId: asset.id,
+            type: "CALIBRATION",
+            intervalMonths: category.defaultCalibrationIntervalMonths,
+            nextDueAt: nextDue,
+          },
+        })
+      }
+
+      await tx.$executeRawUnsafe("RELEASE SAVEPOINT asset_create_attempt")
+      return asset
+    } catch (e) {
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT asset_create_attempt")
+      if (isUniqueViolation(e, "public_id")) continue // ulangi dengan public_id baru
+      if (isUniqueViolation(e, "asset_code")) continue // ulangi dengan urutan baru
+      throw e
+    }
+  }
+  throw new AssetError("Gagal membuat kode aset setelah beberapa percobaan. Coba lagi.")
+}
+
 export async function createAsset(
   organizationId: string,
   actorUserId: string,
   input: AssetFormInput,
 ): Promise<CreateAssetResult> {
-  return withOrg(organizationId, async (tx) => {
-    await assertOrgWritable(organizationId, tx)
-    await assertAssetQuota(organizationId, tx)
-
-    if (input.serialNumber && !input.confirmDuplicateSerial) {
-      const dupe = await tx.asset.findFirst({
-        where: { organizationId, serialNumber: input.serialNumber },
-        select: { assetCode: true },
-      })
-      if (dupe) {
-        throw new DuplicateSerialError(
-          `Nomor seri ini sudah dipakai oleh aset ${dupe.assetCode}.`,
-          dupe.assetCode,
-        )
-      }
-    }
-
-    const org = await tx.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-      select: { code: true },
-    })
-    const departmentCode = await departmentCodeForRoom(tx, input.locationId)
-    const category = await tx.category.findFirst({
-      where: { id: input.categoryId, organizationId },
-      select: { isMedicalDevice: true, defaultCalibrationIntervalMonths: true },
-    })
-    if (!category) throw new AssetError("Kategori tidak ditemukan.")
-
-    const year = input.acquisitionDate.getFullYear()
-
-    // Tabrakan public_id/asset_code astronomis kecil kemungkinannya (docs/08:
-    // 57^12 kombinasi), tapi diperiksa dan diulang sesuai dok, bukan diasumsikan
-    // tidak akan pernah terjadi. Postgres membatalkan SELURUH transaksi begitu
-    // satu statement gagal (unique violation termasuk) — tanpa SAVEPOINT di
-    // sini, percobaan ulang di dalam tx yang sama akan langsung gagal lagi
-    // dengan "current transaction is aborted" pada percobaan berikutnya.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const publicId = generatePublicId()
-      const sequence = await nextSequence(tx, organizationId, org.code, departmentCode, year)
-      const assetCode = formatAssetCode({
-        orgCode: org.code,
-        departmentCode,
-        year,
-        sequence,
-      })
-      await tx.$executeRawUnsafe("SAVEPOINT asset_create_attempt")
-      try {
-        const asset = await tx.asset.create({
-          data: {
-            organizationId,
-            publicId,
-            assetCode,
-            name: input.name,
-            categoryId: input.categoryId,
-            locationId: input.locationId,
-            condition: input.condition,
-            status: "AVAILABLE",
-            brand: input.brand,
-            model: input.model,
-            serialNumber: input.serialNumber,
-            yearManufactured: input.yearManufactured,
-            acquisitionDate: input.acquisitionDate,
-            acquisitionCost: input.acquisitionCost,
-            fundingSource: input.fundingSource,
-            acquisitionDocumentNo: input.acquisitionDocumentNo,
-            warrantyUntil: input.warrantyUntil,
-            economicLifeYears: input.economicLifeYears,
-            notes: input.notes,
-            createdBy: actorUserId,
-          },
-          select: { id: true, publicId: true, assetCode: true, locationId: true },
-        })
-
-        // FR-15: entri riwayat pertama, otomatis, bertipe CREATED.
-        await tx.assetEvent.create({
-          data: {
-            organizationId,
-            assetId: asset.id,
-            type: "CREATED",
-            title: "Aset didaftarkan",
-            occurredAt: input.acquisitionDate,
-            recordedBy: actorUserId,
-            locationId: asset.locationId,
-            statusAfter: "AVAILABLE",
-          },
-        })
-
-        // FR-06: aset berkategori medis otomatis dibuatkan jadwal kalibrasi
-        // bila intervalnya tersedia. Pencatatan pelaksanaan (M5) belum ada;
-        // ini hanya membuat jadwalnya.
-        if (category.isMedicalDevice && category.defaultCalibrationIntervalMonths) {
-          const nextDue = new Date(input.acquisitionDate)
-          nextDue.setMonth(nextDue.getMonth() + category.defaultCalibrationIntervalMonths)
-          await tx.maintenanceSchedule.create({
-            data: {
-              organizationId,
-              assetId: asset.id,
-              type: "CALIBRATION",
-              intervalMonths: category.defaultCalibrationIntervalMonths,
-              nextDueAt: nextDue,
-            },
-          })
-        }
-
-        await tx.$executeRawUnsafe("RELEASE SAVEPOINT asset_create_attempt")
-        return asset
-      } catch (e) {
-        await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT asset_create_attempt")
-        if (isUniqueViolation(e, "public_id")) continue // ulangi dengan public_id baru
-        if (isUniqueViolation(e, "asset_code")) continue // ulangi dengan urutan baru
-        throw e
-      }
-    }
-    throw new AssetError("Gagal membuat kode aset setelah beberapa percobaan. Coba lagi.")
-  })
+  return withOrg(organizationId, (tx) => createAssetInTx(tx, organizationId, actorUserId, input))
 }
 
 export type AssetListItem = {

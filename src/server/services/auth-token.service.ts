@@ -68,6 +68,8 @@ export async function requestPasswordReset(email: string): Promise<void> {
       <p><a href="${process.env.APP_URL}/reset-password/${token}">Atur kata sandi baru</a></p>
       <p>Tautan ini berlaku 1 jam. Abaikan pesan ini bila Anda tidak meminta ini.</p>
     `,
+    template: "reset-password",
+    organizationId: user.organizationId,
   })
 }
 
