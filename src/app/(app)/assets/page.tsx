@@ -27,6 +27,7 @@ export default async function AssetsPage({
   const organizationId = await requireActiveOrg()
   const canCreate = hasPermission(user.role, "asset:create")
   const canDispose = hasPermission(user.role, "asset:dispose")
+  const canImport = hasPermission(user.role, "asset:import")
 
   const { items } = await listAssets(organizationId, { q })
 
@@ -43,6 +44,9 @@ export default async function AssetsPage({
               variant="outline"
               render={<Link href="/assets/disposed">Aset Dihapuskan</Link>}
             />
+          ) : null}
+          {canImport ? (
+            <Button variant="outline" render={<Link href="/assets/import">Impor Aset</Link>} />
           ) : null}
           {canCreate ? <Button render={<Link href="/assets/new">Daftarkan Aset</Link>} /> : null}
         </div>
