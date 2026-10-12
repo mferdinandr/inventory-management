@@ -1,39 +1,39 @@
-# SIMASET — Sistem Inventaris & Pelacakan Aset Rumah Sakit
+# SIMASET — Pelacakan Barang & Perlengkapan Ruang Operasi
 
-Produk SaaS pelacakan aset rumah sakit berbasis QR Code. Setiap barang memiliki identitas
-permanen dan riwayat yang tidak dapat dihapus: siapa meminjam, kapan diperiksa, apa yang
-diperbaiki, dan kapan kalibrasi berikutnya jatuh tempo.
+Aplikasi web sederhana untuk melacak barang besar dan wadah perlengkapan (set instrumen)
+yang berpindah dari **Ruang Operasi** ke **CSSD/Steril** (perlu sterilisasi) atau ke
+**Kantor Alkes** (barang besar tanpa sterilisasi), lalu kembali.
 
-Multi-tenant: satu instans melayani banyak rumah sakit, dipisahkan Row Level Security.
-
-> **Status: tahap perencanaan selesai, siap mulai coding.** Belum ada kode.
-> Seluruh dokumen perencanaan ada di [`docs/`](docs/).
-
-## Mulai dari mana
-
-Baca [`docs/00-README.md`](docs/00-README.md) sebagai daftar isi dan ringkasan keputusan.
-
-Akan mulai coding? Urutannya: [PRD](docs/02-prd.md) → [ERD](docs/03-erd.md) →
-[Arsitektur](docs/04-technical-architecture.md) → [Deployment](docs/09-deployment-ops.md).
+> **Status: perencanaan selesai (v3.0), belum ada kode.** Dokumen ada di [`docs/`](docs/).
 
 ## Gambaran singkat
 
-PIC ruangan mendaftarkan barang ke sistem → sistem menerbitkan QR Code → QR dicetak dan
-ditempel di barang → memindai QR membuka informasi barang beserta riwayat perlakuannya →
-petugas yang berwenang menambahkan riwayat baru lengkap dengan waktu, penanggung jawab,
-dan foto bukti.
+```
+                 barang perlu steril
+   ┌──────────────┐  kirim   ┌──────────────┐
+   │              │ ───────▶ │ CSSD/Steril  │
+   │ Ruang Operasi│ ◀─────── │ cek & update │
+   │              │ kembali  │    jumlah    │
+   │              │          └──────────────┘
+   │              │  barang besar tanpa steril
+   │              │ ───────▶ ┌──────────────┐
+   │              │ ◀─────── │ Kantor Alkes │
+   └──────────────┘ kembali  └──────────────┘
+```
 
-## Rencana rilis
+- Hanya **barang besar / wadah** yang diberi QR (TV, meja, "Perlengkapan 1" berisi jarum,
+  pisau, dll). Isi wadah dicatat sebagai teks beserta jumlahnya, tanpa QR sendiri.
+- **Tanpa foto.** Semua informasi berupa teks.
+- **4 peran:** `OPERASI`, `STERIL`, `ALKES`, `SUPERADMIN` (akses penuh + kelola pengguna).
+- **1 rumah sakit** (single-tenant).
 
-| Tahap | Isi | Estimasi |
-|---|---|---|
-| **MVP** | Multi-tenant, panel operator, aset, QR, label, riwayat, peminjaman | 6 minggu |
-| **v1.1** | Kalibrasi, dashboard, laporan, notifikasi, impor, 2FA, pengerasan | 3 minggu |
+## Mulai dari mana
 
-Data pelanggan sungguhan baru boleh masuk setelah v1.1.
+Baca [`docs/00-README.md`](docs/00-README.md). Mulai coding: [PRD](docs/02-prd.md) →
+[ERD](docs/03-erd.md) → [Arsitektur](docs/04-technical-architecture.md).
 
 ## Stack
 
-Next.js 15 · TypeScript · PostgreSQL 16 (RLS) · Prisma · Auth.js · Cloudflare R2 · Caddy · Docker Compose
+Next.js 15 · TypeScript · PostgreSQL 16 · Prisma · Auth.js · Caddy · Docker Compose
 
 Node 22 LTS · pnpm · Biome · Vitest · Playwright · GitHub Actions
