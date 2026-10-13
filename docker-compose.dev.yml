@@ -1,4 +1,6 @@
 # Local development database only. Production uses docker-compose.yml.
+name: simaset-dev  # one shared project for every worktree, so they reuse the same container
+
 services:
   db:
     image: postgres:16

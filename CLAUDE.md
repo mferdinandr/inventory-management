@@ -23,6 +23,19 @@ sebaiknya bisa dijelaskan dalam satu kalimat dan membangun/lulus tes sendiri.
 - Jangan menunggu diminta; commit adalah bagian dari menyelesaikan setiap langkah.
 - Bekerja di branch, bukan langsung di `main`.
 
+## Kerja paralel
+
+Beberapa agen bisa bekerja bersamaan, masing-masing di worktree sendiri. Aturan lengkap ada
+di `docs/13-kerja-paralel.md`. Ringkasnya:
+
+- Worktree baru: jalankan `scripts/setup-worktree.sh` (database, port, dan `.env` sendiri).
+- Satu agen = satu branch = satu worktree; hanya menyentuh berkas milik milestone-nya.
+- Migrasi skema lewat PR tersendiri yang di-merge lebih dulu, lalu semua agen `rebase`.
+- Berkas bersama (`permissions.ts`, `strings.ts`, layout, `schema.prisma`, `package.json`):
+  tambah di akhir, perubahan kecil, cepat di-merge.
+- `git fetch && git rebase origin/main` sebelum mulai dan sebelum membuka PR.
+- Sebelum push: `node_modules/.bin/biome check .`, `tsc --noEmit`, `vitest run`.
+
 ## Pertanyaan
 
 Bila ada pertanyaan atau keputusan yang menjadi hak pengguna, **langsung tanyakan dengan
@@ -36,6 +49,8 @@ sebutkan default itu di laporan.
 Kode dan commit dalam bahasa Inggris; antarmuka dan dokumentasi dalam bahasa Indonesia.
 
 ## Dokumen
+
+Perintah `pnpm lint` diarahkan hook ke eslint; pakai `node_modules/.bin/biome check .` langsung.
 
 Dokumen perencanaan ada di `docs/` (mulai dari `docs/00-README.md`). Bila perilaku produk
 berubah, perbarui dokumen terkait di commit yang sama atau commit tepat sebelumnya.

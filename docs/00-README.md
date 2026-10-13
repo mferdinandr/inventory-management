@@ -22,6 +22,7 @@ Status: **Dirombak dari SaaS multi-tenant menjadi aplikasi satu rumah sakit yang
 | 10 | [Roadmap](10-roadmap.md) | Milestone |
 | 11 | [Keputusan & Pertanyaan Terbuka](11-open-questions.md) | Keputusan final dan yang perlu dikonfirmasi |
 | 12 | [Data Contoh](12-data-contoh.md) | Analisis dua daftar inventaris RS ([`contoh/`](contoh/)) |
+| 13 | [Kerja Paralel](13-kerja-paralel.md) | Worktree, pembagian milestone antar agen, aturan anti-bentrok |
 
 ## Keputusan yang mengikat
 
