@@ -8,7 +8,8 @@ export default async function setup() {
   if (!base) throw new Error("DATABASE_URL is not set (copy .env.example to .env)");
 
   const url = new URL(base);
-  const testDb = "simaset_test";
+  // One test database per worktree database, so parallel worktrees never collide.
+  const testDb = `${url.pathname.replace(/^\//, "")}_test`;
   url.pathname = "/postgres";
   const admin = new pg.Client({ connectionString: url.toString() });
   await admin.connect();
