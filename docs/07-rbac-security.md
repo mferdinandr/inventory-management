@@ -54,7 +54,7 @@ setiap **kirim**, **kembalikan**, dan **maintenance** mewajibkan **nama petugas*
 | Tebak kata sandi | Argon2id, pembatasan percobaan |
 | Peran melampaui wewenang | Pemeriksaan peran **dan lokasi barang** di server |
 | Akun SUPERADMIN disalahgunakan | Hanya segelintir orang; aksinya tetap tercatat; kata sandi kuat |
-| Riwayat/maintenance diubah | Hak `UPDATE/DELETE` dicabut dari peran basis data aplikasi |
+| Riwayat/maintenance diubah | Trigger basis data menolak UPDATE/DELETE/TRUNCATE pada tabel riwayat |
 | Perubahan jumlah saling menimpa | Kolom `version` + transaksi |
 | Injeksi SQL | Prisma berparameter |
 | Kebocoran rahasia | `.env` di luar git; `AUTH_SECRET` panjang acak |

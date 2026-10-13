@@ -23,6 +23,14 @@ sebaiknya bisa dijelaskan dalam satu kalimat dan membangun/lulus tes sendiri.
 - Jangan menunggu diminta; commit adalah bagian dari menyelesaikan setiap langkah.
 - Bekerja di branch, bukan langsung di `main`.
 
+## Pertanyaan
+
+Bila ada pertanyaan atau keputusan yang menjadi hak pengguna, **langsung tanyakan dengan
+fitur selection** (`AskUserQuestion`: pilihan jelas, rekomendasi di urutan pertama),
+jangan hanya menulis pertanyaan di teks. Gabungkan beberapa pertanyaan terkait dalam satu
+panggilan. Jangan bertanya untuk hal yang bisa diputuskan dengan default yang wajar;
+sebutkan default itu di laporan.
+
 ## Bahasa
 
 Kode dan commit dalam bahasa Inggris; antarmuka dan dokumentasi dalam bahasa Indonesia.

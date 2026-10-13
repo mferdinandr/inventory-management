@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OPERASI
+  STERIL
+  ALKES
+  SUPERADMIN
+}
+
+enum Location {
+  OPERASI
+  CSSD
+}
+
+enum LogAction {
+  REGISTER
+  EDIT
+  SEND
+  RETURN
+  MAINTENANCE
+  ARCHIVE
+  RESTORE
+}
+
+enum MaintenanceType {
+  PERBAIKAN
+  PEMELIHARAAN
+  KALIBRASI
+}
+
+model User {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username           String   @unique
+  name               String
+  passwordHash       String   @map("password_hash")
+  role               Role
+  mustChangePassword Boolean  @default(true) @map("must_change_password")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  logs               ItemLog[]
+  maintenanceRecords MaintenanceRecord[]
+
+  @@map("users")
+}
+
+model Item {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // BRG-0001; the default is set by the init migration (sequence item_code_seq)
+  code               String    @unique @default(dbgenerated("('BRG-'::text || lpad((nextval('item_code_seq'::regclass))::text, 4, '0'::text))"))
+  name               String
+  description        String?
+  needsSterilization Boolean   @map("needs_sterilization")
+  location           Location  @default(OPERASI)
+  room               String?
+  quantity           Int       @default(1)
+  damagedQuantity    Int       @default(0) @map("damaged_quantity")
+  brand              String?
+  model              String?
+  serialNumber       String?   @map("serial_number")
+  purchaseDate       DateTime? @map("purchase_date") @db.Date
+  purchasePrice      BigInt?   @map("purchase_price")
+  supplier           String?
+  fundingSource      String?   @map("funding_source")
+  warrantyUntil      DateTime? @map("warranty_until") @db.Date
+  locationSince      DateTime  @default(now()) @map("location_since") @db.Timestamptz()
+  version            Int       @default(1)
+  isArchived         Boolean   @default(false) @map("is_archived")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  contents           ItemContent[]
+  logs               ItemLog[]
+  maintenanceRecords MaintenanceRecord[]
+
+  @@index([location], map: "items_location_active_idx")
+  @@map("items")
+}
+
+model ItemContent {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId          String   @map("item_id") @db.Uuid
+  name            String
+  brand           String?
+  quantity        Int
+  damagedQuantity Int      @default(0) @map("damaged_quantity")
+  note            String?
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, name])
+  @@map("item_contents")
+}
+
+model MaintenanceRecord {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId         String          @map("item_id") @db.Uuid
+  type           MaintenanceType
+  performedOn    DateTime        @map("performed_on") @db.Date
+  performer      String
+  cost           BigInt?
+  note           String?
+  details        Json
+  nextDue        DateTime?       @map("next_due") @db.Date
+  damagedAfter   Int             @map("damaged_after")
+  userId         String          @map("user_id") @db.Uuid
+  actorName      String          @map("actor_name")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+
+  item Item      @relation(fields: [itemId], references: [id])
+  user User      @relation(fields: [userId], references: [id])
+  logs ItemLog[]
+
+  @@index([itemId, performedOn(sort: Desc)])
+  @@map("maintenance_records")
+}
+
+model ItemLog {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId        String    @map("item_id") @db.Uuid
+  action        LogAction
+  userId        String    @map("user_id") @db.Uuid
+  actorName     String    @map("actor_name")
+  note          String?
+  changes       Json?
+  maintenanceId String?   @map("maintenance_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  item        Item               @relation(fields: [itemId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
+  maintenance MaintenanceRecord? @relation(fields: [maintenanceId], references: [id])
+
+  @@index([itemId, createdAt(sort: Desc)])
+  @@map("item_logs")
+}

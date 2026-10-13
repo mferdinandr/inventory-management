@@ -80,8 +80,8 @@ docker compose exec app pnpm user:create   # buat SUPERADMIN pertama
 # data awal (sekali): docker compose exec app pnpm import:csv --items items.csv --contents contents.csv
 ```
 
-Setelah migrasi: cabut `UPDATE`/`DELETE` pada `item_logs` untuk peran basis data aplikasi
-(termasuk di skrip migrasi agar ikut otomatis).
+Aturan append-only (trigger) dan constraint CHECK sudah bagian dari migrasi, tidak ada langkah
+tambahan.
 
 ## 5. Cadangan
 
@@ -110,7 +110,7 @@ Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docke
 
 - [ ] HTTPS aktif, kamera memindai di ponsel sungguhan
 - [ ] SUPERADMIN dibuat, 3 akun lain dibuat lewat UI, kata sandi awal sudah diganti
-- [ ] Hak `UPDATE/DELETE` pada `item_logs` dicabut (diuji)
+- [ ] Trigger append-only pada `item_logs` dan `maintenance_records` aktif (uji: UPDATE/DELETE ditolak)
 - [ ] Cadangan berjalan **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
 - [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan

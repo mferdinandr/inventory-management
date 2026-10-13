@@ -119,8 +119,8 @@ Dibuat otomatis, tidak bisa diubah/dihapus: `REGISTER`, `EDIT`, `SEND`, `RETURN`
 catatan, dan perubahan jumlah bila ada.
 
 **Acceptance:** tidak ada endpoint maupun tombol untuk mengubah atau menghapus riwayat;
-peran basis data aplikasi tidak punya hak `UPDATE`/`DELETE` pada `item_logs` dan
-`maintenance_records`.
+trigger basis data menolak `UPDATE`, `DELETE`, dan `TRUNCATE` pada `item_logs` dan
+`maintenance_records`, bahkan untuk pemilik tabel.
 
 ## F7. QR dan label
 

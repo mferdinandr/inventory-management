@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: simaset
+          POSTGRES_USER: simaset
+          POSTGRES_PASSWORD: simaset
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U simaset" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://simaset:simaset@localhost:5432/simaset
+      AUTH_SECRET: ci-only-secret-not-used-in-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec biome check .
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec vitest run
+      - run: pnpm exec next build
