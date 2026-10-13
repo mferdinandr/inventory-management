@@ -17,14 +17,16 @@ db="simaset_${slug}"
 # Stable port in 3100-3999 derived from the branch name.
 port=$((3100 + $(printf '%s' "$branch" | cksum | cut -d' ' -f1) % 900))
 
-# 1. .env: copy from any sibling worktree that has one, else from the example.
+# 1. .env: created from the example with a fresh AUTH_SECRET (never copied between worktrees).
 if [ ! -f .env ]; then
-  source_env=""
-  while read -r path; do
-    [ -f "$path/.env" ] && [ "$path" != "$PWD" ] && { source_env="$path/.env"; break; }
-  done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
-  cp "${source_env:-.env.example}" .env
-  echo "Created .env from ${source_env:-.env.example}"
+  python3 - <<'PY'
+import base64, secrets
+text = open(".env.example").read().replace(
+    "change-me-with-openssl-rand-base64-32", base64.b64encode(secrets.token_bytes(32)).decode()
+)
+open(".env", "w").write(text)
+PY
+  echo "Created .env from .env.example"
 fi
 
 # 2. Point this worktree at its own database and port.
