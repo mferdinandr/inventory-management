@@ -228,8 +228,7 @@ export const t = {
       by: (name: string) => `oleh $name`,
       added: "ditambahkan",
       removed: "dihapus",
-      change: (name: string, field: string, from: string, to: string) =>
-        `$name: $field$from-> $to`,
+      change: (name: string, field: string, from: string, to: string) => `$name: $field$from-> $to`,
       fields: {
         name: "nama",
         needs_sterilization: "perlu sterilisasi",
