@@ -6,6 +6,7 @@ import { t } from "@/lib/strings";
 import { requireUser } from "@/server/auth/session";
 import { listItems, listRooms } from "@/server/services/item.service";
 import { formatAge } from "./format";
+import { LinkButton } from "./link-button";
 
 export const metadata: Metadata = { title: t.items.title };
 
@@ -39,12 +40,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t.items.title}</h1>
         {roleAllows(user.role, "item.create") && (
-          <Link
-            href="/items/new"
-            className="inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 py-2 text-base font-medium text-white hover:bg-teal-800"
-          >
-            {t.items.add}
-          </Link>
+          <LinkButton href="/items/new">{t.items.add}</LinkButton>
         )}
       </div>
 
@@ -108,12 +104,9 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
         </div>
         <div className="flex gap-2 sm:col-span-4">
           <Button type="submit">{t.items.list.apply}</Button>
-          <Link
-            href="/items"
-            className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-base font-medium hover:bg-slate-100"
-          >
+          <LinkButton href="/items" variant="secondary">
             {t.items.list.reset}
-          </Link>
+          </LinkButton>
         </div>
       </form>
 

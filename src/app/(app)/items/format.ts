@@ -1,11 +1,5 @@
 /** Display helpers shared by the item pages. */
 
-const dateFormat = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Asia/Jakarta",
-});
 const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "short",
@@ -29,7 +23,6 @@ export const formatDate = (d: Date) =>
     timeZone: "UTC",
   }).format(d);
 export const formatDateTime = (d: Date) => dateTimeFormat.format(d);
-export const formatInstant = (d: Date) => dateFormat.format(d);
 export const formatRupiah = (n: number | bigint) => rupiah.format(n);
 
 /** Short "how long": 5 menit, 3 jam, 12 hari, 4 bulan. */
