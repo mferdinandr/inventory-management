@@ -114,6 +114,7 @@ export const t = {
     title: "Barang",
     add: "Tambah barang",
     edit: "Ubah",
+    printLabel: "Cetak label",
     save: "Simpan",
     saving: "Menyimpan...",
     cancel: "Batal",
@@ -148,6 +149,7 @@ export const t = {
       equipment: "Detail alat",
       purchase: "Pembelian",
       contents: "Isi",
+      allMaintenance: "Lihat semua maintenance",
     },
     fields: {
       code: "Kode",
@@ -179,6 +181,7 @@ export const t = {
       identity: "Identitas",
       purchase: "Pembelian",
       contents: "Isi",
+      allMaintenance: "Lihat semua maintenance",
       history: "Riwayat",
       empty: "-",
       goodQuantity: (n: number) => `${n} baik`,

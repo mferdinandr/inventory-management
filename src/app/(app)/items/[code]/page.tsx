@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { MaintenanceButton } from "@/components/maintenance-button";
+import { MaintenanceList } from "@/components/maintenance-list";
 import { can } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { requireUser } from "@/server/auth/session";
 import { getItemByCode } from "@/server/services/item.service";
+import { getNextDue, listMaintenance } from "@/server/services/maintenance.service";
 import { ArchiveButton } from "../archive-button";
 import { ContentsList } from "../contents-list";
 import { formatAge, formatDate, formatDateTime, formatRupiah } from "../format";
@@ -39,6 +42,8 @@ export default async function ItemPage({ params }: { params: Params }) {
   const item = await getItemByCode(decodeURIComponent((await params).code));
   if (!item) notFound();
 
+  const [maintenance, nextDue] = await Promise.all([listMaintenance(item.id), getNextDue(item.id)]);
+
   const state = { location: item.location, needsSterilization: item.needsSterilization };
   const canEdit =
     !item.isArchived &&
@@ -60,8 +65,11 @@ export default async function ItemPage({ params }: { params: Params }) {
               {t.items.edit}
             </LinkButton>
           )}
-          {/* EXTENSION POINT (M2): the "Cetak label" button goes here, shown when
-              can(user.role, "label.print", state). */}
+          {can(user.role, "label.print", state) && (
+            <LinkButton href={`/print/label/${item.code}`} variant="secondary">
+              {t.items.printLabel}
+            </LinkButton>
+          )}
           {/* EXTENSION POINT (M3): Kirim ke CSSD / Kembalikan ke Operasi buttons go here. */}
         </div>
       </div>
@@ -131,8 +139,22 @@ export default async function ItemPage({ params }: { params: Params }) {
         <ContentsList rows={item.contents} />
       </Card>
 
-      {/* EXTENSION POINT (M4): the Maintenance tab (records list and next due date) goes here,
-          linking to /items/[code]/maintenance. */}
+      <Card title={t.maintenance.title}>
+        {nextDue && (
+          <p className="text-sm text-slate-600">
+            {t.maintenance.nextDue}: <strong>{formatDate(nextDue)}</strong>
+          </p>
+        )}
+        <MaintenanceList records={maintenance.records} />
+        <div className="flex flex-wrap gap-2">
+          {!item.isArchived && <MaintenanceButton code={item.code} />}
+          {maintenance.nextCursor && (
+            <LinkButton href={`/items/${item.code}/maintenance`} variant="secondary">
+              {t.items.detail.allMaintenance}
+            </LinkButton>
+          )}
+        </div>
+      </Card>
 
       <Card title={d.history}>
         <History logs={item.logs} />
