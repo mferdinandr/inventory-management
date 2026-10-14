@@ -1,6 +1,7 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { safeNext } from "@/lib/safe-next";
 import { signIn } from "@/server/auth/config";
 
 export type LoginState = { error?: string } | undefined;
@@ -10,7 +11,7 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
     await signIn("credentials", {
       username: String(form.get("username") ?? ""),
       password: String(form.get("password") ?? ""),
-      redirectTo: "/",
+      redirectTo: safeNext(String(form.get("next") ?? "")) ?? "/",
     });
   } catch (e) {
     if (e instanceof AuthError) return { error: "failed" };
