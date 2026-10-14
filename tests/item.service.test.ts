@@ -186,7 +186,7 @@ describe("updateItem", () => {
     });
     expect(updated.version).toBe(item.version + 1);
     expect(updated.room).toBe("Kamar Operasi 102");
-    expect(updated.purchasePrice).toBe(1000n);
+    expect(updated.purchasePrice).toBe(BigInt(1000));
 
     const [log] = (await getItemByCode(item.code))?.logs ?? [];
     expect(log).toMatchObject({
