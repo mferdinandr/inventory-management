@@ -139,6 +139,21 @@ export async function createMaintenance(user: Actor, item: string, input: Mainte
   });
 }
 
+/** What the maintenance pages need to know about an item, by its code. */
+export function findItemForMaintenance(code: string) {
+  return db.item.findUnique({
+    where: { code },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      quantity: true,
+      damagedQuantity: true,
+      isArchived: true,
+    },
+  });
+}
+
 export type MaintenanceEntry = Prisma.MaintenanceRecordGetPayload<Record<string, never>>;
 
 /** Newest first. Pass the previous page's `nextCursor` to continue. */
