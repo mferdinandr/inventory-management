@@ -25,7 +25,7 @@ export const t = {
   },
   home: {
     title: "Beranda",
-    welcome: (name: string, role: string) => `Halo, $name($role).`,
+    welcome: (name: string, role: string) => `Halo, ${name} (${role}).`,
     soon: "Daftar barang akan tersedia di tahap berikutnya.",
     toItems: "Lihat daftar barang",
   },
@@ -68,7 +68,7 @@ export const t = {
     sheetTitle: "Lembar label",
     labelTitle: "Label",
     noCodes: "Tidak ada kode barang. Gunakan ?codes=BRG-0001,BRG-0002.",
-    missing: (codes: string) => `Barang tidak ditemukan: $codes`,
+    missing: (codes: string) => `Barang tidak ditemukan: ${codes}`,
   },
   maintenance: {
     title: "Maintenance",
@@ -124,8 +124,8 @@ export const t = {
     yes: "Ya",
     no: "Tidak",
     empty: "Belum ada barang yang cocok.",
-    count: (n: number) => `$nbarang`,
-    truncated: (n: number) => `Menampilkan $nbarang pertama. Persempit pencarian.`,
+    count: (n: number) => `${n} barang`,
+    truncated: (n: number) => `Menampilkan ${n} barang pertama. Persempit pencarian.`,
     archivedBadge: "Arsip",
     list: {
       search: "Cari",
@@ -139,8 +139,8 @@ export const t = {
       apply: "Cari",
       reset: "Atur ulang",
       quantity: (qty: number, damaged: number) =>
-        damaged > 0 ? `$qty($damagedrusak)` : String(qty),
-      since: (age: string) => `$agedi lokasi ini`,
+        damaged > 0 ? `${qty} (${damaged} rusak)` : String(qty),
+      since: (age: string) => `${age} di lokasi ini`,
     },
     groups: {
       identity: "Identitas",
@@ -181,14 +181,14 @@ export const t = {
       contents: "Isi",
       history: "Riwayat",
       empty: "-",
-      goodQuantity: (n: number) => `$nbaik`,
+      goodQuantity: (n: number) => `${n} baik`,
       locationSince: "Di lokasi ini sejak",
       createdAt: "Terdaftar",
       noContents: "Belum ada isi.",
       noHistory: "Belum ada riwayat.",
       archivedNotice: "Barang ini diarsipkan dan tidak muncul di daftar.",
       duplicateSerial: (codes: string[]) =>
-        `Peringatan: nomor seri ini juga dipakai $codes.join(", ").`,
+        `Peringatan: nomor seri ini juga dipakai ${codes.join(", ")}.`,
       archive: "Arsipkan",
       restore: "Pulihkan",
       archived: "Barang diarsipkan.",
@@ -209,9 +209,9 @@ export const t = {
       quickAddHint: "Ketik nama dan jumlah, tekan Enter untuk menambah dan lanjut.",
       addRow: "Tambah baris",
       remove: "Hapus",
-      removeRow: (name: string) => `Hapus baris $name || "kosong"`,
+      removeRow: (name: string) => `Hapus baris ${name || "kosong"}`,
       rows: (shown: number, total: number) =>
-        shown === total ? `$totalbaris` : `$showndari $totalbaris`,
+        shown === total ? `${total} baris` : `${shown} dari ${total} baris`,
       noMatch: "Tidak ada baris yang cocok.",
       restricted:
         "Sebagai petugas steril Anda dapat mengubah jumlah dan catatan, serta menambah baris.",
@@ -225,10 +225,11 @@ export const t = {
       MAINTENANCE: "Maintenance",
       ARCHIVE: "Diarsipkan",
       RESTORE: "Dipulihkan",
-      by: (name: string) => `oleh $name`,
+      by: (name: string) => `oleh ${name}`,
       added: "ditambahkan",
       removed: "dihapus",
-      change: (name: string, field: string, from: string, to: string) => `$name: $field$from-> $to`,
+      change: (name: string, field: string, from: string, to: string) =>
+        `${name}: ${field} ${from} -> ${to}`,
       fields: {
         name: "nama",
         needs_sterilization: "perlu sterilisasi",
