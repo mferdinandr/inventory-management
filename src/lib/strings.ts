@@ -8,7 +8,7 @@ export const t = {
     ALKES: "Alkes",
     SUPERADMIN: "Superadmin",
   },
-  nav: { home: "Beranda", users: "Pengguna", logout: "Keluar" },
+  nav: { home: "Beranda", users: "Pengguna", logout: "Keluar", scan: "Pindai" },
   login: {
     title: "Masuk",
     username: "Username",
@@ -46,6 +46,28 @@ export const t = {
     created: "Pengguna dibuat. Mereka wajib mengganti kata sandi saat masuk pertama.",
     updated: "Perubahan disimpan.",
     passwordReset: "Kata sandi diatur ulang.",
+  },
+  scan: {
+    title: "Pindai",
+    hint: "Arahkan kamera ke QR pada label barang.",
+    starting: "Membuka kamera...",
+    denied:
+      "Izin kamera ditolak. Izinkan akses kamera di pengaturan peramban, atau ketik kode barang di bawah.",
+    unavailable: "Kamera tidak tersedia di perangkat ini. Ketik kode barang di bawah.",
+    unrecognized: "QR ini bukan label SIMASET.",
+    manual: "Atau ketik kode barang",
+    codeLabel: "Kode barang",
+    codePlaceholder: "BRG-0001",
+    open: "Buka barang",
+    invalidCode: "Kode tidak valid. Contoh: BRG-0001.",
+  },
+  print: {
+    print: "Cetak",
+    back: "Kembali",
+    sheetTitle: "Lembar label",
+    labelTitle: "Label",
+    noCodes: "Tidak ada kode barang. Gunakan ?codes=BRG-0001,BRG-0002.",
+    missing: (codes: string) => `Barang tidak ditemukan: ${codes}`,
   },
   error: "Terjadi kesalahan. Coba lagi.",
 } as const;
