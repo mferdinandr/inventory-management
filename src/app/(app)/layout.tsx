@@ -26,6 +26,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/" className="py-2 hover:underline">
               {t.nav.home}
             </Link>
+            <Link href="/items" className="py-2 hover:underline">
+              {t.nav.items}
+            </Link>
             <Link href="/scan" className="py-2 hover:underline">
               {t.nav.scan}
             </Link>
