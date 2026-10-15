@@ -2,26 +2,12 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { formatMapCsv, formatReport, hasErrors, runImport } from "@/server/import/run";
 import { createUser } from "@/server/services/user.service";
-
-/** History tables are append-only by trigger, so cleanup switches the triggers off briefly. */
-async function wipe() {
-  await db.$transaction([
-    db.$executeRawUnsafe('ALTER TABLE "item_logs" DISABLE TRIGGER USER'),
-    db.$executeRawUnsafe('ALTER TABLE "maintenance_records" DISABLE TRIGGER USER'),
-    db.itemLog.deleteMany(),
-    db.maintenanceRecord.deleteMany(),
-    db.itemContent.deleteMany(),
-    db.item.deleteMany(),
-    db.user.deleteMany(),
-    db.$executeRawUnsafe('ALTER TABLE "item_logs" ENABLE TRIGGER USER'),
-    db.$executeRawUnsafe('ALTER TABLE "maintenance_records" ENABLE TRIGGER USER'),
-  ]);
-}
+import { resetDatabase } from "./helpers/reset-db";
 
 let userId: string;
 
 beforeEach(async () => {
-  await wipe();
+  await resetDatabase();
   const u = await createUser({
     username: "admin",
     name: "Admin RS",
