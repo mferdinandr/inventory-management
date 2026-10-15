@@ -12,26 +12,12 @@ import {
   updateItem,
 } from "@/server/services/item.service";
 import { createUser } from "@/server/services/user.service";
-
-/** History tables are append-only by trigger, so cleanup switches the triggers off briefly. */
-async function wipe() {
-  await db.$transaction([
-    db.$executeRawUnsafe('ALTER TABLE "item_logs" DISABLE TRIGGER USER'),
-    db.$executeRawUnsafe('ALTER TABLE "maintenance_records" DISABLE TRIGGER USER'),
-    db.itemLog.deleteMany(),
-    db.maintenanceRecord.deleteMany(),
-    db.itemContent.deleteMany(),
-    db.item.deleteMany(),
-    db.user.deleteMany(),
-    db.$executeRawUnsafe('ALTER TABLE "item_logs" ENABLE TRIGGER USER'),
-    db.$executeRawUnsafe('ALTER TABLE "maintenance_records" ENABLE TRIGGER USER'),
-  ]);
-}
+import { resetDatabase } from "./helpers/reset-db";
 
 const actors = {} as Record<Role, Actor>;
 
 beforeEach(async () => {
-  await wipe();
+  await resetDatabase();
   for (const role of ["OPERASI", "STERIL", "ALKES", "SUPERADMIN"] as Role[]) {
     const u = await createUser({
       username: role.toLowerCase(),
@@ -43,7 +29,7 @@ beforeEach(async () => {
   }
 });
 
-afterAll(wipe);
+afterAll(resetDatabase);
 
 const op = () => actors.OPERASI;
 

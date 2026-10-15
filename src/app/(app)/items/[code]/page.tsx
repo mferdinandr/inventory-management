@@ -70,7 +70,19 @@ export default async function ItemPage({ params }: { params: Params }) {
               {t.items.printLabel}
             </LinkButton>
           )}
-          {/* EXTENSION POINT (M3): Kirim ke CSSD / Kembalikan ke Operasi buttons go here. */}
+          {!item.isArchived &&
+            item.needsSterilization &&
+            item.location === "OPERASI" &&
+            can(user.role, "item.send", state) && (
+              <LinkButton href={`/items/${encodeURIComponent(item.code)}/send`}>
+                {t.flow.send}
+              </LinkButton>
+            )}
+          {!item.isArchived && item.location === "CSSD" && can(user.role, "item.return", state) && (
+            <LinkButton href={`/items/${encodeURIComponent(item.code)}/return`}>
+              {t.flow.return}
+            </LinkButton>
+          )}
         </div>
       </div>
 

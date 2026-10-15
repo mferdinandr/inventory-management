@@ -242,6 +242,41 @@ export function planContents(stored: StoredContent[], submitted: SubmittedConten
   return { creates, updates, deletes, changes };
 }
 
+type ContentsPlan = ReturnType<typeof planContents>;
+
+/** Steril staff top up counts and add replacement rows; they do not remove or rename. */
+export function assertContentsPlanAllowed(actor: { role: Role }, plan: ContentsPlan) {
+  if (
+    actor.role === "STERIL" &&
+    (plan.deletes.length > 0 ||
+      plan.updates.some((u) => u.data.name !== undefined || u.data.brand !== undefined))
+  ) {
+    throw new AppError("FORBIDDEN", "Petugas steril hanya boleh mengubah jumlah dan catatan");
+  }
+}
+
+/** Write the row operations of a plan inside the caller's transaction. */
+export async function applyContentsPlan(tx: Tx, itemId: string, plan: ContentsPlan) {
+  try {
+    if (plan.deletes.length > 0) {
+      await tx.itemContent.deleteMany({ where: { id: { in: plan.deletes.map((d) => d.id) } } });
+    }
+    for (const u of plan.updates) {
+      await tx.itemContent.update({ where: { id: u.id }, data: u.data });
+    }
+    if (plan.creates.length > 0) {
+      await tx.itemContent.createMany({
+        data: plan.creates.map((row) => ({ ...row, itemId })),
+      });
+    }
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new AppError("VALIDATION_ERROR", "Nama isi ganda dalam satu barang");
+    }
+    throw e;
+  }
+}
+
 type ItemRow = Prisma.ItemGetPayload<object>;
 
 const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
@@ -317,15 +352,7 @@ export async function updateItem(actor: Actor, id: string, input: UpdateItemInpu
     if (contentsChanged && !can(actor.role, "item.editContents", state)) {
       throw new AppError("FORBIDDEN", "Peran atau lokasi barang tidak mengizinkan perubahan isi");
     }
-    // Steril staff top up counts and add replacement rows; they do not remove or rename.
-    if (
-      contentsChanged &&
-      actor.role === "STERIL" &&
-      (plan.deletes.length > 0 ||
-        plan.updates.some((u) => u.data.name !== undefined || u.data.brand !== undefined))
-    ) {
-      throw new AppError("FORBIDDEN", "Petugas steril hanya boleh mengubah jumlah dan catatan");
-    }
+    if (contentsChanged) assertContentsPlanAllowed(actor, plan);
     if ("needsSterilization" in patch && item.location !== "OPERASI") {
       throw new AppError(
         "STATE_CONFLICT",
@@ -355,26 +382,7 @@ export async function updateItem(actor: Actor, id: string, input: UpdateItemInpu
       throw new AppError("VERSION_CONFLICT", "Data sudah berubah, muat ulang halaman");
     }
 
-    if (plan && contentsChanged) {
-      try {
-        if (plan.deletes.length > 0) {
-          await tx.itemContent.deleteMany({ where: { id: { in: plan.deletes.map((d) => d.id) } } });
-        }
-        for (const u of plan.updates) {
-          await tx.itemContent.update({ where: { id: u.id }, data: u.data });
-        }
-        if (plan.creates.length > 0) {
-          await tx.itemContent.createMany({
-            data: plan.creates.map((row) => ({ ...row, itemId: id })),
-          });
-        }
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-          throw new AppError("VALIDATION_ERROR", "Nama isi ganda dalam satu barang");
-        }
-        throw e;
-      }
-    }
+    if (plan && contentsChanged) await applyContentsPlan(tx, id, plan);
 
     await tx.itemLog.create({
       data: {
