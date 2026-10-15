@@ -94,7 +94,7 @@ describe("sendItem", () => {
   });
 
   it("answers NOT_FOUND for an unknown item", async () => {
-    await expectCode(sendItem(actors.OPERASI, "missing", input), "NOT_FOUND");
+    await expectCode(sendItem(actors.OPERASI, crypto.randomUUID(), input), "NOT_FOUND");
   });
 
   it("lets exactly one of two parallel sends win", async () => {
