@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import {
   dueSoonItemIds,
@@ -22,6 +22,9 @@ async function resetDatabase() {
     db.$executeRawUnsafe("ALTER TABLE maintenance_records ENABLE TRIGGER USER"),
   ]);
 }
+
+// Leave no rows behind: other test files assume they can delete users.
+afterAll(resetDatabase);
 
 let userId: string;
 
