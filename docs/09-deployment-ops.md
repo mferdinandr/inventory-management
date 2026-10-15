@@ -77,7 +77,7 @@ docker compose up -d
 docker compose exec app pnpm prisma migrate deploy
 docker compose exec app pnpm user:create   # buat SUPERADMIN pertama
 # lalu login dan buat akun OPERASI, STERIL, ALKES dari halaman Pengguna
-# data awal (sekali): docker compose exec app pnpm import:csv --items items.csv --contents contents.csv
+# data awal (sekali): lihat [14 — Impor CSV](14-impor-csv.md); selalu mulai dengan --dry-run
 ```
 
 Aturan append-only (trigger) dan constraint CHECK sudah bagian dari migrasi, tidak ada langkah
@@ -85,15 +85,44 @@ tambahan.
 
 ## 5. Cadangan
 
-Harian, lewat cron di host:
+Harian, lewat cron di host (jalankan dari folder proyek):
 
 ```sh
-docker compose exec -T db pg_dump -U simaset simaset | gzip > /backups/simaset-$(date +%F).sql.gz
-# salin ke luar server (rclone/scp); simpan 30 hari
+# crontab -e   (setiap hari 02:00)
+0 2 * * * cd /opt/simaset && RCLONE_REMOTE=gdrive:simaset-backups scripts/backup.sh >> backups/backup.log 2>&1
 ```
 
-Uji pemulihan ke basis data kosong **sebelum** data sungguhan masuk, dan ulangi tiap
-beberapa bulan.
+`scripts/backup.sh` menjalankan `pg_dump` lewat `docker compose exec -T db`, menulis
+`./backups/simaset-YYYY-MM-DD.sql.gz` (berkas `./backups/` tidak masuk git), menghapus dump
+yang lebih tua dari 30 hari, dan, bila `RCLONE_REMOTE` diisi, menyalinnya ke luar server.
+Tanpa `RCLONE_REMOTE` cadangan hanya ada di server yang sama: **atur salinan ke luar server**
+sebelum go-live.
+
+| Variabel | Bawaan | Fungsi |
+|---|---|---|
+| `COMPOSE_FILE` | `docker-compose.yml` | Berkas compose; `docker-compose.dev.yml` untuk basis data dev |
+| `DB_SERVICE` / `DB_USER` / `DB_NAME` | `db` / `simaset` / `simaset` | Layanan, pengguna, dan nama basis data |
+| `BACKUP_DIR` | `./backups` | Folder hasil |
+| `KEEP_DAYS` | `30` | Lama simpan |
+| `RCLONE_REMOTE` | kosong | Tujuan `rclone copy`, mis. `gdrive:simaset-backups` |
+
+**Uji pemulihan** (sebelum data sungguhan masuk, lalu tiap beberapa bulan):
+
+```sh
+scripts/restore-check.sh              # dump terbaru di ./backups
+scripts/restore-check.sh path/ke/simaset-2026-10-15.sql.gz
+```
+
+Skrip memulihkan dump ke basis data sementara, memeriksa tabel `users`, `items`,
+`item_contents`, `item_logs`, `maintenance_records` serta trigger append-only, mencetak
+jumlah barisnya, lalu menghapus basis data sementara. Kode keluar bukan 0 bila ada yang gagal,
+jadi aman dipasang di cron mingguan. Di mesin dev:
+`COMPOSE_FILE=docker-compose.dev.yml DB_NAME=simaset_<branch> scripts/backup.sh`.
+
+**Memulihkan sungguhan** (mis. membatalkan impor yang salah, [14](14-impor-csv.md)): hentikan
+aplikasi (`docker compose stop app`), `DROP DATABASE simaset; CREATE DATABASE simaset;`, lalu
+`gunzip -c backups/simaset-….sql.gz | docker compose exec -T db psql -U simaset simaset`, dan
+nyalakan lagi aplikasinya.
 
 ## 6. Pemantauan
 
@@ -114,4 +143,4 @@ Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docke
 - [ ] Cadangan berjalan **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
 - [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan
-- [ ] Impor data awal diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber
+- [ ] Impor data awal ([14](14-impor-csv.md)) diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber

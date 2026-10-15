@@ -1,0 +1,6 @@
+ref,name,needs_sterilization,room,description,quantity,damaged_quantity,brand,model,serial_number,purchase_date,purchase_price,supplier,funding_source,warranty_until
+SET-MAYOR-1,MAYOR 1,ya,,Set instrumen bedah mayor,1,0,,,,,,,,
+SET-MAYOR-2,MAYOR 2,ya,,Set instrumen bedah mayor,1,0,,,,,,,,
+ALAT-ANES-103,Mesin Anestesi,tidak,Kamar Operasi 103,Mesin anestesi kamar 103,1,0,Drager,Fabius Plus,ARHB-0001,15/03/2021,"Rp 850.000.000",PT Contoh Medika,APBD,2024-03-15
+ALAT-MEJA-101,Meja stainless,tidak,Kamar Operasi 101,,4,0,,,,,,,,
+ALAT-MEJA-102,Meja stainless,tidak,Kamar Operasi 102,,4,1,,,,,,,,
