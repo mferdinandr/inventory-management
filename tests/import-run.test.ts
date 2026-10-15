@@ -17,7 +17,7 @@ beforeEach(async () => {
   userId = u.id;
 });
 
-afterAll(wipe);
+afterAll(resetDatabase);
 
 const ITEMS_HEADER = "ref,name,needs_sterilization,room,quantity,damaged_quantity,serial_number\n";
 const CONTENTS_HEADER = "ref,name,brand,quantity,damaged_quantity,note\n";
