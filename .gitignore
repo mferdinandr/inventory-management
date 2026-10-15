@@ -43,3 +43,7 @@ next-env.d.ts
 # prisma
 /src/generated/
 !.env.example
+
+# importer output
+/import-map.csv
+/backups/
