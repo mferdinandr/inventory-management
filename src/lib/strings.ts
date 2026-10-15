@@ -274,4 +274,20 @@ export const t = {
     noActivity: "Belum ada aktivitas.",
     moreChanges: (n: number) => `dan ${n} perubahan lain`,
   },
+  flow: {
+    send: "Kirim ke CSSD",
+    return: "Kembalikan ke Operasi",
+    sendTitle: "Kirim ke CSSD",
+    returnTitle: "Kembalikan ke Operasi",
+    back: "Kembali ke barang",
+    actorName: "Nama petugas",
+    actorHint: "Diingat di perangkat ini untuk lain kali.",
+    note: "Catatan (opsional)",
+    sendSubmit: "Simpan & kirim",
+    returnSubmit: "Simpan & kembalikan",
+    sendIntro: "Barang akan tercatat berada di CSSD.",
+    returnIntro:
+      "Cocokkan isi dengan fisik. Ubah jumlah, jumlah rusak, atau catatan pada baris yang berbeda, atau tambah baris pengganti. Semua tersimpan bersama pengembalian.",
+    notePlaceholderReturn: "mis. 1 gunting diganti",
+  },
 } as const;
