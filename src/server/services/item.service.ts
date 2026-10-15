@@ -10,6 +10,7 @@ import {
 } from "@/lib/validators/item";
 import { db } from "@/server/db";
 import { AppError } from "@/server/errors";
+import { dueSoonItemIds } from "@/server/services/summary.service";
 
 /** Who is acting. Logs record `name` as the actor, so shared accounts stay traceable. */
 export type Actor = { id: string; name: string; role: Role };
@@ -26,6 +27,8 @@ export type ItemFilters = {
   location?: "OPERASI" | "CSSD";
   room?: string;
   damaged?: boolean;
+  /** Only items whose next maintenance/calibration is due within 30 days (or overdue). */
+  dueSoon?: boolean;
   /** true lists only archived items; the default lists only active ones. */
   archived?: boolean;
 };
@@ -53,13 +56,24 @@ const stateOf = (item: ItemState): ItemState => ({
 // Reads
 // ---------------------------------------------------------------------------
 
-export function listItems(filters: ItemFilters = {}) {
+export async function listItems(filters: ItemFilters = {}) {
   const q = filters.q?.trim();
   const where: Prisma.ItemWhereInput = {
     isArchived: filters.archived ?? false,
     ...(filters.location && { location: filters.location }),
     ...(filters.room && { room: filters.room }),
-    ...(filters.damaged && { damagedQuantity: { gt: 0 } }),
+    // Same rule as the Beranda "Ada yang rusak" count: the item itself or any content row.
+    ...(filters.damaged && {
+      AND: [
+        {
+          OR: [
+            { damagedQuantity: { gt: 0 } },
+            { contents: { some: { damagedQuantity: { gt: 0 } } } },
+          ],
+        },
+      ],
+    }),
+    ...(filters.dueSoon && { id: { in: await dueSoonItemIds() } }),
     ...(q && {
       OR: (["code", "name", "brand", "serialNumber", "room"] as const).map((field) => ({
         [field]: { contains: q, mode: "insensitive" as const },

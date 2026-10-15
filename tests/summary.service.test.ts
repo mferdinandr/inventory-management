@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
+import { listItems } from "@/server/services/item.service";
 import {
   dueSoonItemIds,
   getSummary,
@@ -166,5 +167,25 @@ describe("recent items and activity", () => {
     expect(activity).toHaveLength(20);
     expect(activity[0]?.createdAt.toISOString()).toBe("2026-10-22T00:00:00.000Z");
     expect(activity[0]?.item.name).toBe("A");
+  });
+});
+
+describe("listItems filters used by the Beranda cards", () => {
+  it("dueSoon lists only items due within 30 days", async () => {
+    const due = await makeItem({ name: "Jatuh tempo" });
+    const later = await makeItem({ name: "Nanti" });
+    await record(due.id, "KALIBRASI", "2020-01-01", "2020-06-01");
+    await record(later.id, "KALIBRASI", "2020-01-01", "2099-01-01");
+    expect((await listItems({ dueSoon: true })).map((i) => i.name)).toEqual(["Jatuh tempo"]);
+    expect(await listItems()).toHaveLength(2);
+  });
+
+  it("damaged also matches items with a damaged content row", async () => {
+    const viaContents = await makeItem({ name: "Set" });
+    await db.itemContent.create({
+      data: { itemId: viaContents.id, name: "Jarum", quantity: 2, damagedQuantity: 1 },
+    });
+    await makeItem({ name: "Utuh" });
+    expect((await listItems({ damaged: true })).map((i) => i.name)).toEqual(["Set"]);
   });
 });

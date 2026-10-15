@@ -22,6 +22,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
   const room = first(params.room);
   const damaged = first(params.damaged) === "1";
   const archived = first(params.archived) === "1";
+  const dueSoon = first(params.dueSoon) === "1";
 
   const [items, rooms] = await Promise.all([
     listItems({
@@ -29,6 +30,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       location: location === "OPERASI" || location === "CSSD" ? location : undefined,
       room: room || undefined,
       damaged,
+      dueSoon,
       archived,
     }),
     listRooms(),
@@ -88,6 +90,18 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
               className="size-5"
             />
             {t.items.list.damagedOnly}
+          </label>
+        </div>
+        <div className="flex flex-col justify-end gap-2">
+          <label className="flex min-h-11 items-center gap-2 text-base">
+            <input
+              type="checkbox"
+              name="dueSoon"
+              value="1"
+              defaultChecked={dueSoon}
+              className="size-5"
+            />
+            {t.dashboard.dueSoonOnly}
           </label>
         </div>
         <div className="flex flex-col justify-end gap-2">
