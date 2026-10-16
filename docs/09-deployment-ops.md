@@ -132,8 +132,11 @@ nyalakan lagi aplikasinya.
 
 ## 7. Pembaruan
 
-Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docker compose pull
-&& up -d`, `prisma migrate deploy`. Migrasi harus kompatibel mundur satu versi.
+Push ke `main` → CI (lint, tipe, tes, build) → bila lulus, workflow **Deploy** masuk ke server
+lewat SSH dan menjalankan `scripts/deploy.sh`: cadangan, tarik `main`, build image di server,
+`prisma migrate deploy`, `docker compose up -d`, lalu cek `/api/health`. Tanpa registry image.
+Langkah penyiapan dan secret ada di [15 — Panduan VPS](15-panduan-vps.md). Migrasi harus
+kompatibel mundur satu versi.
 
 ## 8. Daftar periksa go-live
 
