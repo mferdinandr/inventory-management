@@ -1,8 +1,8 @@
 /**
- * Failed-login limiter: 5 failures per 10 minutes per username + IP.
+ * Failed-login limiter: 5 failures per 2 minutes per username + IP.
  * In memory is enough for a single app instance; a restart simply clears it.
  */
-const WINDOW_MS = 10 * 60 * 1000;
+const WINDOW_MS = 2 * 60 * 1000;
 const MAX_FAILURES = 5;
 
 const failures = new Map<string, number[]>();

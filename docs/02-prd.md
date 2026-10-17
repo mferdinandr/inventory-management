@@ -10,7 +10,7 @@ Peran: **O** = OPERASI, **S** = STERIL, **A** = ALKES, **SA** = SUPERADMIN (SA d
   **SA membuat pengguna baru dari UI** (lihat F10).
 
 **Acceptance:**
-- Salah kata sandi 5 kali dalam 10 menit → ditolak sementara.
+- Salah kata sandi 5 kali dalam 2 menit → ditolak sementara.
 - Tanpa sesi, semua halaman selain `/login` mengalihkan ke login.
 
 ## F2. Barang (alat besar / wadah)
