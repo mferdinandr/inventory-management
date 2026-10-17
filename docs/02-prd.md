@@ -135,7 +135,12 @@ trigger basis data menolak `UPDATE`, `DELETE`, dan `TRUNCATE` pada `item_logs` d
 
 ## F9. Beranda (semua peran)
 
-- Hitungan: di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
+- **Grup Jumlah barang**: kartu **Semua barang** (toska solid, total Operasi + CSSD) lalu
+  hitungan di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
+- **Grup Aktivitas**: tiga kartu sejajar — **Barang terbaru berubah**, **Perlu sterilisasi**
+  (barang berstatus `needsSterilization`, terlama di lokasi lebih dulu), dan **Jatuh tempo ≤ 30 hari**
+  (jenis perawatan + sisa hari, merah bila terlambat) — di atas **Aktivitas terbaru**
+  (timeline ikon per aksi + inisial petugas, 10 entri).
 - Daftar barang dengan filter lokasi/kamar/rusak/jatuh tempo + pencarian. Baris: kode, nama,
   kamar, lokasi, jumlah (rusak), sudah berapa lama di lokasi itu.
 - Detail barang: identitas, pembelian, isi, riwayat, maintenance. Tombol aksi hanya
