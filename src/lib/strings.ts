@@ -30,7 +30,9 @@ export const t = {
     forced: "Anda harus mengganti kata sandi sebelum melanjutkan.",
     current: "Kata sandi saat ini",
     next: "Kata sandi baru",
+    hint: "Minimal 8 karakter.",
     submit: "Simpan kata sandi",
+    changed: "Kata sandi berhasil diganti.",
   },
   home: {
     title: "Beranda",

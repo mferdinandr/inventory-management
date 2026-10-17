@@ -1,37 +1,52 @@
 "use client";
 
-import { useActionState } from "react";
-import { Button, Input, Label, Notice } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
+import { PasswordInput } from "@/components/password-input";
+import { Button, Label } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { changePassword } from "./actions";
 
 export function ChangePasswordForm() {
+  const router = useRouter();
   const [state, action, pending] = useActionState(changePassword, undefined);
+
+  useEffect(() => {
+    if (!state) return;
+    if ("ok" in state) {
+      toast.success(t.changePassword.changed);
+      router.push("/");
+      return;
+    }
+    toast.error(state.error ?? t.error);
+  }, [state, router]);
+
   return (
-    <form action={action} className="space-y-4">
-      {state?.error && <Notice tone="error">{state.error}</Notice>}
-      <div>
+    <form action={action} className="space-y-5">
+      <div className="space-y-2">
         <Label htmlFor="current">{t.changePassword.current}</Label>
-        <Input
+        <PasswordInput
           id="current"
           name="current"
-          type="password"
           autoComplete="current-password"
+          className="h-11"
           required
         />
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="next">{t.changePassword.next}</Label>
-        <Input
+        <PasswordInput
           id="next"
           name="next"
-          type="password"
           autoComplete="new-password"
           minLength={8}
+          className="h-11"
           required
         />
+        <p className="text-sm text-muted-foreground">{t.changePassword.hint}</p>
       </div>
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending} size="lg" className="w-full">
         {t.changePassword.submit}
       </Button>
     </form>

@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { changeOwnPassword } from "@/server/services/user.service";
 
-export type FormState = { error?: string } | undefined;
+export type FormState = { error?: string } | { ok: true } | undefined;
 
 export async function changePassword(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await getCurrentUser();
@@ -20,5 +20,5 @@ export async function changePassword(_prev: FormState, form: FormData): Promise<
     if (e instanceof AppError) return { error: e.message };
     throw e;
   }
-  redirect("/");
+  return { ok: true };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { PasswordInput } from "@/components/password-input";
 import { Button, Input, Label, NativeSelect, Notice } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type UsersState, userAction } from "./actions";
@@ -51,10 +52,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
         </div>
         <div>
           <Label htmlFor="new-password">{t.users.password}</Label>
-          <Input
+          <PasswordInput
             id="new-password"
             name="password"
-            type="password"
             minLength={8}
             autoComplete="new-password"
             required
@@ -106,10 +106,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 <input type="hidden" name="id" value={u.id} />
                 <div>
                   <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
-                  <Input
+                  <PasswordInput
                     id={`pw-${u.id}`}
                     name="password"
-                    type="password"
                     minLength={8}
                     autoComplete="new-password"
                     required

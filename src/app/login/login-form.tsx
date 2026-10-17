@@ -1,10 +1,11 @@
 "use client";
 
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PasswordInput } from "@/components/password-input";
 import { Button, Input, Label } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,6 @@ function validate(username: string, password: string): FieldErrors {
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(login, undefined);
-  const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -84,32 +84,20 @@ export function LoginForm({ next }: { next?: string }) {
 
       <div className="space-y-2">
         <Label htmlFor="password">{t.login.password}</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-            }}
-            autoComplete="current-password"
-            aria-invalid={errors.password ? true : undefined}
-            aria-describedby={errors.password ? "password-error" : undefined}
-            className={cn("h-11 pr-11 pl-10", errors.password && "border-destructive")}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-pressed={showPassword}
-            aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+          }}
+          autoComplete="current-password"
+          leftIcon={<Lock className="size-4" />}
+          aria-invalid={errors.password ? true : undefined}
+          aria-describedby={errors.password ? "password-error" : undefined}
+          className={cn("h-11", errors.password && "border-destructive")}
+        />
         {errors.password && (
           <p id="password-error" className="text-sm font-medium text-destructive">
             {errors.password}
