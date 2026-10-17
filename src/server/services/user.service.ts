@@ -63,11 +63,18 @@ export async function createUser(input: CreateUserInput): Promise<UserSummary> {
   }
 }
 
+const OTHER_SUPERADMIN = "Akun Superadmin lain tidak dapat diubah";
+
 /**
- * Change name, role or active flag. There must always be at least one active SUPERADMIN, so
- * the active superadmins are locked for the duration of the check.
+ * Change name, role or active flag. A SUPERADMIN account can only be touched by its owner, never
+ * by another SUPERADMIN. There must always be at least one active SUPERADMIN, so the active
+ * superadmins are locked for the duration of the check.
  */
-export async function updateUser(id: string, input: UpdateUserInput): Promise<UserSummary> {
+export async function updateUser(
+  id: string,
+  input: UpdateUserInput,
+  actorId: string,
+): Promise<UserSummary> {
   const data = parse(updateUserSchema, input);
 
   return db.$transaction(async (tx) => {
@@ -75,6 +82,9 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
       SELECT id FROM users WHERE role = 'SUPERADMIN' AND is_active FOR UPDATE`;
     const target = await tx.user.findUnique({ where: { id } });
     if (!target) throw new AppError("NOT_FOUND", "Pengguna tidak ditemukan");
+    if (target.role === "SUPERADMIN" && target.id !== actorId) {
+      throw new AppError("FORBIDDEN", OTHER_SUPERADMIN);
+    }
 
     const wasActiveAdmin = target.role === "SUPERADMIN" && target.isActive;
     const willBeActiveAdmin =
@@ -87,9 +97,16 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
   });
 }
 
-/** An administrator sets a new password; the user must change it at the next login. */
-export async function resetPassword(id: string, password: string): Promise<void> {
+/**
+ * An administrator sets a new password; the user must change it at the next login. Another
+ * SUPERADMIN's password cannot be reset, only the owner changes it.
+ */
+export async function resetPassword(id: string, password: string, actorId: string): Promise<void> {
   const next = parse(passwordSchema, password);
+  const target = await db.user.findUnique({ where: { id }, select: { role: true } });
+  if (target?.role === "SUPERADMIN" && id !== actorId) {
+    throw new AppError("FORBIDDEN", OTHER_SUPERADMIN);
+  }
   const result = await db.user.updateMany({
     where: { id },
     data: { passwordHash: await hashPassword(next), mustChangePassword: true },

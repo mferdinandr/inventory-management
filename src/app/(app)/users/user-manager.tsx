@@ -63,7 +63,11 @@ function UserRow({
           </div>
         </div>
 
-        {user.id !== meId && (
+        {user.id === meId ? null : user.role === "SUPERADMIN" ? (
+          <p className="border-t border-ink-200 pt-4 text-sm text-muted-foreground">
+            {t.users.otherSuperadmin}
+          </p>
+        ) : (
           <form
             action={action}
             className="grid gap-4 border-t border-ink-200 pt-4 md:grid-cols-2 xl:grid-cols-4"

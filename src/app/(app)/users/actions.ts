@@ -31,11 +31,15 @@ export async function userAction(_prev: UsersState, form: FormData): Promise<Use
       case "update":
         if (id === actor.id)
           throw new AppError("FORBIDDEN", "Anda tidak dapat mengubah akun sendiri");
-        await updateUser(id, {
-          role: text(form, "role") as never,
-          isActive: text(form, "active") === "active",
-        });
-        if (text(form, "password")) await resetPassword(id, text(form, "password"));
+        await updateUser(
+          id,
+          {
+            role: text(form, "role") as never,
+            isActive: text(form, "active") === "active",
+          },
+          actor.id,
+        );
+        if (text(form, "password")) await resetPassword(id, text(form, "password"), actor.id);
         break;
 
       default:
