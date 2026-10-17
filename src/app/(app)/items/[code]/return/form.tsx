@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Notice } from "@/components/ui";
+import { ActionToast } from "@/components/toaster";
+import { Button } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type ContentRow, ContentsEditor } from "../../contents-editor";
 import { type FlowFormState, returnItemAction } from "../flow-actions";
@@ -28,7 +29,7 @@ export function ReturnForm({
     >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="version" value={version} />
-      {state?.error && <Notice tone="error">{state.error}</Notice>}
+      <ActionToast state={state} />
       <ContentsEditor initial={contents} restricted />
       <div className="max-w-xl space-y-4">
         <FlowFields notePlaceholder={t.flow.notePlaceholderReturn} />

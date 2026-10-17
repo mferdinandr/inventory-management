@@ -15,6 +15,7 @@ export const t = {
     password: "Kata sandi",
     submit: "Masuk",
     failed: "Username atau kata sandi salah, atau terlalu banyak percobaan. Coba lagi nanti.",
+    success: "Berhasil masuk",
   },
   changePassword: {
     title: "Ganti kata sandi",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Notice } from "@/components/ui";
+import { ActionToast } from "@/components/toaster";
+import { Button } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { archiveItemAction, type ItemFormState } from "./actions";
 
@@ -25,8 +26,7 @@ export function ArchiveButton({ id, archived }: { id: string; archived: boolean 
         {archived ? t.items.detail.restore : t.items.detail.archive}
       </Button>
       <div aria-live="polite">
-        {state?.error && <Notice tone="error">{state.error}</Notice>}
-        {state?.ok && <Notice tone="success">{state.ok}</Notice>}
+        <ActionToast state={state} />
       </div>
     </form>
   );

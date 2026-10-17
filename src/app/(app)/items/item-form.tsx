@@ -1,7 +1,8 @@
 "use client";
 
 import { type FormEvent, startTransition, useActionState } from "react";
-import { Button, Input, Label, Notice } from "@/components/ui";
+import { ActionToast } from "@/components/toaster";
+import { Button, Input, Label } from "@/components/ui";
 import { t } from "@/lib/strings";
 import type { ItemFormState } from "./actions";
 import { type ContentRow, ContentsEditor } from "./contents-editor";
@@ -278,7 +279,9 @@ export function ItemForm({
         </div>
       )}
 
-      <div aria-live="polite">{state?.error && <Notice tone="error">{state.error}</Notice>}</div>
+      <div aria-live="polite">
+        <ActionToast state={state} />
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? t.items.saving : submitLabel}

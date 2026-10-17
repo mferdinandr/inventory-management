@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Button, Input, Label, Notice, Select } from "@/components/ui";
+import { ActionToast } from "@/components/toaster";
+import { Button, Input, Label, Select } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type MaintenanceFormState, saveMaintenance } from "./actions";
 
@@ -67,7 +68,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
 
   return (
     <form action={action} onSubmit={rememberActor} className="max-w-xl space-y-4">
-      {state?.error && <Notice tone="error">{state.error}</Notice>}
+      <ActionToast state={state} />
 
       <Field name="type" label={t.maintenance.type}>
         <Select
