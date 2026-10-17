@@ -21,7 +21,7 @@ export function ArchiveButton({ id, archived }: { id: string; archived: boolean 
     >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="intent" value={archived ? "restore" : "archive"} />
-      <Button type="submit" variant={archived ? "secondary" : "danger"} disabled={pending}>
+      <Button type="submit" variant={archived ? "outline" : "destructive"} disabled={pending}>
         {archived ? t.items.detail.restore : t.items.detail.archive}
       </Button>
       <div aria-live="polite">

@@ -61,12 +61,12 @@ export default async function ItemPage({ params }: { params: Params }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {canEdit && (
-            <LinkButton href={`/items/${item.code}/edit`} variant="secondary">
+            <LinkButton href={`/items/${item.code}/edit`} variant="outline">
               {t.items.edit}
             </LinkButton>
           )}
           {can(user.role, "label.print", state) && (
-            <LinkButton href={`/print/label/${item.code}`} variant="secondary">
+            <LinkButton href={`/print/label/${item.code}`} variant="outline">
               {t.items.printLabel}
             </LinkButton>
           )}
@@ -161,7 +161,7 @@ export default async function ItemPage({ params }: { params: Params }) {
         <div className="flex flex-wrap gap-2">
           {!item.isArchived && <MaintenanceButton code={item.code} />}
           {maintenance.nextCursor && (
-            <LinkButton href={`/items/${item.code}/maintenance`} variant="secondary">
+            <LinkButton href={`/items/${item.code}/maintenance`} variant="outline">
               {t.items.detail.allMaintenance}
             </LinkButton>
           )}

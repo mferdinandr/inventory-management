@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               {user.name} · {t.roles[user.role]}
             </span>
             <form action={logout}>
-              <Button type="submit" variant="secondary">
+              <Button type="submit" variant="outline">
                 {t.nav.logout}
               </Button>
             </form>

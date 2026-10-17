@@ -164,7 +164,7 @@ export function ContentsEditor({
               }}
             />
           </div>
-          <Button type="button" variant="secondary" onClick={addQuick}>
+          <Button type="button" variant="outline" onClick={addQuick}>
             {t.items.contents.addRow}
           </Button>
         </div>
@@ -184,7 +184,7 @@ export function ContentsEditor({
         <span className="text-sm text-slate-600">
           {t.items.contents.rows(visible.length, rows.length)}
         </span>
-        <Button type="button" variant="secondary" onClick={addBlank}>
+        <Button type="button" variant="outline" onClick={addBlank}>
           {t.items.contents.addRow}
         </Button>
       </div>
@@ -257,7 +257,7 @@ export function ContentsEditor({
                   <div className="col-span-2 md:col-span-1">
                     <Button
                       type="button"
-                      variant="danger"
+                      variant="destructive"
                       aria-label={t.items.contents.removeRow(r.name)}
                       disabled={locked}
                       onClick={() => setRows((all) => all.filter((x) => x.key !== r.key))}

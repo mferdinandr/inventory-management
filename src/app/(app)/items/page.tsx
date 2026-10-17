@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, Input, Label, Select } from "@/components/ui";
+import { Button, Input, Label, NativeSelect } from "@/components/ui";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { requireUser } from "@/server/auth/session";
@@ -63,22 +63,22 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
         </div>
         <div>
           <Label htmlFor="location">{t.items.list.location}</Label>
-          <Select id="location" name="location" defaultValue={location}>
+          <NativeSelect id="location" name="location" defaultValue={location}>
             <option value="">{t.items.list.allLocations}</option>
             <option value="OPERASI">{t.items.locations.OPERASI}</option>
             <option value="CSSD">{t.items.locations.CSSD}</option>
-          </Select>
+          </NativeSelect>
         </div>
         <div>
           <Label htmlFor="room">{t.items.list.room}</Label>
-          <Select id="room" name="room" defaultValue={room}>
+          <NativeSelect id="room" name="room" defaultValue={room}>
             <option value="">{t.items.list.allRooms}</option>
             {rooms.map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
         </div>
         <div className="flex flex-col justify-end gap-2">
           <label className="flex min-h-11 items-center gap-2 text-base">
@@ -118,7 +118,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
         </div>
         <div className="flex gap-2 sm:col-span-4">
           <Button type="submit">{t.items.list.apply}</Button>
-          <LinkButton href="/items" variant="secondary">
+          <LinkButton href="/items" variant="outline">
             {t.items.list.reset}
           </LinkButton>
         </div>

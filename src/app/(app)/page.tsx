@@ -45,7 +45,7 @@ export default async function HomePage() {
         <div className="flex flex-wrap gap-2">
           <LinkButton href="/scan">{t.dashboard.scan}</LinkButton>
           {roleAllows(user.role, "item.create") && (
-            <LinkButton href="/items/new" variant="secondary">
+            <LinkButton href="/items/new" variant="outline">
               {t.dashboard.add}
             </LinkButton>
           )}

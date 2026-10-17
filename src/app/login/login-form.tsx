@@ -1,10 +1,11 @@
 "use client";
 
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 import type { FormEvent } from "react";
 import { useActionState, useState } from "react";
-import { EyeIcon, EyeOffIcon, LockIcon, UserIcon } from "@/components/icons";
-import { Label, Notice } from "@/components/ui";
+import { Button, Input, Label, Notice } from "@/components/ui";
 import { t } from "@/lib/strings";
+import { cn } from "@/lib/utils";
 import { login } from "./actions";
 
 type FieldErrors = { username?: string; password?: string };
@@ -22,11 +23,6 @@ function validate(username: string, password: string): FieldErrors {
   else if (password.length < MIN_PASSWORD_LENGTH) errors.password = t.login.passwordTooShort;
   return errors;
 }
-
-const inputBase =
-  "w-full rounded-lg border bg-white py-3 text-base shadow-sm focus:outline-none focus:ring-2";
-const inputOk = "border-ink-300 focus:border-brand-600 focus:ring-brand-600/30";
-const inputError = "border-danger-400 focus:border-danger-500 focus:ring-danger-500/30";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(login, undefined);
@@ -46,11 +42,11 @@ export function LoginForm({ next }: { next?: string }) {
       {next && <input type="hidden" name="next" value={next} />}
       {state?.error && <Notice tone="error">{t.login.failed}</Notice>}
 
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="username">{t.login.username}</Label>
         <div className="relative">
-          <UserIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-ink-400" />
-          <input
+          <User className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             id="username"
             name="username"
             value={username}
@@ -64,21 +60,21 @@ export function LoginForm({ next }: { next?: string }) {
             spellCheck={false}
             aria-invalid={errors.username ? true : undefined}
             aria-describedby={errors.username ? "username-error" : undefined}
-            className={`${inputBase} ${inputOk} ${errors.username ? inputError : ""} pl-10`}
+            className={cn("h-11 pl-10", errors.username && "border-destructive")}
           />
         </div>
         {errors.username && (
-          <p id="username-error" className="mt-1.5 text-sm text-danger-600">
+          <p id="username-error" className="text-sm font-medium text-destructive">
             {errors.username}
           </p>
         )}
       </div>
 
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="password">{t.login.password}</Label>
         <div className="relative">
-          <LockIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-ink-400" />
-          <input
+          <Lock className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -90,32 +86,33 @@ export function LoginForm({ next }: { next?: string }) {
             autoComplete="current-password"
             aria-invalid={errors.password ? true : undefined}
             aria-describedby={errors.password ? "password-error" : undefined}
-            className={`${inputBase} ${inputOk} ${errors.password ? inputError : ""} pr-12 pl-10`}
+            className={cn("h-11 pr-11 pl-10", errors.password && "border-destructive")}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-pressed={showPassword}
             aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-lg p-2 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-600 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {showPassword ? <EyeOffIcon className="size-5" /> : <EyeIcon className="size-5" />}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
         {errors.password && (
-          <p id="password-error" className="mt-1.5 text-sm text-danger-600">
+          <p id="password-error" className="text-sm font-medium text-destructive">
             {errors.password}
           </p>
         )}
       </div>
 
-      <button
+      <Button
         type="submit"
+        size="lg"
         disabled={pending}
-        className="w-full rounded-lg bg-gradient-to-r from-brand-600 to-brand-800 px-4 py-3 text-base font-semibold text-white shadow-md shadow-brand-700/25 transition-colors hover:from-brand-700 hover:to-brand-900 focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:outline-none disabled:opacity-60"
+        className="w-full bg-gradient-to-r from-brand-600 to-brand-800 shadow-md shadow-brand-700/25 hover:from-brand-700 hover:to-brand-900"
       >
         {pending ? t.login.submitting : t.login.submit}
-      </button>
+      </Button>
     </form>
   );
 }
