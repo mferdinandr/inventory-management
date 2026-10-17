@@ -23,12 +23,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <AppHeader
-        items={navItems}
-        userName={user.name}
-        roleLabel={t.roles[user.role]}
-        logout={logout}
-      />
+      <AppHeader items={navItems} userName={user.name} role={user.role} logout={logout} />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   );

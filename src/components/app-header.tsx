@@ -2,23 +2,35 @@
 
 import { LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "@/components/nav-link";
+import { RoleBadge } from "@/components/role-badge";
 import { Button } from "@/components/ui";
+import type { Role } from "@/lib/permissions";
 import { t } from "@/lib/strings";
+import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string };
 
 type AppHeaderProps = {
   items: NavItem[];
   userName: string;
-  roleLabel: string;
+  role: Role;
   logout: () => Promise<void>;
 };
 
-/** Sticky header with an inline nav on desktop and a hamburger menu on mobile. */
-export function AppHeader({ items, userName, roleLabel, logout }: AppHeaderProps) {
+/** Sticky header with an inline nav on desktop and a full-width drawer on mobile. */
+export function AppHeader({ items, userName, role, logout }: AppHeaderProps) {
   const [open, setOpen] = useState(false);
+
+  // Lock body scroll while the drawer is open.
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
     <header className="sticky top-0 z-10 border-b border-ink-200 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-x-4 px-4 py-2.5">
@@ -27,10 +39,10 @@ export function AppHeader({ items, userName, roleLabel, logout }: AppHeaderProps
           size="icon"
           className="sm:hidden"
           aria-expanded={open}
-          aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
-          onClick={() => setOpen(!open)}
+          aria-label={t.nav.openMenu}
+          onClick={() => setOpen(true)}
         >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          <Menu className="size-5" />
         </Button>
         <Link href="/" className="text-lg font-bold tracking-tight text-primary">
           {t.appName}
@@ -43,8 +55,9 @@ export function AppHeader({ items, userName, roleLabel, logout }: AppHeaderProps
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-sm text-muted-foreground md:inline">
-            {userName} · {roleLabel}
+          <span className="hidden items-center gap-2 md:flex">
+            <span className="text-sm text-muted-foreground">{userName}</span>
+            <RoleBadge role={role} />
           </span>
           <form action={logout}>
             <Button type="submit" variant="destructive" size="sm" className="gap-2">
@@ -55,26 +68,59 @@ export function AppHeader({ items, userName, roleLabel, logout }: AppHeaderProps
           </form>
         </div>
       </div>
-      {open && (
-        <div className="border-t border-ink-200 sm:hidden">
-          <div className="mx-auto max-w-5xl space-y-1 px-4 py-3">
-            {items.map((item) => (
-              <Button
-                key={item.href}
-                asChild
-                variant="ghost"
-                className="h-10 w-full justify-start text-base"
-                onClick={() => setOpen(false)}
-              >
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
-            ))}
-            <p className="px-3 pt-2 text-sm text-muted-foreground">
-              {userName} · {roleLabel}
-            </p>
+
+      {/* Mobile drawer: slides in from the left, full width, with a fading backdrop. */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 sm:hidden",
+          open ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        aria-hidden={!open}
+      >
+        {/* biome-ignore lint: decorative backdrop; the close button is the keyboard-accessible control. */}
+        <div
+          className={cn(
+            "absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 ease-out",
+            open ? "opacity-100" : "opacity-0",
+          )}
+          onClick={() => setOpen(false)}
+        />
+        <aside
+          className={cn(
+            "absolute inset-y-0 left-0 flex w-full flex-col bg-background shadow-2xl transition-transform duration-300 ease-out",
+            open ? "translate-x-0" : "-translate-x-full",
+          )}
+          role="dialog"
+          aria-label={t.appName}
+        >
+          <div className="flex items-center gap-4 border-b border-ink-200 px-4 py-2.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t.nav.closeMenu}
+              onClick={() => setOpen(false)}
+            >
+              <X className="size-5" />
+            </Button>
+            <span className="text-lg font-bold tracking-tight text-primary">{t.appName}</span>
           </div>
-        </div>
-      )}
+          <nav className="flex flex-col gap-1 p-4">
+            {items.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                className="h-12 w-full justify-start text-base"
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <p className="mt-auto flex items-center gap-2 border-t border-ink-200 px-4 py-3 text-sm text-muted-foreground">
+            {userName}
+            <RoleBadge role={role} />
+          </p>
+        </aside>
+      </div>
     </header>
   );
 }
