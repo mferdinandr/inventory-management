@@ -12,7 +12,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/activity-timeline";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
@@ -145,17 +145,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.dashboard.activity}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActivityTimeline entries={activity} />
-          </CardContent>
-        </Card>
-      </section>
+      {activity.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
+          <ActivityTimeline entries={activity} />
+        </section>
+      )}
     </div>
   );
 }
