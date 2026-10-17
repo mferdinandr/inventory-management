@@ -65,7 +65,7 @@ export const t = {
     activate: "Aktifkan",
     resetPassword: "Atur ulang kata sandi",
     newPassword: "Kata sandi baru",
-    saveRole: "Simpan peran",
+    save: "Simpan",
     empty: "Belum ada pengguna.",
     noMatch: "Tidak ada pengguna yang cocok.",
     listTitle: "Daftar Pengguna",

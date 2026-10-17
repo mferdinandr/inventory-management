@@ -29,6 +29,112 @@ type Row = {
 const ROLES = Object.keys(t.roles) as (keyof typeof t.roles)[];
 const FIELD = "h-11";
 
+function UserRow({
+  user,
+  meId,
+  action,
+  pending,
+}: {
+  user: Row;
+  meId: string;
+  action: (formData: FormData) => void;
+  pending: boolean;
+}) {
+  const [role, setRole] = useState(user.role);
+  const [status, setStatus] = useState<"active" | "inactive">(
+    user.isActive ? "active" : "inactive",
+  );
+  const [password, setPassword] = useState("");
+  const dirty = role !== user.role || (status === "active") !== user.isActive || password !== "";
+
+  return (
+    <Card className="transition-colors hover:border-primary/50">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-100 text-sm font-semibold text-ink-700">
+            {user.name.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{user.name}</p>
+            <p className="text-sm text-muted-foreground">@{user.username}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <RoleBadge role={user.role} />
+            <Badge
+              className={cn(
+                "border-transparent",
+                user.isActive ? "bg-success-50 text-success-700" : "bg-ink-100 text-ink-600",
+              )}
+            >
+              {user.isActive ? t.users.active : t.users.inactive}
+            </Badge>
+          </div>
+        </div>
+
+        {user.id !== meId && (
+          <form
+            action={action}
+            className="grid gap-4 border-t border-ink-200 pt-4 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <input type="hidden" name="intent" value="update" />
+            <input type="hidden" name="id" value={user.id} />
+            <div>
+              <Label htmlFor={`role-${user.id}`}>{t.users.role}</Label>
+              <NativeSelect
+                id={`role-${user.id}`}
+                name="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as keyof typeof t.roles)}
+                className={FIELD}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {t.roles[r]}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label htmlFor={`status-${user.id}`}>{t.users.status}</Label>
+              <NativeSelect
+                id={`status-${user.id}`}
+                name="active"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "active" | "inactive")}
+                className={FIELD}
+              >
+                <option value="active">{t.users.active}</option>
+                <option value="inactive">{t.users.inactive}</option>
+              </NativeSelect>
+            </div>
+            <div>
+              <Label htmlFor={`pw-${user.id}`}>{t.users.newPassword}</Label>
+              <PasswordInput
+                id={`pw-${user.id}`}
+                name="password"
+                minLength={8}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={FIELD}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="submit"
+                disabled={!dirty || pending}
+                className={cn(FIELD, "w-full xl:w-auto xl:px-8")}
+              >
+                {t.users.save}
+              </Button>
+            </div>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   const [state, action, pending] = useActionState<UsersState, FormData>(userAction, undefined);
   const [query, setQuery] = useState("");
@@ -124,100 +230,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
         <ul className="space-y-3">
           {filtered.map((u) => (
             <li key={u.id}>
-              <Card className="transition-colors hover:border-primary/50">
-                <CardContent className="space-y-4 p-4">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-100 text-sm font-semibold text-ink-700">
-                      {u.name.slice(0, 1).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{u.name}</p>
-                      <p className="text-sm text-muted-foreground">@{u.username}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <RoleBadge role={u.role} />
-                      <Badge
-                        className={cn(
-                          "border-transparent",
-                          u.isActive ? "bg-success-50 text-success-700" : "bg-ink-100 text-ink-600",
-                        )}
-                      >
-                        {u.isActive ? t.users.active : t.users.inactive}
-                      </Badge>
-                    </div>
-                    {u.id !== meId && (
-                      <form action={action}>
-                        <input type="hidden" name="intent" value="toggle" />
-                        <input type="hidden" name="id" value={u.id} />
-                        <input type="hidden" name="active" value={String(!u.isActive)} />
-                        <Button
-                          type="submit"
-                          variant={u.isActive ? "destructive" : "outline"}
-                          disabled={pending}
-                          className="h-9"
-                        >
-                          {u.isActive ? t.users.deactivate : t.users.activate}
-                        </Button>
-                      </form>
-                    )}
-                  </div>
-
-                  <div className="grid gap-4 border-t border-ink-200 pt-4 md:grid-cols-2">
-                    <form action={action} className="space-y-1.5">
-                      <input type="hidden" name="intent" value="role" />
-                      <input type="hidden" name="id" value={u.id} />
-                      <Label htmlFor={`role-${u.id}`}>{t.users.role}</Label>
-                      <div className="flex gap-2">
-                        <NativeSelect
-                          id={`role-${u.id}`}
-                          name="role"
-                          defaultValue={u.role}
-                          disabled={u.id === meId}
-                          className={cn(FIELD, "flex-1")}
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {t.roles[r]}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                        <Button
-                          type="submit"
-                          variant="outline"
-                          disabled={pending || u.id === meId}
-                          className={cn(FIELD, "w-40 shrink-0")}
-                        >
-                          {t.users.saveRole}
-                        </Button>
-                      </div>
-                    </form>
-
-                    <form action={action} className="space-y-1.5">
-                      <input type="hidden" name="intent" value="reset" />
-                      <input type="hidden" name="id" value={u.id} />
-                      <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
-                      <div className="flex gap-2">
-                        <PasswordInput
-                          id={`pw-${u.id}`}
-                          name="password"
-                          minLength={8}
-                          autoComplete="new-password"
-                          required
-                          className={cn(FIELD, "flex-1")}
-                        />
-                        <Button
-                          type="submit"
-                          variant="outline"
-                          disabled={pending}
-                          className={cn(FIELD, "w-40 shrink-0")}
-                        >
-                          {t.users.resetPassword}
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                </CardContent>
-              </Card>
+              <UserRow user={u} meId={meId} action={action} pending={pending} />
             </li>
           ))}
         </ul>
