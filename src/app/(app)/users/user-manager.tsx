@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { Search } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { PasswordInput } from "@/components/password-input";
-import { Button, Input, Label, NativeSelect, Notice } from "@/components/ui";
+import { RoleBadge } from "@/components/role-badge";
+import { Badge, Button, Card, CardContent, Input, Label, NativeSelect } from "@/components/ui";
 import { t } from "@/lib/strings";
+import { cn } from "@/lib/utils";
 import { type UsersState, userAction } from "./actions";
 
 type Row = {
@@ -15,132 +19,257 @@ type Row = {
 };
 
 const ROLES = Object.keys(t.roles) as (keyof typeof t.roles)[];
+const FIELD = "h-11";
+
+function UserRow({
+  user,
+  meId,
+  action,
+  pending,
+}: {
+  user: Row;
+  meId: string;
+  action: (formData: FormData) => void;
+  pending: boolean;
+}) {
+  const [role, setRole] = useState(user.role);
+  const [status, setStatus] = useState<"active" | "inactive">(
+    user.isActive ? "active" : "inactive",
+  );
+  const [password, setPassword] = useState("");
+  const dirty = role !== user.role || (status === "active") !== user.isActive || password !== "";
+
+  return (
+    <Card className="transition-colors hover:border-primary/50">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-100 text-sm font-semibold text-ink-700">
+            {user.name.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{user.name}</p>
+            <p className="text-sm text-muted-foreground">@{user.username}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <RoleBadge role={user.role} />
+            <Badge
+              className={cn(
+                "border-transparent",
+                user.isActive ? "bg-success-50 text-success-700" : "bg-ink-100 text-ink-600",
+              )}
+            >
+              {user.isActive ? t.users.active : t.users.inactive}
+            </Badge>
+          </div>
+        </div>
+
+        {user.id === meId ? null : user.role === "SUPERADMIN" ? (
+          <p className="border-t border-ink-200 pt-4 text-sm text-muted-foreground">
+            {t.users.otherSuperadmin}
+          </p>
+        ) : (
+          <form
+            action={action}
+            className="grid gap-4 border-t border-ink-200 pt-4 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <input type="hidden" name="intent" value="update" />
+            <input type="hidden" name="id" value={user.id} />
+            <div className="space-y-2">
+              <Label htmlFor={`role-${user.id}`}>{t.users.role}</Label>
+              <NativeSelect
+                id={`role-${user.id}`}
+                name="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as keyof typeof t.roles)}
+                className={FIELD}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {t.roles[r]}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`status-${user.id}`}>{t.users.status}</Label>
+              <NativeSelect
+                id={`status-${user.id}`}
+                name="active"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "active" | "inactive")}
+                className={FIELD}
+              >
+                <option value="active">{t.users.active}</option>
+                <option value="inactive">{t.users.inactive}</option>
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`pw-${user.id}`}>{t.users.newPassword}</Label>
+              <PasswordInput
+                id={`pw-${user.id}`}
+                name="password"
+                minLength={8}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={FIELD}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="submit"
+                disabled={!dirty || pending}
+                className={cn(FIELD, "w-full xl:w-auto xl:px-8")}
+              >
+                {t.users.save}
+              </Button>
+            </div>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   const [state, action, pending] = useActionState<UsersState, FormData>(userAction, undefined);
 
+  useEffect(() => {
+    if (!state) return;
+    if (state.ok) toast.success(state.ok);
+    else toast.error(state.error);
+  }, [state]);
+
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [roleFilter, setRoleFilter] = useState<keyof typeof t.roles | "all">("all");
+  const q = query.trim().toLowerCase();
+  const filtered = users.filter((u) => {
+    if (q && !u.name.toLowerCase().includes(q) && !u.username.toLowerCase().includes(q)) {
+      return false;
+    }
+    if (statusFilter === "active" && !u.isActive) return false;
+    if (statusFilter === "inactive" && u.isActive) return false;
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
-      <div aria-live="polite">
-        {state?.error && <Notice tone="error">{state.error}</Notice>}
-        {state?.ok && <Notice tone="success">{state.ok}</Notice>}
+      <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
+        <div className="px-6 pt-5 pb-7 sm:px-10 sm:pt-6 sm:pb-8">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold tracking-tight text-ink-900">{t.users.add}</h2>
+          </div>
+          <form action={action} className="grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="intent" value="create" />
+            <div className="space-y-2">
+              <Label htmlFor="new-username">{t.users.username}</Label>
+              <Input
+                id="new-username"
+                name="username"
+                autoCapitalize="none"
+                required
+                className={FIELD}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-name">{t.users.name}</Label>
+              <Input id="new-name" name="name" required className={FIELD} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-role">{t.users.role}</Label>
+              <NativeSelect id="new-role" name="role" defaultValue="OPERASI" className={FIELD}>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {t.roles[r]}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">{t.users.password}</Label>
+              <PasswordInput
+                id="new-password"
+                name="password"
+                minLength={8}
+                autoComplete="new-password"
+                required
+                className={FIELD}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={pending}
+                className="w-full shadow-md shadow-primary/25"
+              >
+                {t.users.create}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
 
-      <form
-        action={action}
-        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
-      >
-        <input type="hidden" name="intent" value="create" />
-        <h2 className="text-lg font-semibold sm:col-span-2">{t.users.add}</h2>
-        <div>
-          <Label htmlFor="new-username">{t.users.username}</Label>
-          <Input id="new-username" name="username" autoCapitalize="none" required />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold tracking-tight text-ink-900">{t.users.listTitle}</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative sm:w-72">
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t.users.searchPlaceholder}
+              aria-label={t.users.searchPlaceholder}
+              className={cn(FIELD, "pl-10")}
+            />
+          </div>
+          <div className="sm:w-42">
+            <NativeSelect
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+              aria-label={t.users.status}
+              className={FIELD}
+            >
+              <option value="all">{t.users.allStatus}</option>
+              <option value="active">{t.users.active}</option>
+              <option value="inactive">{t.users.inactive}</option>
+            </NativeSelect>
+          </div>
+          <div className="sm:w-42">
+            <NativeSelect
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as keyof typeof t.roles | "all")}
+              aria-label={t.users.role}
+              className={FIELD}
+            >
+              <option value="all">{t.users.allRoles}</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {t.roles[r]}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
         </div>
-        <div>
-          <Label htmlFor="new-name">{t.users.name}</Label>
-          <Input id="new-name" name="name" required />
-        </div>
-        <div>
-          <Label htmlFor="new-role">{t.users.role}</Label>
-          <NativeSelect id="new-role" name="role" defaultValue="OPERASI">
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {t.roles[r]}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-        <div>
-          <Label htmlFor="new-password">{t.users.password}</Label>
-          <PasswordInput
-            id="new-password"
-            name="password"
-            minLength={8}
-            autoComplete="new-password"
-            required
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={pending}>
-            {t.users.create}
-          </Button>
-        </div>
-      </form>
+      </div>
 
-      <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-        {users.map((u) => (
-          <li key={u.id} className="space-y-3 p-4">
-            <div className="flex flex-wrap items-baseline gap-x-3">
-              <span className="font-semibold">{u.name}</span>
-              <span className="text-slate-500">@{u.username}</span>
-              <span className={u.isActive ? "text-emerald-700" : "text-slate-500"}>
-                {u.isActive ? t.users.active : t.users.inactive}
-              </span>
-            </div>
-            {u.role === "SUPERADMIN" && u.id !== meId ? (
-              <p className="text-sm text-slate-500">{t.users.otherSuperadmin}</p>
-            ) : (
-              <div className="flex flex-wrap items-end gap-3">
-                <form action={action} className="flex items-end gap-2">
-                  <input type="hidden" name="intent" value="role" />
-                  <input type="hidden" name="id" value={u.id} />
-                  <div>
-                    <Label htmlFor={`role-${u.id}`}>{t.users.role}</Label>
-                    <NativeSelect
-                      id={`role-${u.id}`}
-                      name="role"
-                      defaultValue={u.role}
-                      disabled={u.id === meId}
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {t.roles[r]}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </div>
-                  <Button type="submit" variant="outline" disabled={pending || u.id === meId}>
-                    OK
-                  </Button>
-                </form>
-
-                <form action={action} className="flex items-end gap-2">
-                  <input type="hidden" name="intent" value="reset" />
-                  <input type="hidden" name="id" value={u.id} />
-                  <div>
-                    <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
-                    <PasswordInput
-                      id={`pw-${u.id}`}
-                      name="password"
-                      minLength={8}
-                      autoComplete="new-password"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" variant="outline" disabled={pending}>
-                    {t.users.resetPassword}
-                  </Button>
-                </form>
-
-                {u.id !== meId && (
-                  <form action={action}>
-                    <input type="hidden" name="intent" value="toggle" />
-                    <input type="hidden" name="id" value={u.id} />
-                    <input type="hidden" name="active" value={String(!u.isActive)} />
-                    <Button
-                      type="submit"
-                      variant={u.isActive ? "destructive" : "outline"}
-                      disabled={pending}
-                    >
-                      {u.isActive ? t.users.deactivate : t.users.activate}
-                    </Button>
-                  </form>
-                )}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      {filtered.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">
+            {q ? t.users.noMatch : t.users.empty}
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-3">
+          {filtered.map((u) => (
+            <li key={`${u.id}-${u.role}-${u.isActive}`}>
+              <UserRow user={u} meId={meId} action={action} pending={pending} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -28,22 +28,19 @@ export async function userAction(_prev: UsersState, form: FormData): Promise<Use
         revalidatePath("/users");
         return { ok: t.users.created };
 
-      case "role":
+      case "update":
         if (id === actor.id)
-          throw new AppError("FORBIDDEN", "Anda tidak dapat mengubah peran sendiri");
-        await updateUser(id, { role: text(form, "role") as never }, actor.id);
+          throw new AppError("FORBIDDEN", "Anda tidak dapat mengubah akun sendiri");
+        await updateUser(
+          id,
+          {
+            role: text(form, "role") as never,
+            isActive: text(form, "active") === "active",
+          },
+          actor.id,
+        );
+        if (text(form, "password")) await resetPassword(id, text(form, "password"), actor.id);
         break;
-
-      case "toggle":
-        if (id === actor.id)
-          throw new AppError("FORBIDDEN", "Anda tidak dapat menonaktifkan diri sendiri");
-        await updateUser(id, { isActive: text(form, "active") === "true" }, actor.id);
-        break;
-
-      case "reset":
-        await resetPassword(id, text(form, "password"), actor.id);
-        revalidatePath("/users");
-        return { ok: t.users.passwordReset };
 
       default:
         throw new AppError("VALIDATION_ERROR", t.error);
