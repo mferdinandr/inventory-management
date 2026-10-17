@@ -32,44 +32,47 @@ export function AppHeader({ items, userName, role, logout }: AppHeaderProps) {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-ink-200 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-x-4 px-4 py-2.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="sm:hidden"
-          aria-expanded={open}
-          aria-label={t.nav.openMenu}
-          onClick={() => setOpen(true)}
-        >
-          <Menu className="size-5" />
-        </Button>
-        <Link href="/" className="text-lg font-bold tracking-tight text-primary">
-          {t.appName}
-        </Link>
-        <nav className="hidden gap-1 sm:flex">
-          {items.map((item) => (
-            <NavLink key={item.href} href={item.href}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="hidden items-center gap-2 md:flex">
-            <span className="text-sm text-muted-foreground">{userName}</span>
-            <RoleBadge role={role} />
-          </span>
-          <form action={logout}>
-            <Button type="submit" variant="destructive" size="sm" className="gap-2">
-              <LogOut className="size-4" />
-              <span className="hidden sm:inline">{t.nav.logout}</span>
-              <span className="sr-only sm:hidden">{t.nav.logout}</span>
-            </Button>
-          </form>
+    <>
+      <header className="sticky top-0 z-10 border-b border-ink-200 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center gap-x-4 px-4 py-2.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden"
+            aria-expanded={open}
+            aria-label={t.nav.openMenu}
+            onClick={() => setOpen(true)}
+          >
+            <Menu className="size-5" />
+          </Button>
+          <Link href="/" className="text-lg font-bold tracking-tight text-primary">
+            {t.appName}
+          </Link>
+          <nav className="hidden gap-1 sm:flex">
+            {items.map((item) => (
+              <NavLink key={item.href} href={item.href}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden items-center gap-2 md:flex">
+              <span className="text-sm text-muted-foreground">{userName}</span>
+              <RoleBadge role={role} />
+            </span>
+            <form action={logout}>
+              <Button type="submit" variant="destructive" size="sm" className="gap-2">
+                <LogOut className="size-4" />
+                <span className="hidden sm:inline">{t.nav.logout}</span>
+                <span className="sr-only sm:hidden">{t.nav.logout}</span>
+              </Button>
+            </form>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile drawer: slides in from the left, full width, with a fading backdrop. */}
+      {/* Mobile drawer: sibling of the header (which has backdrop-blur and would
+          otherwise become the containing block for this fixed element). */}
       <div
         className={cn(
           "fixed inset-0 z-50 sm:hidden",
@@ -121,6 +124,6 @@ export function AppHeader({ items, userName, role, logout }: AppHeaderProps) {
           </p>
         </aside>
       </div>
-    </header>
+    </>
   );
 }
