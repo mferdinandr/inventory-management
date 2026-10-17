@@ -157,8 +157,8 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   return (
     <div className="space-y-6">
       <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
-        <div className="px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-8">
-          <div className="mb-10">
+        <div className="px-6 pt-5 pb-7 sm:px-10 sm:pt-6 sm:pb-8">
+          <div className="mb-4">
             <h2 className="text-xl font-bold tracking-tight text-ink-900">{t.users.add}</h2>
           </div>
           <form action={action} className="grid gap-3 sm:grid-cols-2">
