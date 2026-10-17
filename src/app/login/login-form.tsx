@@ -109,7 +109,7 @@ export function LoginForm({ next }: { next?: string }) {
         type="submit"
         size="lg"
         disabled={pending}
-        className="w-full bg-gradient-to-r from-brand-600 to-brand-800 shadow-md shadow-brand-700/25 hover:from-brand-700 hover:to-brand-900"
+        className="w-full shadow-md shadow-primary/25"
       >
         {pending ? t.login.submitting : t.login.submit}
       </Button>
