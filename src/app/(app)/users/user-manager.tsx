@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Input, Label, Notice, Select } from "@/components/ui";
+import { ActionToast } from "@/components/toaster";
+import { Button, Input, Label, Select } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type UsersState, userAction } from "./actions";
 
@@ -21,8 +22,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   return (
     <div className="space-y-6">
       <div aria-live="polite">
-        {state?.error && <Notice tone="error">{state.error}</Notice>}
-        {state?.ok && <Notice tone="success">{state.ok}</Notice>}
+        <ActionToast state={state} />
       </div>
 
       <form
