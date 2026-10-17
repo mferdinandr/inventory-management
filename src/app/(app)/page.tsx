@@ -78,12 +78,12 @@ export default async function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <LinkButton href="/scan">
+          <LinkButton variant="outline" href="/scan">
             <ScanLine className="size-4" />
             {t.dashboard.scan}
           </LinkButton>
           {roleAllows(user.role, "item.create") && (
-            <LinkButton variant="outline" href="/items/new">
+            <LinkButton href="/items/new">
               <PackagePlus className="size-4" />
               {t.dashboard.add}
             </LinkButton>
