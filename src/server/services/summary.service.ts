@@ -8,6 +8,8 @@ export type Summary = { operasi: number; cssd: number; damaged: number; dueSoon:
 
 const RECENT_ITEMS = 10;
 const RECENT_ACTIVITY = 20;
+const DUE_SOON_ITEMS = 6;
+const NEEDS_STERILIZATION_ITEMS = 6;
 
 /** `YYYY-MM-DD` of `now` in the hospital's timezone plus `days`; `date` columns have no zone. */
 function dateAhead(now: Date, days: number): string {
@@ -18,14 +20,18 @@ function dateAhead(now: Date, days: number): string {
 }
 
 /**
- * Ids of active items whose earliest next due date is on or before today + 30 days (overdue
- * included). Same rule as `getNextDue`: only the latest PEMELIHARAAN and the latest KALIBRASI
- * record count. The single implementation behind both the summary and the list filter.
+ * Active items whose earliest next due date is on or before today + 30 days (overdue included),
+ * ordered by that date. Same rule as `getNextDue`: only the latest PEMELIHARAAN and the latest
+ * KALIBRASI record count. The single implementation behind `dueSoonItemIds`, the summary and the
+ * Beranda "Jatuh tempo" list.
  */
-export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
+export async function listDueSoon(
+  now = new Date(),
+  limit = DUE_SOON_ITEMS,
+): Promise<{ id: string; code: string; name: string; nextDue: Date }[]> {
   const cutoff = dateAhead(now, DUE_SOON_DAYS);
-  const rows = await db.$queryRaw<{ id: string }[]>(Prisma.sql`
-    SELECT i.id
+  return db.$queryRaw<{ id: string; code: string; name: string; nextDue: Date }[]>(Prisma.sql`
+    SELECT i.id, i.code, i.name, LEAST(p.next_due, k.next_due) AS "nextDue"
     FROM items i
     LEFT JOIN LATERAL (
       SELECT m.next_due FROM maintenance_records m
@@ -39,8 +45,17 @@ export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
     ) k ON true
     WHERE NOT i.is_archived
       AND LEAST(p.next_due, k.next_due) <= ${cutoff}::date
+    ORDER BY "nextDue" ASC
+    LIMIT ${limit}
   `);
-  return rows.map((r) => r.id);
+}
+
+/**
+ * Ids of active items whose earliest next due date is on or before today + 30 days (overdue
+ * included). Kept as a cheap id-only view over `listDueSoon` for the summary and the list filter.
+ */
+export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
+  return (await listDueSoon(now, 10000)).map((r) => r.id);
 }
 
 /** Counts for the Beranda cards. Archived items are never counted. */
@@ -112,6 +127,25 @@ export function listRecentActivity(limit = RECENT_ACTIVITY) {
       changes: true,
       createdAt: true,
       item: { select: { code: true, name: true } },
+    },
+  });
+}
+
+/**
+ * Active items flagged as needing sterilization, oldest in their current location first
+ * (they have been waiting the longest). For the Beranda "Perlu sterilisasi" list.
+ */
+export function listNeedsSterilization(limit = NEEDS_STERILIZATION_ITEMS) {
+  return db.item.findMany({
+    where: { isArchived: false, needsSterilization: true },
+    orderBy: { locationSince: "asc" },
+    take: limit,
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      location: true,
+      locationSince: true,
     },
   });
 }

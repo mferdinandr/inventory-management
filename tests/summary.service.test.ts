@@ -4,6 +4,8 @@ import { listItems } from "@/server/services/item.service";
 import {
   dueSoonItemIds,
   getSummary,
+  listDueSoon,
+  listNeedsSterilization,
   listRecentActivity,
   listRecentItems,
 } from "@/server/services/summary.service";
@@ -130,6 +132,56 @@ describe("due soon", () => {
     const a = await makeItem({ isArchived: true });
     await record(a.id, "KALIBRASI", "2025-01-01", "2026-01-01");
     expect((await getSummary(NOW)).dueSoon).toBe(0);
+  });
+});
+
+describe("listDueSoon", () => {
+  it("returns items due within 30 days with their earliest next due, ordered by it", async () => {
+    const pemeliharaan = await makeItem({ name: "Pemeliharaan" });
+    const kalibrasi = await makeItem({ name: "Kalibrasi" });
+    const none = await makeItem({ name: "Tanpa jadwal" });
+    await record(pemeliharaan.id, "PEMELIHARAAN", "2026-10-01", "2026-11-10");
+    await record(kalibrasi.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    await record(none.id, "PERBAIKAN", "2026-10-01", null);
+    const rows = await listDueSoon(NOW);
+    expect(rows.map((r) => r.name)).toEqual(["Kalibrasi", "Pemeliharaan"]);
+    expect(rows.map((r) => r.nextDue.toISOString().slice(0, 10))).toEqual([
+      "2026-11-01",
+      "2026-11-10",
+    ]);
+    expect(await listDueSoon(NOW, 1)).toHaveLength(1);
+  });
+
+  it("picks the earliest of the latest record of each type", async () => {
+    const mixed = await makeItem({ name: "Campuran" });
+    await record(mixed.id, "PEMELIHARAAN", "2026-10-01", "2027-04-01");
+    await record(mixed.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    const rows = await listDueSoon(NOW);
+    expect(rows.map((r) => r.name)).toEqual(["Campuran"]);
+    expect(rows[0]?.nextDue.toISOString().slice(0, 10)).toBe("2026-11-01");
+  });
+});
+
+describe("listNeedsSterilization", () => {
+  it("lists active flagged items, oldest in location first, ignoring archived", async () => {
+    const first = await makeItem({
+      name: "Pisau",
+      needsSterilization: true,
+      location: "OPERASI",
+      locationSince: new Date("2026-10-01T00:00:00Z"),
+    });
+    await makeItem({
+      name: "Gunting",
+      needsSterilization: true,
+      location: "OPERASI",
+      locationSince: new Date("2026-10-02T00:00:00Z"),
+    });
+    await makeItem({ name: "Bersih" });
+    await makeItem({ name: "Arsip", needsSterilization: true, isArchived: true });
+    const rows = await listNeedsSterilization();
+    expect(rows.map((i) => i.name)).toEqual(["Pisau", "Gunting"]);
+    expect(rows[0]).toMatchObject({ location: "OPERASI", code: first.code });
+    expect(await listNeedsSterilization(1)).toHaveLength(1);
   });
 });
 
