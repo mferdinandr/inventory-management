@@ -32,7 +32,7 @@ export const t = {
     next: "Kata sandi baru",
     confirm: "Konfirmasi kata sandi baru",
     hint: "Minimal 8 karakter.",
-    notMatch: "Kata sandi baru tidak sama dengan konfirmasi.",
+    notMatch: "Konfirmasi kata sandi baru berbeda dengan Kata sandi baru.",
     submit: "Simpan kata sandi",
     changed: "Kata sandi berhasil diganti.",
   },

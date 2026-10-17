@@ -19,34 +19,35 @@ const SHOWN_CHANGES = 2;
 
 /** "Aktivitas terbaru": log entries across items, newest first, each linking to its item. */
 export function ActivityTimeline({ entries }: { entries: ActivityEntry[] }) {
-  if (entries.length === 0) return <p className="text-slate-600">{t.dashboard.noActivity}</p>;
+  if (entries.length === 0)
+    return <p className="text-sm text-muted-foreground">{t.dashboard.noActivity}</p>;
   return (
-    <ol className="space-y-4 border-l-2 border-slate-200 pl-4">
+    <ol className="space-y-4 border-l-2 border-ink-200 pl-4">
       {entries.map((entry) => {
         const changes = Array.isArray(entry.changes) ? (entry.changes as Change[]) : [];
         return (
           <li key={entry.id} className="space-y-1">
-            <p>
+            <p className="text-sm">
               <span className="font-medium">{t.items.history[entry.action]}</span>{" "}
               <Link
                 href={`/items/${entry.item.code}`}
-                className="inline-block py-1 text-teal-800 hover:underline"
+                className="inline-block py-1 text-primary hover:underline"
               >
                 <span className="font-mono text-sm">{entry.item.code}</span> {entry.item.name}
               </Link>
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {t.items.history.by(entry.actorName)} · {formatDateTime(entry.createdAt)}
             </p>
             {entry.note && <p className="text-sm">{entry.note}</p>}
             {changes.length > 0 && (
-              <ul className="list-disc pl-5 text-sm text-slate-700">
+              <ul className="list-disc pl-5 text-sm text-ink-700">
                 {changes.slice(0, SHOWN_CHANGES).map((c, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: a log entry is immutable
                   <li key={`${i}:${c.name}:${c.field}`}>{describeChange(c)}</li>
                 ))}
                 {changes.length > SHOWN_CHANGES && (
-                  <li className="list-none text-slate-500">
+                  <li className="list-none text-muted-foreground">
                     {t.dashboard.moreChanges(changes.length - SHOWN_CHANGES)}
                   </li>
                 )}

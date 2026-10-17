@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { NavLink } from "@/components/nav-link";
 import { Button } from "@/components/ui";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
@@ -32,19 +33,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </Link>
           <nav className="flex flex-wrap items-center gap-1">
             {navItems.map((item) => (
-              <Button key={item.href} variant="ghost" className="h-9 text-base" asChild>
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
+              <NavLink key={item.href} href={item.href}>
+                {item.label}
+              </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+            <span className="hidden text-sm text-muted-foreground sm:inline">
               {user.name} · {t.roles[user.role]}
             </span>
             <form action={logout}>
               <Button type="submit" variant="outline" size="sm" className="gap-2">
                 <LogOut className="size-4" />
-                {t.nav.logout}
+                <span className="hidden sm:inline">{t.nav.logout}</span>
+                <span className="sr-only sm:hidden">{t.nav.logout}</span>
               </Button>
             </form>
           </div>
