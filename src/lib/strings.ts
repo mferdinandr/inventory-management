@@ -291,8 +291,6 @@ export const t = {
     groupActivity: "Aktivitas",
     damagedBadge: "Rusak",
     dueSoonOnly: "Jatuh tempo \u2264 30 hari",
-    activity: "Log aktivitas",
-    noActivity: "Belum ada aktivitas.",
     moreChanges: (n: number) => `dan ${n} perubahan lain`,
   },
   flow: {
