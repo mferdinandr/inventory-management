@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { clearLoginFailures, isLoginBlocked, recordLoginFailure } from "./login-limiter";
+import { clearLoginFailures, isLoginBlocked, loginKey, recordLoginFailure } from "./login-limiter";
 import { verifyPassword } from "./password";
 
 const credentialsSchema = z.object({
@@ -23,7 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { username, password } = parsed.data;
 
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-        const key = `${username}|${ip}`;
+        const key = loginKey(username, ip);
         if (isLoginBlocked(key)) return null;
 
         const user = await db.user.findUnique({ where: { username } });

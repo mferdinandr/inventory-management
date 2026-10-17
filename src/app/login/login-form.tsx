@@ -33,7 +33,9 @@ export function LoginForm({ next }: { next?: string }) {
   const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
-    if (state?.error) toast.error(t.login.failed);
+    if (state?.error) {
+      toast.error(state.error === "blocked" ? t.login.blocked : t.login.failed);
+    }
   }, [state]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

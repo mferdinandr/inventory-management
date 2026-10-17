@@ -14,6 +14,10 @@ function recent(key: string, now: number): number[] {
   return list;
 }
 
+export function loginKey(username: string, ip: string): string {
+  return `${username}|${ip}`;
+}
+
 export function isLoginBlocked(key: string, now = Date.now()): boolean {
   return recent(key, now).length >= MAX_FAILURES;
 }

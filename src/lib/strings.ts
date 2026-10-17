@@ -15,7 +15,9 @@ export const t = {
     password: "Kata sandi",
     submit: "Masuk",
     submitting: "Memeriksa...",
-    failed: "Username atau kata sandi salah, atau terlalu banyak percobaan. Coba lagi nanti.",
+    failed: "Username atau kata sandi salah. Coba lagi.",
+    blocked:
+      "Terlalu banyak percobaan gagal. Akun diblokir sementara; coba lagi dalam beberapa menit.",
     usernameRequired: "Username wajib diisi",
     usernameInvalid: "Username 3-32 karakter: huruf kecil, angka, titik, strip",
     passwordRequired: "Kata sandi wajib diisi",
