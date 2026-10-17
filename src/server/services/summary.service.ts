@@ -4,10 +4,17 @@ import { db } from "@/server/db";
 /** "Due soon" window of the Beranda card and the `dueSoon` list filter (docs/06 §5). */
 export const DUE_SOON_DAYS = 30;
 
-export type Summary = { operasi: number; cssd: number; damaged: number; dueSoon: number };
+export type Summary = {
+  operasi: number;
+  cssd: number;
+  damaged: number;
+  dueSoon: number;
+  needsSterilization: number;
+};
 
 const RECENT_ITEMS = 10;
 const RECENT_ACTIVITY = 20;
+const DUE_SOON_ITEMS = 6;
 
 /** `YYYY-MM-DD` of `now` in the hospital's timezone plus `days`; `date` columns have no zone. */
 function dateAhead(now: Date, days: number): string {
@@ -18,14 +25,30 @@ function dateAhead(now: Date, days: number): string {
 }
 
 /**
- * Ids of active items whose earliest next due date is on or before today + 30 days (overdue
- * included). Same rule as `getNextDue`: only the latest PEMELIHARAAN and the latest KALIBRASI
- * record count. The single implementation behind both the summary and the list filter.
+ * Active items whose earliest next due date is on or before today + 30 days (overdue included),
+ * ordered by that date. Same rule as `getNextDue`: only the latest PEMELIHARAAN and the latest
+ * KALIBRASI record count. The single implementation behind `dueSoonItemIds`, the summary and the
+ * Beranda "Jatuh tempo" list.
  */
-export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
+export async function listDueSoon(
+  now = new Date(),
+  limit = DUE_SOON_ITEMS,
+): Promise<
+  { id: string; code: string; name: string; nextDue: Date; type: "PEMELIHARAAN" | "KALIBRASI" }[]
+> {
   const cutoff = dateAhead(now, DUE_SOON_DAYS);
-  const rows = await db.$queryRaw<{ id: string }[]>(Prisma.sql`
-    SELECT i.id
+  return db.$queryRaw<
+    {
+      id: string;
+      code: string;
+      name: string;
+      nextDue: Date;
+      type: "PEMELIHARAAN" | "KALIBRASI";
+    }[]
+  >(Prisma.sql`
+    SELECT i.id, i.code, i.name, LEAST(p.next_due, k.next_due) AS "nextDue",
+      CASE WHEN p.next_due IS NOT NULL AND (k.next_due IS NULL OR p.next_due <= k.next_due)
+           THEN 'PEMELIHARAAN' ELSE 'KALIBRASI' END AS type
     FROM items i
     LEFT JOIN LATERAL (
       SELECT m.next_due FROM maintenance_records m
@@ -39,23 +62,35 @@ export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
     ) k ON true
     WHERE NOT i.is_archived
       AND LEAST(p.next_due, k.next_due) <= ${cutoff}::date
+    ORDER BY "nextDue" ASC
+    LIMIT ${limit}
   `);
-  return rows.map((r) => r.id);
+}
+
+/**
+ * Ids of active items whose earliest next due date is on or before today + 30 days (overdue
+ * included). Kept as a cheap id-only view over `listDueSoon` for the summary and the list filter.
+ */
+export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
+  return (await listDueSoon(now, 10000)).map((r) => r.id);
 }
 
 /** Counts for the Beranda cards. Archived items are never counted. */
 export async function getSummary(now = new Date()): Promise<Summary> {
   const [counts, dueSoon] = await Promise.all([
-    db.$queryRaw<{ operasi: bigint; cssd: bigint; damaged: bigint }[]>(Prisma.sql`
+    db.$queryRaw<{ operasi: bigint; cssd: bigint; damaged: bigint; needsSterilization: bigint }[]>(
+      Prisma.sql`
       SELECT
         count(*) FILTER (WHERE i.location = 'OPERASI') AS operasi,
         count(*) FILTER (WHERE i.location = 'CSSD') AS cssd,
         count(*) FILTER (WHERE i.damaged_quantity > 0 OR EXISTS (
           SELECT 1 FROM item_contents c WHERE c.item_id = i.id AND c.damaged_quantity > 0
-        )) AS damaged
+        )) AS damaged,
+        count(*) FILTER (WHERE i.needs_sterilization) AS "needsSterilization"
       FROM items i
       WHERE NOT i.is_archived
-    `),
+    `,
+    ),
     dueSoonItemIds(now),
   ]);
   const row = counts[0];
@@ -64,6 +99,7 @@ export async function getSummary(now = new Date()): Promise<Summary> {
     cssd: Number(row?.cssd ?? 0),
     damaged: Number(row?.damaged ?? 0),
     dueSoon: dueSoon.length,
+    needsSterilization: Number(row?.needsSterilization ?? 0),
   };
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Input, Label, Notice, Select } from "@/components/ui";
+import { PasswordInput } from "@/components/password-input";
+import { Button, Input, Label, NativeSelect, Notice } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type UsersState, userAction } from "./actions";
 
@@ -41,20 +42,19 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
         </div>
         <div>
           <Label htmlFor="new-role">{t.users.role}</Label>
-          <Select id="new-role" name="role" defaultValue="OPERASI">
+          <NativeSelect id="new-role" name="role" defaultValue="OPERASI">
             {ROLES.map((r) => (
               <option key={r} value={r}>
                 {t.roles[r]}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
         </div>
         <div>
           <Label htmlFor="new-password">{t.users.password}</Label>
-          <Input
+          <PasswordInput
             id="new-password"
             name="password"
-            type="password"
             minLength={8}
             autoComplete="new-password"
             required
@@ -83,7 +83,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 <input type="hidden" name="id" value={u.id} />
                 <div>
                   <Label htmlFor={`role-${u.id}`}>{t.users.role}</Label>
-                  <Select
+                  <NativeSelect
                     id={`role-${u.id}`}
                     name="role"
                     defaultValue={u.role}
@@ -94,9 +94,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                         {t.roles[r]}
                       </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
                 </div>
-                <Button type="submit" variant="secondary" disabled={pending || u.id === meId}>
+                <Button type="submit" variant="outline" disabled={pending || u.id === meId}>
                   OK
                 </Button>
               </form>
@@ -106,16 +106,15 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 <input type="hidden" name="id" value={u.id} />
                 <div>
                   <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
-                  <Input
+                  <PasswordInput
                     id={`pw-${u.id}`}
                     name="password"
-                    type="password"
                     minLength={8}
                     autoComplete="new-password"
                     required
                   />
                 </div>
-                <Button type="submit" variant="secondary" disabled={pending}>
+                <Button type="submit" variant="outline" disabled={pending}>
                   {t.users.resetPassword}
                 </Button>
               </form>
@@ -127,7 +126,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                   <input type="hidden" name="active" value={String(!u.isActive)} />
                   <Button
                     type="submit"
-                    variant={u.isActive ? "danger" : "secondary"}
+                    variant={u.isActive ? "destructive" : "outline"}
                     disabled={pending}
                   >
                     {u.isActive ? t.users.deactivate : t.users.activate}

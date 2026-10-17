@@ -133,6 +133,12 @@ Semua peran.
 ```
 (tidak menghitung barang terarsip; `dueSoon` = `next_due` ≤ 30 hari ke depan).
 
+Kartu Beranda lain memakai fungsi internal `summary.service`:
+- `listDueSoon` — barang jatuh tempo beserta `next_due` terdekat dan jenisnya
+  (PEMELIHARAAN/KALIBRASI), diurutkan dari yang paling mendesak.
+- `listNeedsSterilization` — barang aktif berstatus `needsSterilization`,
+  terlama di lokasi lebih dulu.
+
 ## 6. QR
 
 ### `GET /api/qr/{code}?format=svg&size=512`

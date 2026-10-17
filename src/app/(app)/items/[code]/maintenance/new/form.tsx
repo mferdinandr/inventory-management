@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Button, Input, Label, Notice, Select } from "@/components/ui";
+import { Button, Input, Label, NativeSelect, Notice } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { type MaintenanceFormState, saveMaintenance } from "./actions";
 
@@ -70,7 +70,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
       {state?.error && <Notice tone="error">{state.error}</Notice>}
 
       <Field name="type" label={t.maintenance.type}>
-        <Select
+        <NativeSelect
           id="type"
           name="type"
           value={type}
@@ -81,7 +81,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
               {t.maintenance.types[k]}
             </option>
           ))}
-        </Select>
+        </NativeSelect>
       </Field>
 
       <Field name="performedOn" label={t.maintenance.performedOn}>
@@ -147,7 +147,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
             label={t.maintenance.result}
             hint={result === "TIDAK_LULUS" ? t.maintenance.failedNotice : undefined}
           >
-            <Select
+            <NativeSelect
               id="result"
               name="result"
               value={result}
@@ -155,7 +155,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
             >
               <option value="LULUS">{t.maintenance.results.LULUS}</option>
               <option value="TIDAK_LULUS">{t.maintenance.results.TIDAK_LULUS}</option>
-            </Select>
+            </NativeSelect>
           </Field>
           <Field name="validUntil" label={t.maintenance.validUntil}>
             <Input
