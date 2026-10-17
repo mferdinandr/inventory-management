@@ -70,6 +70,8 @@ export const t = {
     noMatch: "Tidak ada pengguna yang cocok.",
     listTitle: "Daftar Pengguna",
     searchPlaceholder: "Cari nama atau username",
+    allStatus: "Semua status",
+    allRoles: "Semua peran",
     created: "Pengguna dibuat. Mereka wajib mengganti kata sandi saat masuk pertama.",
     updated: "Perubahan disimpan.",
     passwordReset: "Kata sandi diatur ulang.",

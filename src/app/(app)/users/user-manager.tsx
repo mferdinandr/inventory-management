@@ -138,10 +138,18 @@ function UserRow({
 export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   const [state, action, pending] = useActionState<UsersState, FormData>(userAction, undefined);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [roleFilter, setRoleFilter] = useState<keyof typeof t.roles | "all">("all");
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? users.filter((u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
-    : users;
+  const filtered = users.filter((u) => {
+    if (q && !u.name.toLowerCase().includes(q) && !u.username.toLowerCase().includes(q)) {
+      return false;
+    }
+    if (statusFilter === "active" && !u.isActive) return false;
+    if (statusFilter === "inactive" && u.isActive) return false;
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -206,17 +214,42 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <h2 className="text-xl font-bold tracking-tight text-ink-900">{t.users.listTitle}</h2>
-        <div className="relative sm:w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t.users.searchPlaceholder}
-            aria-label={t.users.searchPlaceholder}
-            className={cn(FIELD, "pl-10")}
-          />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative sm:w-72">
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t.users.searchPlaceholder}
+              aria-label={t.users.searchPlaceholder}
+              className={cn(FIELD, "pl-10")}
+            />
+          </div>
+          <NativeSelect
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+            aria-label={t.users.status}
+            className={cn(FIELD, "sm:w-44")}
+          >
+            <option value="all">{t.users.allStatus}</option>
+            <option value="active">{t.users.active}</option>
+            <option value="inactive">{t.users.inactive}</option>
+          </NativeSelect>
+          <NativeSelect
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as keyof typeof t.roles | "all")}
+            aria-label={t.users.role}
+            className={cn(FIELD, "sm:w-44")}
+          >
+            <option value="all">{t.users.allRoles}</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {t.roles[r]}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
       </div>
 
