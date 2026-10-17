@@ -92,8 +92,9 @@ export default async function HomePage() {
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-lg font-semibold">{t.dashboard.groupCounts}</h2>
         <Link href="/items" className="group block">
-          <Card className="overflow-hidden border-0 bg-gradient-to-br from-brand-700 to-brand-900 text-white shadow-lg transition-shadow hover:shadow-xl">
+          <Card className="border-0 bg-brand-700 text-white shadow-lg transition-colors hover:bg-brand-800">
             <CardContent className="flex items-center justify-between gap-4 p-5">
               <div className="flex items-center gap-4">
                 <span className="rounded-xl bg-white/10 p-3">
@@ -128,63 +129,68 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>{t.dashboard.recentItems}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {recentItems.length === 0 ? (
-              <p className="px-6 pb-6 text-sm text-muted-foreground">{t.dashboard.noRecentItems}</p>
-            ) : (
-              <ul className="divide-y divide-ink-200">
-                {recentItems.map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={`/items/${item.code}`}
-                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {item.code}
-                          </span>
-                          {item.hasDamage && (
-                            <Badge variant="destructive">{t.dashboard.damagedBadge}</Badge>
-                          )}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
+        <div className="grid gap-6 lg:grid-cols-5">
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle>{t.dashboard.recentItems}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentItems.length === 0 ? (
+                <p className="px-6 pb-6 text-sm text-muted-foreground">
+                  {t.dashboard.noRecentItems}
+                </p>
+              ) : (
+                <ul className="divide-y divide-ink-200">
+                  {recentItems.map((item) => (
+                    <li key={item.id}>
+                      <Link
+                        href={`/items/${item.code}`}
+                        className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {item.code}
+                            </span>
+                            {item.hasDamage && (
+                              <Badge variant="destructive">{t.dashboard.damagedBadge}</Badge>
+                            )}
+                          </div>
+                          <p className="truncate font-medium">{item.name}</p>
+                          <p
+                            className={cn(
+                              "text-sm",
+                              item.location === "CSSD" ? "text-amber-700" : "text-muted-foreground",
+                            )}
+                          >
+                            {t.items.locations[item.location]}
+                            {item.needsSterilization &&
+                              ` · ${t.dashboard.sinceIn(
+                                formatAge(item.locationSince, now),
+                                t.items.locations[item.location],
+                              )}`}
+                          </p>
                         </div>
-                        <p className="truncate font-medium">{item.name}</p>
-                        <p
-                          className={cn(
-                            "text-sm",
-                            item.location === "CSSD" ? "text-amber-700" : "text-muted-foreground",
-                          )}
-                        >
-                          {t.items.locations[item.location]}
-                          {item.needsSterilization &&
-                            ` · ${t.dashboard.sinceIn(
-                              formatAge(item.locationSince, now),
-                              t.items.locations[item.location],
-                            )}`}
-                        </p>
-                      </div>
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t.dashboard.activity}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActivityTimeline entries={activity} />
-          </CardContent>
-        </Card>
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t.dashboard.activity}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ActivityTimeline entries={activity} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

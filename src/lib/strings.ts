@@ -286,6 +286,8 @@ export const t = {
     },
     scan: "Pindai barang",
     add: "Tambah barang",
+    groupCounts: "Jumlah barang",
+    groupActivity: "Aktivitas",
     recentItems: "Barang terbaru berubah",
     noRecentItems: "Belum ada barang.",
     sinceIn: (age: string, place: string) => `sudah ${age} di ${place}`,
