@@ -288,7 +288,7 @@ export const t = {
     scan: "Pindai barang",
     add: "Tambah barang",
     groupCounts: "Jumlah barang",
-    groupActivity: "Aktivitas",
+    groupActivity: "Aktivitas Terbaru",
     damagedBadge: "Rusak",
     dueSoonOnly: "Jatuh tempo \u2264 30 hari",
     moreChanges: (n: number) => `dan ${n} perubahan lain`,

@@ -41,31 +41,31 @@ export function AppHeader({ items, userName, role, logout }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-ink-200 bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-brand-900 bg-brand-800 text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-x-4 px-4 py-2.5">
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden"
+            className="sm:hidden text-brand-50 hover:bg-white/10 hover:text-white"
             aria-expanded={open}
             aria-label={t.nav.openMenu}
             onClick={() => setOpen(true)}
           >
             <Menu className="size-5" />
           </Button>
-          <Link href="/" className="text-lg font-bold tracking-tight text-primary">
+          <Link href="/" className="text-lg font-bold tracking-tight text-white">
             {t.appName}
           </Link>
           <nav className="hidden gap-1 sm:flex">
             {items.map((item) => (
-              <NavLink key={item.href} href={item.href}>
+              <NavLink key={item.href} href={item.href} onDark>
                 {item.label}
               </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden items-center gap-2 md:flex">
-              <span className="text-sm text-muted-foreground">{userName}</span>
+              <span className="text-sm text-brand-100">{userName}</span>
               <RoleBadge role={role} />
             </span>
             <form action={logout}>
