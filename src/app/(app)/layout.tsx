@@ -1,8 +1,5 @@
-import { LogOut } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { NavLink } from "@/components/nav-link";
-import { Button } from "@/components/ui";
+import { AppHeader } from "@/components/app-header";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { signOut } from "@/server/auth/config";
@@ -26,32 +23,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-10 border-b border-ink-200 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-          <Link href="/" className="text-lg font-bold tracking-tight text-primary">
-            {t.appName}
-          </Link>
-          <nav className="flex flex-wrap items-center gap-1">
-            {navItems.map((item) => (
-              <NavLink key={item.href} href={item.href}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {user.name} · {t.roles[user.role]}
-            </span>
-            <form action={logout}>
-              <Button type="submit" variant="outline" size="sm" className="gap-2">
-                <LogOut className="size-4" />
-                <span className="hidden sm:inline">{t.nav.logout}</span>
-                <span className="sr-only sm:hidden">{t.nav.logout}</span>
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        items={navItems}
+        userName={user.name}
+        roleLabel={t.roles[user.role]}
+        logout={logout}
+      />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   );

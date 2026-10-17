@@ -8,7 +8,15 @@ export const t = {
     ALKES: "Alkes",
     SUPERADMIN: "Superadmin",
   },
-  nav: { home: "Beranda", users: "Pengguna", logout: "Keluar", scan: "Pindai", items: "Barang" },
+  nav: {
+    home: "Beranda",
+    users: "Pengguna",
+    logout: "Keluar",
+    scan: "Pindai",
+    items: "Barang",
+    openMenu: "Buka menu",
+    closeMenu: "Tutup menu",
+  },
   login: {
     title: "Masuk",
     username: "Username",

@@ -91,7 +91,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {cards.map((card) => (
           <Link key={card.label} href={card.href} className="group">
             <Card className="h-full transition-colors hover:border-primary/50">
@@ -108,7 +108,7 @@ export default async function HomePage() {
           </Link>
         ))}
 
-        <Link href="/items" className="col-span-2 group lg:col-span-4">
+        <Link href="/items" className="group sm:col-span-2 lg:col-span-4">
           <Card className="transition-colors hover:border-primary/50">
             <CardContent className="flex items-center justify-between gap-4 p-4">
               <div className="flex items-center gap-3">
