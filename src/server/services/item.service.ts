@@ -27,6 +27,8 @@ export type ItemFilters = {
   location?: "OPERASI" | "CSSD";
   room?: string;
   damaged?: boolean;
+  /** Only items flagged as needing sterilization. */
+  needsSterilization?: boolean;
   /** Only items whose next maintenance/calibration is due within 30 days (or overdue). */
   dueSoon?: boolean;
   /** true lists only archived items; the default lists only active ones. */
@@ -74,6 +76,7 @@ export async function listItems(filters: ItemFilters = {}) {
       ],
     }),
     ...(filters.dueSoon && { id: { in: await dueSoonItemIds() } }),
+    ...(filters.needsSterilization && { needsSterilization: true }),
     ...(q && {
       OR: (["code", "name", "brand", "serialNumber", "room"] as const).map((field) => ({
         [field]: { contains: q, mode: "insensitive" as const },

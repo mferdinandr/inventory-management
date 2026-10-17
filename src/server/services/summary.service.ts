@@ -4,12 +4,17 @@ import { db } from "@/server/db";
 /** "Due soon" window of the Beranda card and the `dueSoon` list filter (docs/06 §5). */
 export const DUE_SOON_DAYS = 30;
 
-export type Summary = { operasi: number; cssd: number; damaged: number; dueSoon: number };
+export type Summary = {
+  operasi: number;
+  cssd: number;
+  damaged: number;
+  dueSoon: number;
+  needsSterilization: number;
+};
 
 const RECENT_ITEMS = 10;
 const RECENT_ACTIVITY = 20;
 const DUE_SOON_ITEMS = 6;
-const NEEDS_STERILIZATION_ITEMS = 6;
 
 /** `YYYY-MM-DD` of `now` in the hospital's timezone plus `days`; `date` columns have no zone. */
 function dateAhead(now: Date, days: number): string {
@@ -73,16 +78,19 @@ export async function dueSoonItemIds(now = new Date()): Promise<string[]> {
 /** Counts for the Beranda cards. Archived items are never counted. */
 export async function getSummary(now = new Date()): Promise<Summary> {
   const [counts, dueSoon] = await Promise.all([
-    db.$queryRaw<{ operasi: bigint; cssd: bigint; damaged: bigint }[]>(Prisma.sql`
+    db.$queryRaw<{ operasi: bigint; cssd: bigint; damaged: bigint; needsSterilization: bigint }[]>(
+      Prisma.sql`
       SELECT
         count(*) FILTER (WHERE i.location = 'OPERASI') AS operasi,
         count(*) FILTER (WHERE i.location = 'CSSD') AS cssd,
         count(*) FILTER (WHERE i.damaged_quantity > 0 OR EXISTS (
           SELECT 1 FROM item_contents c WHERE c.item_id = i.id AND c.damaged_quantity > 0
-        )) AS damaged
+        )) AS damaged,
+        count(*) FILTER (WHERE i.needs_sterilization) AS "needsSterilization"
       FROM items i
       WHERE NOT i.is_archived
-    `),
+    `,
+    ),
     dueSoonItemIds(now),
   ]);
   const row = counts[0];
@@ -91,6 +99,7 @@ export async function getSummary(now = new Date()): Promise<Summary> {
     cssd: Number(row?.cssd ?? 0),
     damaged: Number(row?.damaged ?? 0),
     dueSoon: dueSoon.length,
+    needsSterilization: Number(row?.needsSterilization ?? 0),
   };
 }
 
@@ -139,25 +148,6 @@ export function listRecentActivity(limit = RECENT_ACTIVITY) {
       changes: true,
       createdAt: true,
       item: { select: { code: true, name: true } },
-    },
-  });
-}
-
-/**
- * Active items flagged as needing sterilization, oldest in their current location first
- * (they have been waiting the longest). For the Beranda "Perlu sterilisasi" list.
- */
-export function listNeedsSterilization(limit = NEEDS_STERILIZATION_ITEMS) {
-  return db.item.findMany({
-    where: { isArchived: false, needsSterilization: true },
-    orderBy: { locationSince: "asc" },
-    take: limit,
-    select: {
-      id: true,
-      code: true,
-      name: true,
-      location: true,
-      locationSince: true,
     },
   });
 }

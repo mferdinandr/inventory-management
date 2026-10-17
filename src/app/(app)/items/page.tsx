@@ -21,6 +21,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
   const location = first(params.location);
   const room = first(params.room);
   const damaged = first(params.damaged) === "1";
+  const needsSterilization = first(params.needsSterilization) === "1";
   const archived = first(params.archived) === "1";
   const dueSoon = first(params.dueSoon) === "1";
 
@@ -30,6 +31,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       location: location === "OPERASI" || location === "CSSD" ? location : undefined,
       room: room || undefined,
       damaged,
+      needsSterilization,
       dueSoon,
       archived,
     }),
@@ -90,6 +92,18 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
               className="size-5"
             />
             {t.items.list.damagedOnly}
+          </label>
+        </div>
+        <div className="flex flex-col justify-end gap-2">
+          <label className="flex min-h-11 items-center gap-2 text-base">
+            <input
+              type="checkbox"
+              name="needsSterilization"
+              value="1"
+              defaultChecked={needsSterilization}
+              className="size-5"
+            />
+            {t.dashboard.cards.needsSterilization}
           </label>
         </div>
         <div className="flex flex-col justify-end gap-2">

@@ -5,7 +5,6 @@ import {
   dueSoonItemIds,
   getSummary,
   listDueSoon,
-  listNeedsSterilization,
   listRecentActivity,
   listRecentItems,
 } from "@/server/services/summary.service";
@@ -64,7 +63,13 @@ beforeEach(async () => {
 
 describe("getSummary", () => {
   it("is all zeros with no items", async () => {
-    expect(await getSummary(NOW)).toEqual({ operasi: 0, cssd: 0, damaged: 0, dueSoon: 0 });
+    expect(await getSummary(NOW)).toEqual({
+      operasi: 0,
+      cssd: 0,
+      damaged: 0,
+      dueSoon: 0,
+      needsSterilization: 0,
+    });
   });
 
   it("counts by location and ignores archived items", async () => {
@@ -73,7 +78,13 @@ describe("getSummary", () => {
     await makeItem({ needsSterilization: true, location: "CSSD" });
     await makeItem({ isArchived: true, damagedQuantity: 1 });
     await makeItem({ isArchived: true, needsSterilization: true, location: "CSSD" });
-    expect(await getSummary(NOW)).toEqual({ operasi: 2, cssd: 1, damaged: 0, dueSoon: 0 });
+    expect(await getSummary(NOW)).toEqual({
+      operasi: 2,
+      cssd: 1,
+      damaged: 0,
+      dueSoon: 0,
+      needsSterilization: 1,
+    });
   });
 
   it("counts damaged by the item or by any content row, once per item", async () => {
@@ -170,29 +181,6 @@ describe("listDueSoon", () => {
     const rows = await listDueSoon(NOW);
     expect(rows.find((r) => r.name === "Hanya pemeliharaan")?.type).toBe("PEMELIHARAAN");
     expect(rows.find((r) => r.name === "Hanya kalibrasi")?.type).toBe("KALIBRASI");
-  });
-});
-
-describe("listNeedsSterilization", () => {
-  it("lists active flagged items, oldest in location first, ignoring archived", async () => {
-    const first = await makeItem({
-      name: "Pisau",
-      needsSterilization: true,
-      location: "OPERASI",
-      locationSince: new Date("2026-10-01T00:00:00Z"),
-    });
-    await makeItem({
-      name: "Gunting",
-      needsSterilization: true,
-      location: "OPERASI",
-      locationSince: new Date("2026-10-02T00:00:00Z"),
-    });
-    await makeItem({ name: "Bersih" });
-    await makeItem({ name: "Arsip", needsSterilization: true, isArchived: true });
-    const rows = await listNeedsSterilization();
-    expect(rows.map((i) => i.name)).toEqual(["Pisau", "Gunting"]);
-    expect(rows[0]).toMatchObject({ location: "OPERASI", code: first.code });
-    expect(await listNeedsSterilization(1)).toHaveLength(1);
   });
 });
 

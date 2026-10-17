@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Boxes,
   CalendarClock,
+  FlaskConical,
   Hospital,
   PackagePlus,
   PackageSearch,
@@ -11,46 +12,21 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/activity-timeline";
-import { ItemListCard } from "@/components/item-list-card";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
-import {
-  getSummary,
-  listDueSoon,
-  listNeedsSterilization,
-  listRecentActivity,
-  listRecentItems,
-} from "@/server/services/summary.service";
-import { formatAge } from "./items/format";
+import { getSummary, listRecentActivity } from "@/server/services/summary.service";
 import { LinkButton } from "./items/link-button";
 
 export const metadata: Metadata = { title: t.home.title };
 // Counts change with every edit; never serve a cached page.
 export const dynamic = "force-dynamic";
 
-const DAY_MS = 86_400_000;
-
-/** Whole calendar days from `now` until `nextDue` (midnight in the hospital's timezone). */
-function daysUntil(nextDue: Date, now: Date): number {
-  const jakarta = (d: Date) =>
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
-  const day = (s: string) => new Date(`${s}T00:00:00Z`).getTime();
-  return Math.round((day(jakarta(nextDue)) - day(jakarta(now))) / DAY_MS);
-}
-
 export default async function HomePage() {
   const user = await requireUser();
-  const now = new Date();
-  const [summary, recentItems, needsSterilization, dueSoon, activity] = await Promise.all([
-    getSummary(),
-    listRecentItems(6),
-    listNeedsSterilization(6),
-    listDueSoon(now, 6),
-    listRecentActivity(10),
-  ]);
+  const [summary, activity] = await Promise.all([getSummary(), listRecentActivity(10)]);
   const c = t.dashboard.cards;
 
   const cards = [
@@ -67,6 +43,14 @@ export default async function HomePage() {
       href: "/items?location=CSSD",
       icon: Boxes,
       iconClass: "bg-ink-100 text-ink-600",
+    },
+    {
+      label: c.needsSterilization,
+      value: summary.needsSterilization,
+      href: "/items?needsSterilization=1",
+      icon: FlaskConical,
+      iconClass:
+        summary.needsSterilization > 0 ? "bg-sky-50 text-sky-700" : "bg-ink-100 text-ink-400",
     },
     {
       label: c.damaged,
@@ -149,78 +133,6 @@ export default async function HomePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <ItemListCard
-            title={t.dashboard.recentItems}
-            emptyText={t.dashboard.noRecentItems}
-            items={recentItems.map((item) => ({
-              id: item.id,
-              code: item.code,
-              name: item.name,
-              badge: item.hasDamage ? (
-                <Badge variant="destructive">{t.dashboard.damagedBadge}</Badge>
-              ) : undefined,
-            }))}
-            hrefFor={(item) => `/items/${item.code}`}
-            meta={(item) => {
-              const row = recentItems.find((i) => i.id === item.id);
-              if (!row) return null;
-              const place = t.items.locations[row.location];
-              return (
-                <span
-                  className={row.location === "CSSD" ? "font-medium text-amber-700" : undefined}
-                >
-                  {place}
-                  {row.needsSterilization &&
-                    ` · ${t.dashboard.sinceIn(formatAge(row.locationSince, now), place)}`}
-                </span>
-              );
-            }}
-          />
-
-          <ItemListCard
-            title={t.dashboard.needsSterilization}
-            emptyText={t.dashboard.noNeedsSterilization}
-            items={needsSterilization.map((item) => ({
-              id: item.id,
-              code: item.code,
-              name: item.name,
-            }))}
-            hrefFor={(item) => `/items/${item.code}`}
-            meta={(item) => {
-              const row = needsSterilization.find((i) => i.id === item.id);
-              if (!row) return null;
-              const place = t.items.locations[row.location];
-              return (
-                <>
-                  {place}
-                  {` · ${t.dashboard.sinceIn(formatAge(row.locationSince, now), place)}`}
-                </>
-              );
-            }}
-          />
-
-          <ItemListCard
-            title={t.dashboard.dueSoonList}
-            emptyText={t.dashboard.noDueSoon}
-            items={dueSoon.map((item) => ({ id: item.id, code: item.code, name: item.name }))}
-            hrefFor={(item) => `/items/${item.code}`}
-            meta={(item) => {
-              const row = dueSoon.find((i) => i.id === item.id);
-              if (!row) return null;
-              const days = daysUntil(row.nextDue, now);
-              return (
-                <>
-                  {t.maintenance.types[row.type]} ·{" "}
-                  <span className={days < 0 ? "font-medium text-danger-700" : undefined}>
-                    {days < 0 ? t.dashboard.daysOverdue(-days) : t.dashboard.daysLeft(days)}
-                  </span>
-                </>
-              );
-            }}
-          />
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>{t.dashboard.activity}</CardTitle>
