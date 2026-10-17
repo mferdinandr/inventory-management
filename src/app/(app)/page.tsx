@@ -2,7 +2,6 @@ import {
   ArrowRight,
   Boxes,
   CalendarClock,
-  ChevronRight,
   Hospital,
   PackagePlus,
   PackageSearch,
@@ -12,12 +11,19 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/activity-timeline";
+import { ItemListCard } from "@/components/item-list-card";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
-import { getSummary, listRecentActivity, listRecentItems } from "@/server/services/summary.service";
+import {
+  getSummary,
+  listDueSoon,
+  listNeedsSterilization,
+  listRecentActivity,
+  listRecentItems,
+} from "@/server/services/summary.service";
 import { formatAge } from "./items/format";
 import { LinkButton } from "./items/link-button";
 
@@ -25,14 +31,26 @@ export const metadata: Metadata = { title: t.home.title };
 // Counts change with every edit; never serve a cached page.
 export const dynamic = "force-dynamic";
 
+const DAY_MS = 86_400_000;
+
+/** Whole calendar days from `now` until `nextDue` (midnight in the hospital's timezone). */
+function daysUntil(nextDue: Date, now: Date): number {
+  const jakarta = (d: Date) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
+  const day = (s: string) => new Date(`${s}T00:00:00Z`).getTime();
+  return Math.round((day(jakarta(nextDue)) - day(jakarta(now))) / DAY_MS);
+}
+
 export default async function HomePage() {
   const user = await requireUser();
-  const [summary, recentItems, activity] = await Promise.all([
-    getSummary(),
-    listRecentItems(),
-    listRecentActivity(),
-  ]);
   const now = new Date();
+  const [summary, recentItems, needsSterilization, dueSoon, activity] = await Promise.all([
+    getSummary(),
+    listRecentItems(6),
+    listNeedsSterilization(6),
+    listDueSoon(now, 6),
+    listRecentActivity(10),
+  ]);
   const c = t.dashboard.cards;
 
   const cards = [
@@ -93,24 +111,24 @@ export default async function HomePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t.dashboard.groupCounts}</h2>
-        <Link href="/items" className="group block">
-          <Card className="border-0 bg-brand-700 text-white shadow-lg transition-colors hover:bg-brand-800">
-            <CardContent className="flex items-center justify-between gap-4 p-5">
-              <div className="flex items-center gap-4">
-                <span className="rounded-xl bg-white/10 p-3">
-                  <PackageSearch className="size-6" />
-                </span>
-                <div>
-                  <p className="text-sm text-brand-100">{c.total}</p>
-                  <p className="text-3xl font-bold">{summary.operasi + summary.cssd}</p>
-                </div>
-              </div>
-              <ArrowRight className="size-5 text-brand-200 transition-transform group-hover:translate-x-1" />
-            </CardContent>
-          </Card>
-        </Link>
-
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          <Link href="/items" className="group sm:col-span-2 lg:col-span-2">
+            <Card className="border-0 bg-brand-700 text-white shadow-lg transition-colors hover:bg-brand-800">
+              <CardContent className="flex items-center justify-between gap-4 p-5">
+                <div className="flex items-center gap-4">
+                  <span className="rounded-xl bg-white/10 p-3">
+                    <PackageSearch className="size-6" />
+                  </span>
+                  <div>
+                    <p className="text-sm text-brand-100">{c.total}</p>
+                    <p className="text-3xl font-bold">{summary.operasi + summary.cssd}</p>
+                  </div>
+                </div>
+                <ArrowRight className="size-5 text-brand-200 transition-transform group-hover:translate-x-1" />
+              </CardContent>
+            </Card>
+          </Link>
+
           {cards.map((card) => (
             <Link key={card.label} href={card.href} className="group">
               <Card className="h-full transition-colors hover:border-primary/50">
@@ -129,69 +147,89 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="space-y-3">
+      <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
-        <div className="grid gap-6 lg:grid-cols-5">
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>{t.dashboard.recentItems}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {recentItems.length === 0 ? (
-                <p className="px-6 pb-6 text-sm text-muted-foreground">
-                  {t.dashboard.noRecentItems}
-                </p>
-              ) : (
-                <ul className="divide-y divide-ink-200">
-                  {recentItems.map((item) => (
-                    <li key={item.id}>
-                      <Link
-                        href={`/items/${item.code}`}
-                        className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {item.code}
-                            </span>
-                            {item.hasDamage && (
-                              <Badge variant="destructive">{t.dashboard.damagedBadge}</Badge>
-                            )}
-                          </div>
-                          <p className="truncate font-medium">{item.name}</p>
-                          <p
-                            className={cn(
-                              "text-sm",
-                              item.location === "CSSD" ? "text-amber-700" : "text-muted-foreground",
-                            )}
-                          >
-                            {t.items.locations[item.location]}
-                            {item.needsSterilization &&
-                              ` · ${t.dashboard.sinceIn(
-                                formatAge(item.locationSince, now),
-                                t.items.locations[item.location],
-                              )}`}
-                          </p>
-                        </div>
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <ItemListCard
+            title={t.dashboard.recentItems}
+            emptyText={t.dashboard.noRecentItems}
+            items={recentItems.map((item) => ({
+              id: item.id,
+              code: item.code,
+              name: item.name,
+              badge: item.hasDamage ? (
+                <Badge variant="destructive">{t.dashboard.damagedBadge}</Badge>
+              ) : undefined,
+            }))}
+            hrefFor={(item) => `/items/${item.code}`}
+            meta={(item) => {
+              const row = recentItems.find((i) => i.id === item.id);
+              if (!row) return null;
+              const place = t.items.locations[row.location];
+              return (
+                <span
+                  className={row.location === "CSSD" ? "font-medium text-amber-700" : undefined}
+                >
+                  {place}
+                  {row.needsSterilization &&
+                    ` · ${t.dashboard.sinceIn(formatAge(row.locationSince, now), place)}`}
+                </span>
+              );
+            }}
+          />
 
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{t.dashboard.activity}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ActivityTimeline entries={activity} />
-            </CardContent>
-          </Card>
+          <ItemListCard
+            title={t.dashboard.needsSterilization}
+            emptyText={t.dashboard.noNeedsSterilization}
+            items={needsSterilization.map((item) => ({
+              id: item.id,
+              code: item.code,
+              name: item.name,
+            }))}
+            hrefFor={(item) => `/items/${item.code}`}
+            meta={(item) => {
+              const row = needsSterilization.find((i) => i.id === item.id);
+              if (!row) return null;
+              const place = t.items.locations[row.location];
+              return (
+                <>
+                  {place}
+                  {` · ${t.dashboard.sinceIn(formatAge(row.locationSince, now), place)}`}
+                </>
+              );
+            }}
+          />
+
+          <ItemListCard
+            title={t.dashboard.dueSoonList}
+            emptyText={t.dashboard.noDueSoon}
+            items={dueSoon.map((item) => ({ id: item.id, code: item.code, name: item.name }))}
+            hrefFor={(item) => `/items/${item.code}`}
+            meta={(item) => {
+              const row = dueSoon.find((i) => i.id === item.id);
+              if (!row) return null;
+              const days = daysUntil(row.nextDue, now);
+              return (
+                <>
+                  {t.maintenance.types[row.type]} ·{" "}
+                  <span className={days < 0 ? "font-medium text-danger-700" : undefined}>
+                    {days < 0 ? t.dashboard.daysOverdue(-days) : t.dashboard.daysLeft(days)}
+                  </span>
+                </>
+              );
+            }}
+          />
         </div>
-      </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.dashboard.activity}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActivityTimeline entries={activity} />
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
