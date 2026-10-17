@@ -1,6 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ function validate(username: string, password: string): FieldErrors {
 }
 
 export function LoginForm({ next }: { next?: string }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(login, undefined);
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
@@ -33,10 +35,14 @@ export function LoginForm({ next }: { next?: string }) {
   const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
-    if (state?.error) {
-      toast.error(state.error === "blocked" ? t.login.blocked : t.login.failed);
+    if (!state) return;
+    if ("ok" in state) {
+      toast.success(t.login.success);
+      router.push(state.next);
+      return;
     }
-  }, [state]);
+    toast.error(state.error === "blocked" ? t.login.blocked : t.login.failed);
+  }, [state, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const nextErrors = validate(username, password);
