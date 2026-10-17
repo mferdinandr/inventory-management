@@ -1,19 +1,11 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { PasswordInput } from "@/components/password-input";
 import { RoleBadge } from "@/components/role-badge";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Label,
-  NativeSelect,
-  Notice,
-} from "@/components/ui";
+import { Badge, Button, Card, CardContent, Input, Label, NativeSelect } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { type UsersState, userAction } from "./actions";
@@ -137,6 +129,13 @@ function UserRow({
 
 export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
   const [state, action, pending] = useActionState<UsersState, FormData>(userAction, undefined);
+
+  useEffect(() => {
+    if (!state) return;
+    if (state.ok) toast.success(state.ok);
+    else toast.error(state.error);
+  }, [state]);
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [roleFilter, setRoleFilter] = useState<keyof typeof t.roles | "all">("all");
@@ -153,11 +152,6 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
 
   return (
     <div className="space-y-6">
-      <div aria-live="polite">
-        {state?.error && <Notice tone="error">{state.error}</Notice>}
-        {state?.ok && <Notice tone="success">{state.ok}</Notice>}
-      </div>
-
       <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
         <div className="px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-8">
           <div className="mb-10">
@@ -227,7 +221,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
               className={cn(FIELD, "pl-10")}
             />
           </div>
-          <div className="sm:w-44">
+          <div className="sm:w-42">
             <NativeSelect
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
@@ -239,7 +233,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
               <option value="inactive">{t.users.inactive}</option>
             </NativeSelect>
           </div>
-          <div className="sm:w-44">
+          <div className="sm:w-42">
             <NativeSelect
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value as keyof typeof t.roles | "all")}
@@ -266,7 +260,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
       ) : (
         <ul className="space-y-3">
           {filtered.map((u) => (
-            <li key={u.id}>
+            <li key={`${u.id}-${u.role}-${u.isActive}`}>
               <UserRow user={u} meId={meId} action={action} pending={pending} />
             </li>
           ))}
