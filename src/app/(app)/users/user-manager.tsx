@@ -214,7 +214,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold tracking-tight text-ink-900">{t.users.listTitle}</h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative sm:w-72">
