@@ -1,23 +1,23 @@
 import type { ComponentProps } from "react";
 
-const field =
-  "block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/30";
+export const fieldClass =
+  "block w-full rounded-lg border border-ink-300 bg-white px-3 py-3 text-base shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30";
 
 export function Label({ children, ...props }: ComponentProps<"label">) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: callers pass htmlFor
-    <label className="mb-1 block text-sm font-medium text-slate-700" {...props}>
+    <label className="mb-1 block text-sm font-medium text-ink-700" {...props}>
       {children}
     </label>
   );
 }
 
 export function Input(props: ComponentProps<"input">) {
-  return <input className={field} {...props} />;
+  return <input className={fieldClass} {...props} />;
 }
 
 export function Select(props: ComponentProps<"select">) {
-  return <select className={field} {...props} />;
+  return <select className={fieldClass} {...props} />;
 }
 
 export function Button({
@@ -25,9 +25,9 @@ export function Button({
   ...props
 }: ComponentProps<"button"> & { variant?: "primary" | "secondary" | "danger" }) {
   const styles = {
-    primary: "bg-teal-700 text-white hover:bg-teal-800",
-    secondary: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-100",
-    danger: "border border-red-300 bg-white text-red-700 hover:bg-red-50",
+    primary: "bg-brand-700 text-white hover:bg-brand-800",
+    secondary: "border border-ink-300 bg-white text-ink-800 hover:bg-ink-100",
+    danger: "border border-danger-300 bg-white text-danger-700 hover:bg-danger-50",
   }[variant];
   return (
     <button
@@ -46,8 +46,8 @@ export function Notice({
 }) {
   const styles =
     tone === "error"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : "border-emerald-200 bg-emerald-50 text-emerald-800";
+      ? "border-danger-200 bg-danger-50 text-danger-800"
+      : "border-success-200 bg-success-50 text-success-800";
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
