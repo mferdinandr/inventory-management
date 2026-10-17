@@ -77,63 +77,67 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 {u.isActive ? t.users.active : t.users.inactive}
               </span>
             </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <form action={action} className="flex items-end gap-2">
-                <input type="hidden" name="intent" value="role" />
-                <input type="hidden" name="id" value={u.id} />
-                <div>
-                  <Label htmlFor={`role-${u.id}`}>{t.users.role}</Label>
-                  <NativeSelect
-                    id={`role-${u.id}`}
-                    name="role"
-                    defaultValue={u.role}
-                    disabled={u.id === meId}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {t.roles[r]}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </div>
-                <Button type="submit" variant="outline" disabled={pending || u.id === meId}>
-                  OK
-                </Button>
-              </form>
-
-              <form action={action} className="flex items-end gap-2">
-                <input type="hidden" name="intent" value="reset" />
-                <input type="hidden" name="id" value={u.id} />
-                <div>
-                  <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
-                  <PasswordInput
-                    id={`pw-${u.id}`}
-                    name="password"
-                    minLength={8}
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-                <Button type="submit" variant="outline" disabled={pending}>
-                  {t.users.resetPassword}
-                </Button>
-              </form>
-
-              {u.id !== meId && (
-                <form action={action}>
-                  <input type="hidden" name="intent" value="toggle" />
+            {u.role === "SUPERADMIN" && u.id !== meId ? (
+              <p className="text-sm text-slate-500">{t.users.otherSuperadmin}</p>
+            ) : (
+              <div className="flex flex-wrap items-end gap-3">
+                <form action={action} className="flex items-end gap-2">
+                  <input type="hidden" name="intent" value="role" />
                   <input type="hidden" name="id" value={u.id} />
-                  <input type="hidden" name="active" value={String(!u.isActive)} />
-                  <Button
-                    type="submit"
-                    variant={u.isActive ? "destructive" : "outline"}
-                    disabled={pending}
-                  >
-                    {u.isActive ? t.users.deactivate : t.users.activate}
+                  <div>
+                    <Label htmlFor={`role-${u.id}`}>{t.users.role}</Label>
+                    <NativeSelect
+                      id={`role-${u.id}`}
+                      name="role"
+                      defaultValue={u.role}
+                      disabled={u.id === meId}
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {t.roles[r]}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <Button type="submit" variant="outline" disabled={pending || u.id === meId}>
+                    OK
                   </Button>
                 </form>
-              )}
-            </div>
+
+                <form action={action} className="flex items-end gap-2">
+                  <input type="hidden" name="intent" value="reset" />
+                  <input type="hidden" name="id" value={u.id} />
+                  <div>
+                    <Label htmlFor={`pw-${u.id}`}>{t.users.newPassword}</Label>
+                    <PasswordInput
+                      id={`pw-${u.id}`}
+                      name="password"
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" variant="outline" disabled={pending}>
+                    {t.users.resetPassword}
+                  </Button>
+                </form>
+
+                {u.id !== meId && (
+                  <form action={action}>
+                    <input type="hidden" name="intent" value="toggle" />
+                    <input type="hidden" name="id" value={u.id} />
+                    <input type="hidden" name="active" value={String(!u.isActive)} />
+                    <Button
+                      type="submit"
+                      variant={u.isActive ? "destructive" : "outline"}
+                      disabled={pending}
+                    >
+                      {u.isActive ? t.users.deactivate : t.users.activate}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

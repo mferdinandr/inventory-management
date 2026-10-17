@@ -38,26 +38,57 @@ describe("createUser", () => {
 describe("updateUser", () => {
   it("keeps at least one active SUPERADMIN", async () => {
     const only = await createUser({ ...base, username: "root", role: "SUPERADMIN" });
-    await expect(updateUser(only.id, { isActive: false })).rejects.toMatchObject({
+    await expect(updateUser(only.id, { isActive: false }, only.id)).rejects.toMatchObject({
       code: "LAST_SUPERADMIN",
     });
-    await expect(updateUser(only.id, { role: "OPERASI" })).rejects.toMatchObject({
+    await expect(updateUser(only.id, { role: "OPERASI" }, only.id)).rejects.toMatchObject({
       code: "LAST_SUPERADMIN",
     });
 
     const second = await createUser({ ...base, username: "root2", role: "SUPERADMIN" });
-    expect((await updateUser(only.id, { role: "OPERASI" })).role).toBe("OPERASI");
-    await expect(updateUser(second.id, { isActive: false })).rejects.toMatchObject({
+    expect((await updateUser(only.id, { role: "OPERASI" }, only.id)).role).toBe("OPERASI");
+    await expect(updateUser(second.id, { isActive: false }, second.id)).rejects.toMatchObject({
       code: "LAST_SUPERADMIN",
     });
   });
 
   it("allows deactivating other users and reports unknown ids", async () => {
     const user = await createUser({ ...base, username: "alkes1", role: "ALKES" });
-    expect((await updateUser(user.id, { isActive: false })).isActive).toBe(false);
+    const admin = await createUser({ ...base, username: "root9", role: "SUPERADMIN" });
+    expect((await updateUser(user.id, { isActive: false }, admin.id)).isActive).toBe(false);
     await expect(
-      updateUser("00000000-0000-0000-0000-00000000dead", { name: "x" }),
+      updateUser("00000000-0000-0000-0000-00000000dead", { name: "x" }, admin.id),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("protecting other superadmins", () => {
+  it("refuses role, active and password changes on another SUPERADMIN", async () => {
+    const a = await createUser({ ...base, username: "root-a", role: "SUPERADMIN" });
+    const b = await createUser({ ...base, username: "root-b", role: "SUPERADMIN" });
+    await expect(updateUser(b.id, { role: "OPERASI" }, a.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(updateUser(b.id, { isActive: false }, a.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(updateUser(b.id, { name: "Renamed" }, a.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(resetPassword(b.id, "attacker-pass-1", a.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    const row = await db.user.findUniqueOrThrow({ where: { id: b.id } });
+    expect(row.role).toBe("SUPERADMIN");
+    expect(row.isActive).toBe(true);
+    expect(await verifyPassword(row.passwordHash, base.password)).toBe(true);
+  });
+
+  it("lets a SUPERADMIN still manage non-admin users and reset their own password", async () => {
+    const a = await createUser({ ...base, username: "root-c", role: "SUPERADMIN" });
+    const op = await createUser({ ...base, username: "op-c", role: "OPERASI" });
+    expect((await updateUser(op.id, { role: "STERIL" }, a.id)).role).toBe("STERIL");
+    await resetPassword(a.id, "my-new-pass-1", a.id);
   });
 });
 
@@ -68,7 +99,8 @@ describe("passwords", () => {
     const changed = await db.user.findUniqueOrThrow({ where: { id: user.id } });
     expect(changed.mustChangePassword).toBe(false);
 
-    await resetPassword(user.id, "admin-set-pass");
+    const admin = await createUser({ ...base, username: "root8", role: "SUPERADMIN" });
+    await resetPassword(user.id, "admin-set-pass", admin.id);
     const row = await db.user.findUniqueOrThrow({ where: { id: user.id } });
     expect(row.mustChangePassword).toBe(true);
     expect(await verifyPassword(row.passwordHash, "admin-set-pass")).toBe(true);
