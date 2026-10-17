@@ -36,6 +36,7 @@ export default async function HomePage() {
       href: "/items?location=OPERASI",
       icon: Hospital,
       iconClass: "bg-brand-50 text-brand-700",
+      tone: "",
     },
     {
       label: c.cssd,
@@ -43,6 +44,7 @@ export default async function HomePage() {
       href: "/items?location=CSSD",
       icon: Boxes,
       iconClass: "bg-ink-100 text-ink-600",
+      tone: "",
     },
     {
       label: c.needsSterilization,
@@ -50,7 +52,8 @@ export default async function HomePage() {
       href: "/items?needsSterilization=1",
       icon: FlaskConical,
       iconClass:
-        summary.needsSterilization > 0 ? "bg-sky-50 text-sky-700" : "bg-ink-100 text-ink-400",
+        summary.needsSterilization > 0 ? "bg-orange-50 text-orange-700" : "bg-ink-100 text-ink-400",
+      tone: "text-orange-700",
     },
     {
       label: c.damaged,
@@ -58,6 +61,7 @@ export default async function HomePage() {
       href: "/items?damaged=1",
       icon: TriangleAlert,
       iconClass: summary.damaged > 0 ? "bg-danger-50 text-danger-700" : "bg-ink-100 text-ink-400",
+      tone: "text-danger-700",
     },
     {
       label: c.dueSoon,
@@ -65,6 +69,7 @@ export default async function HomePage() {
       href: "/items?dueSoon=1",
       icon: CalendarClock,
       iconClass: summary.dueSoon > 0 ? "bg-amber-50 text-amber-700" : "bg-ink-100 text-ink-400",
+      tone: "text-amber-700",
     },
   ];
 
@@ -118,8 +123,17 @@ export default async function HomePage() {
               <Card className="h-full transition-colors hover:border-primary/50">
                 <CardContent className="flex items-start justify-between gap-2 p-4">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-muted-foreground">{card.label}</p>
-                    <p className="mt-1 text-3xl font-bold">{card.value}</p>
+                    <p
+                      className={cn(
+                        "truncate text-sm",
+                        card.value > 0 ? card.tone : "text-muted-foreground",
+                      )}
+                    >
+                      {card.label}
+                    </p>
+                    <p className={cn("mt-1 text-3xl font-bold", card.value > 0 ? card.tone : "")}>
+                      {card.value}
+                    </p>
                   </div>
                   <span className={cn("rounded-lg p-2", card.iconClass)}>
                     <card.icon className="size-5" />
