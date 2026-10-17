@@ -78,7 +78,7 @@ function UserRow({
           >
             <input type="hidden" name="intent" value="update" />
             <input type="hidden" name="id" value={user.id} />
-            <div>
+            <div className="space-y-2">
               <Label htmlFor={`role-${user.id}`}>{t.users.role}</Label>
               <NativeSelect
                 id={`role-${user.id}`}
@@ -94,7 +94,7 @@ function UserRow({
                 ))}
               </NativeSelect>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor={`status-${user.id}`}>{t.users.status}</Label>
               <NativeSelect
                 id={`status-${user.id}`}
@@ -107,7 +107,7 @@ function UserRow({
                 <option value="inactive">{t.users.inactive}</option>
               </NativeSelect>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor={`pw-${user.id}`}>{t.users.newPassword}</Label>
               <PasswordInput
                 id={`pw-${user.id}`}
@@ -157,7 +157,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
           </div>
           <form action={action} className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="intent" value="create" />
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="new-username">{t.users.username}</Label>
               <Input
                 id="new-username"
@@ -167,11 +167,11 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 className={FIELD}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="new-name">{t.users.name}</Label>
               <Input id="new-name" name="name" required className={FIELD} />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="new-role">{t.users.role}</Label>
               <NativeSelect id="new-role" name="role" defaultValue="OPERASI" className={FIELD}>
                 {ROLES.map((r) => (
@@ -181,7 +181,7 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
                 ))}
               </NativeSelect>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="new-password">{t.users.password}</Label>
               <PasswordInput
                 id="new-password"
