@@ -14,6 +14,7 @@ export * from "./label";
 export * from "./select";
 export * from "./separator";
 export * from "./skeleton";
+export * from "./sonner";
 export * from "./textarea";
 
 export function Notice({ tone, children }: { tone: "error" | "success"; children: ReactNode }) {

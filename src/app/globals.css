@@ -86,6 +86,9 @@
   html {
     @apply font-sans;
   }
+  :where(button, [role="button"], select):not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @theme inline {

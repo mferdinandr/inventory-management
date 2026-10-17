@@ -28,7 +28,7 @@ export default async function LoginPage({
 
       <div className="relative w-full max-w-sm animate-fade-in-up">
         <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
-          <div className="px-8 pb-8 pt-10 sm:px-10">
+          <div className="px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-8">
             <div className="mb-6 flex flex-col items-center text-center">
               <h1 className="text-2xl font-bold tracking-tight text-ink-900">{t.appName}</h1>
               <p className="mt-1 text-sm text-ink-500">{t.tagline}</p>

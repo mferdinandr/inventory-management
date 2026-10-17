@@ -2,8 +2,9 @@
 
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import type { FormEvent } from "react";
-import { useActionState, useState } from "react";
-import { Button, Input, Label, Notice } from "@/components/ui";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button, Input, Label } from "@/components/ui";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { login } from "./actions";
@@ -31,6 +32,10 @@ export function LoginForm({ next }: { next?: string }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
 
+  useEffect(() => {
+    if (state?.error) toast.error(t.login.failed);
+  }, [state]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const nextErrors = validate(username, password);
     setErrors(nextErrors);
@@ -40,7 +45,6 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form action={action} onSubmit={handleSubmit} noValidate className="space-y-5">
       {next && <input type="hidden" name="next" value={next} />}
-      {state?.error && <Notice tone="error">{t.login.failed}</Notice>}
 
       <div className="space-y-2">
         <Label htmlFor="username">{t.login.username}</Label>
