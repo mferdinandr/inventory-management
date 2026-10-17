@@ -91,39 +91,41 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-        {cards.map((card) => (
-          <Link key={card.label} href={card.href} className="group">
-            <Card className="h-full transition-colors hover:border-primary/50">
-              <CardContent className="flex items-start justify-between gap-2 p-4">
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-muted-foreground">{card.label}</p>
-                  <p className="mt-1 text-3xl font-bold">{card.value}</p>
-                </div>
-                <span className={cn("rounded-lg p-2", card.iconClass)}>
-                  <card.icon className="size-5" />
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-
-        <Link href="/items" className="group sm:col-span-2 lg:col-span-4">
-          <Card className="transition-colors hover:border-primary/50">
-            <CardContent className="flex items-center justify-between gap-4 p-4">
-              <div className="flex items-center gap-3">
-                <span className="rounded-lg bg-brand-50 p-2 text-brand-700">
-                  <PackageSearch className="size-5" />
+      <section className="space-y-3">
+        <Link href="/items" className="group block">
+          <Card className="overflow-hidden border-0 bg-gradient-to-br from-brand-700 to-brand-900 text-white shadow-lg transition-shadow hover:shadow-xl">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              <div className="flex items-center gap-4">
+                <span className="rounded-xl bg-white/10 p-3">
+                  <PackageSearch className="size-6" />
                 </span>
                 <div>
-                  <p className="text-sm text-muted-foreground">{c.total}</p>
-                  <p className="text-xl font-bold">{summary.operasi + summary.cssd}</p>
+                  <p className="text-sm text-brand-100">{c.total}</p>
+                  <p className="text-3xl font-bold">{summary.operasi + summary.cssd}</p>
                 </div>
               </div>
-              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="size-5 text-brand-200 transition-transform group-hover:translate-x-1" />
             </CardContent>
           </Card>
         </Link>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          {cards.map((card) => (
+            <Link key={card.label} href={card.href} className="group">
+              <Card className="h-full transition-colors hover:border-primary/50">
+                <CardContent className="flex items-start justify-between gap-2 p-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-muted-foreground">{card.label}</p>
+                    <p className="mt-1 text-3xl font-bold">{card.value}</p>
+                  </div>
+                  <span className={cn("rounded-lg p-2", card.iconClass)}>
+                    <card.icon className="size-5" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-5">
