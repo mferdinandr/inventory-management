@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Menu, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Home, LayoutGrid, LogOut, Menu, Package, ScanLine, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { NavLink } from "@/components/nav-link";
@@ -17,6 +18,13 @@ type AppHeaderProps = {
   userName: string;
   role: Role;
   logout: () => Promise<void>;
+};
+
+const itemIcons: Record<string, LucideIcon> = {
+  "/": Home,
+  "/items": Package,
+  "/scan": ScanLine,
+  "/users": Users,
 };
 
 /** Sticky header with an inline nav on desktop and a full-width drawer on mobile. */
@@ -108,15 +116,19 @@ export function AppHeader({ items, userName, role, logout }: AppHeaderProps) {
             <span className="text-lg font-bold tracking-tight text-primary">{t.appName}</span>
           </div>
           <nav className="flex flex-col gap-1 p-4">
-            {items.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                className="h-12 w-full justify-start text-base"
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {items.map((item) => {
+              const Icon = itemIcons[item.href] ?? LayoutGrid;
+              return (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  className="h-12 w-full justify-start text-base"
+                >
+                  <Icon className="size-5" />
+                  {item.label}
+                </NavLink>
+              );
+            })}
           </nav>
           <p className="mt-auto flex items-center gap-2 border-t border-ink-200 px-4 py-3 text-sm text-muted-foreground">
             {userName}
