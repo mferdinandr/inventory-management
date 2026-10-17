@@ -227,29 +227,33 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
               className={cn(FIELD, "pl-10")}
             />
           </div>
-          <NativeSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-            aria-label={t.users.status}
-            className={cn(FIELD, "sm:w-44")}
-          >
-            <option value="all">{t.users.allStatus}</option>
-            <option value="active">{t.users.active}</option>
-            <option value="inactive">{t.users.inactive}</option>
-          </NativeSelect>
-          <NativeSelect
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as keyof typeof t.roles | "all")}
-            aria-label={t.users.role}
-            className={cn(FIELD, "sm:w-44")}
-          >
-            <option value="all">{t.users.allRoles}</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {t.roles[r]}
-              </option>
-            ))}
-          </NativeSelect>
+          <div className="sm:w-44">
+            <NativeSelect
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+              aria-label={t.users.status}
+              className={FIELD}
+            >
+              <option value="all">{t.users.allStatus}</option>
+              <option value="active">{t.users.active}</option>
+              <option value="inactive">{t.users.inactive}</option>
+            </NativeSelect>
+          </div>
+          <div className="sm:w-44">
+            <NativeSelect
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as keyof typeof t.roles | "all")}
+              aria-label={t.users.role}
+              className={FIELD}
+            >
+              <option value="all">{t.users.allRoles}</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {t.roles[r]}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
         </div>
       </div>
 
