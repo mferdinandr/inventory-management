@@ -28,10 +28,22 @@ function dateAhead(now: Date, days: number): string {
 export async function listDueSoon(
   now = new Date(),
   limit = DUE_SOON_ITEMS,
-): Promise<{ id: string; code: string; name: string; nextDue: Date }[]> {
+): Promise<
+  { id: string; code: string; name: string; nextDue: Date; type: "PEMELIHARAAN" | "KALIBRASI" }[]
+> {
   const cutoff = dateAhead(now, DUE_SOON_DAYS);
-  return db.$queryRaw<{ id: string; code: string; name: string; nextDue: Date }[]>(Prisma.sql`
-    SELECT i.id, i.code, i.name, LEAST(p.next_due, k.next_due) AS "nextDue"
+  return db.$queryRaw<
+    {
+      id: string;
+      code: string;
+      name: string;
+      nextDue: Date;
+      type: "PEMELIHARAAN" | "KALIBRASI";
+    }[]
+  >(Prisma.sql`
+    SELECT i.id, i.code, i.name, LEAST(p.next_due, k.next_due) AS "nextDue",
+      CASE WHEN p.next_due IS NOT NULL AND (k.next_due IS NULL OR p.next_due <= k.next_due)
+           THEN 'PEMELIHARAAN' ELSE 'KALIBRASI' END AS type
     FROM items i
     LEFT JOIN LATERAL (
       SELECT m.next_due FROM maintenance_records m

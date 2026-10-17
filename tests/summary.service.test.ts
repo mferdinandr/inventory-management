@@ -159,6 +159,17 @@ describe("listDueSoon", () => {
     const rows = await listDueSoon(NOW);
     expect(rows.map((r) => r.name)).toEqual(["Campuran"]);
     expect(rows[0]?.nextDue.toISOString().slice(0, 10)).toBe("2026-11-01");
+    expect(rows[0]?.type).toBe("KALIBRASI");
+  });
+
+  it("reports the winning type when only one schedule exists", async () => {
+    const p = await makeItem({ name: "Hanya pemeliharaan" });
+    await record(p.id, "PEMELIHARAAN", "2026-10-01", "2026-11-01");
+    const k = await makeItem({ name: "Hanya kalibrasi" });
+    await record(k.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    const rows = await listDueSoon(NOW);
+    expect(rows.find((r) => r.name === "Hanya pemeliharaan")?.type).toBe("PEMELIHARAAN");
+    expect(rows.find((r) => r.name === "Hanya kalibrasi")?.type).toBe("KALIBRASI");
   });
 });
 

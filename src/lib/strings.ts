@@ -296,6 +296,12 @@ export const t = {
     activity: "Aktivitas terbaru",
     noActivity: "Belum ada aktivitas.",
     moreChanges: (n: number) => `dan ${n} perubahan lain`,
+    needsSterilization: "Perlu sterilisasi",
+    noNeedsSterilization: "Tidak ada barang yang perlu disterilkan.",
+    dueSoonList: "Jatuh tempo \u2264 30 hari",
+    noDueSoon: "Tidak ada perawatan yang jatuh tempo.",
+    daysLeft: (n: number) => `${n} hari lagi`,
+    daysOverdue: (n: number) => `terlambat ${n} hari`,
   },
   flow: {
     send: "Kirim ke CSSD",
