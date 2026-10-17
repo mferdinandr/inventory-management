@@ -68,6 +68,7 @@ export const t = {
     created: "Pengguna dibuat. Mereka wajib mengganti kata sandi saat masuk pertama.",
     updated: "Perubahan disimpan.",
     passwordReset: "Kata sandi diatur ulang.",
+    otherSuperadmin: "Akun Superadmin lain hanya dapat diubah oleh pemiliknya.",
   },
   scan: {
     title: "Pindai",

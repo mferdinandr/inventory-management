@@ -31,17 +31,17 @@ export async function userAction(_prev: UsersState, form: FormData): Promise<Use
       case "role":
         if (id === actor.id)
           throw new AppError("FORBIDDEN", "Anda tidak dapat mengubah peran sendiri");
-        await updateUser(id, { role: text(form, "role") as never });
+        await updateUser(id, { role: text(form, "role") as never }, actor.id);
         break;
 
       case "toggle":
         if (id === actor.id)
           throw new AppError("FORBIDDEN", "Anda tidak dapat menonaktifkan diri sendiri");
-        await updateUser(id, { isActive: text(form, "active") === "true" });
+        await updateUser(id, { isActive: text(form, "active") === "true" }, actor.id);
         break;
 
       case "reset":
-        await resetPassword(id, text(form, "password"));
+        await resetPassword(id, text(form, "password"), actor.id);
         revalidatePath("/users");
         return { ok: t.users.passwordReset };
 
