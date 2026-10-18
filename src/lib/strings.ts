@@ -158,6 +158,7 @@ export const t = {
     truncated: (n: number) => `Menampilkan ${n} barang pertama. Persempit pencarian.`,
     archivedBadge: "Arsip",
     list: {
+      filter: "Filter",
       search: "Cari",
       searchPlaceholder: "Kode, nama, merek, nomor seri, atau kamar",
       location: "Lokasi",
