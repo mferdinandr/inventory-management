@@ -25,9 +25,10 @@ Semua endpoint butuh sesi, kecuali `/api/auth/*`. Format JSON. Peran per endpoin
 
 ## 2. Barang
 
-### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false`
+### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false&sort=code|name|quantity`
 Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
 `code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
+Urutan default `code` naik; `sort=name` mengurutkan nama naik, `sort=quantity` jumlah turun.
 
 ### `POST /api/items` — OPERASI, SUPERADMIN
 ```json

@@ -37,6 +37,8 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
   const needsSterilization = first(params.needsSterilization) === "1";
   const archived = first(params.archived) === "1";
   const dueSoon = first(params.dueSoon) === "1";
+  const sortParam = first(params.sort);
+  const sort = sortParam === "name" || sortParam === "quantity" ? sortParam : undefined;
 
   const [items, rooms] = await Promise.all([
     listItems({
@@ -47,6 +49,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       needsSterilization,
       dueSoon,
       archived,
+      sort,
     }),
     listRooms(),
   ]);
@@ -80,8 +83,8 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
           <CardTitle>{t.items.list.filter}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action="/items" className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+          <form action="/items" className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2 sm:col-span-3">
               <Label htmlFor="q">{t.items.list.search}</Label>
               <Input
                 id="q"
@@ -111,7 +114,16 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                 ))}
               </NativeSelect>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="sort">{t.items.list.sort}</Label>
+              <NativeSelect id="sort" name="sort" defaultValue={sort ?? ""} className={FIELD}>
+                <option value="">{t.items.list.sortDefault}</option>
+                <option value="code">{t.items.list.sortCode}</option>
+                <option value="name">{t.items.list.sortName}</option>
+                <option value="quantity">{t.items.list.sortQuantity}</option>
+              </NativeSelect>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:col-span-3">
               {checks.map((c) => (
                 <label
                   key={c.name}
@@ -128,7 +140,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                 </label>
               ))}
             </div>
-            <div className="flex gap-2 sm:col-span-2">
+            <div className="flex gap-2 sm:col-span-3">
               <Button type="submit" className={FIELD}>
                 {t.items.list.apply}
               </Button>

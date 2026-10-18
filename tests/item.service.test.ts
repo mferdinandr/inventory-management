@@ -399,6 +399,27 @@ describe("contents replace-all and log diff", () => {
   });
 });
 
+describe("sorting", () => {
+  it("sorts by code, name, or quantity as requested", async () => {
+    await register({ name: "Gunting", quantity: 2, needsSterilization: false });
+    await register({ name: "Autoclave", quantity: 9, needsSterilization: false });
+    await register({ name: "Bisturi", quantity: 5, needsSterilization: false });
+
+    expect((await listItems({ sort: "code" })).map((i) => i.name)).toEqual([
+      "Gunting",
+      "Autoclave",
+      "Bisturi",
+    ]);
+    expect((await listItems({ sort: "name" })).map((i) => i.name)).toEqual([
+      "Autoclave",
+      "Bisturi",
+      "Gunting",
+    ]);
+    expect((await listItems({ sort: "quantity" })).map((i) => i.quantity)).toEqual([9, 5, 2]);
+    expect((await listItems({ sort: "code" })).map((i) => i.quantity)).toEqual([2, 9, 5]);
+  });
+});
+
 describe("archive and restore", () => {
   it("hides the item from the default list, keeps it findable, and logs both", async () => {
     const item = await register();

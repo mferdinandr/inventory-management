@@ -22,6 +22,8 @@ export type ItemChange = { name: string; field: string; from: unknown; to: unkno
 
 type Tx = Prisma.TransactionClient;
 
+export type ItemSort = "code" | "name" | "quantity";
+
 export type ItemFilters = {
   q?: string;
   location?: "OPERASI" | "CSSD";
@@ -33,6 +35,8 @@ export type ItemFilters = {
   dueSoon?: boolean;
   /** true lists only archived items; the default lists only active ones. */
   archived?: boolean;
+  /** Defaults to `code` ascending. */
+  sort?: ItemSort;
 };
 
 const LIST_LIMIT = 500;
@@ -83,9 +87,15 @@ export async function listItems(filters: ItemFilters = {}) {
       })),
     }),
   };
+  const SORTS: Record<ItemSort, Prisma.ItemOrderByWithRelationInput[]> = {
+    code: [{ code: "asc" }],
+    name: [{ name: "asc" }, { code: "asc" }],
+    quantity: [{ quantity: "desc" }, { code: "asc" }],
+  };
+
   return db.item.findMany({
     where,
-    orderBy: { code: "asc" },
+    orderBy: SORTS[filters.sort ?? "code"],
     take: LIST_LIMIT,
     select: {
       id: true,
