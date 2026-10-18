@@ -100,10 +100,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       >
         <Link
           href={sortHref(col)}
-          className={cn(
-            "group inline-flex items-center gap-1.5 transition-colors hover:text-foreground",
-            align === "right" && "flex-row-reverse",
-          )}
+          className="group inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
         >
           {label}
           <Icon
