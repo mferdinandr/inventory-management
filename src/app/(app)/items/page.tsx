@@ -132,7 +132,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
               <Button type="submit" className={FIELD}>
                 {t.items.list.apply}
               </Button>
-              <LinkButton href="/items" variant="ghost" className={cn(FIELD, "px-4")}>
+              <LinkButton href="/items" variant="outline" className={cn(FIELD, "px-4")}>
                 <RotateCcw className="size-4" />
                 {t.items.list.reset}
               </LinkButton>
