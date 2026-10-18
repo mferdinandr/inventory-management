@@ -1,4 +1,4 @@
-import { Plus, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -16,9 +16,8 @@ import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
-import { listItems, listRooms } from "@/server/services/item.service";
+import { type ItemSort, listItems, listRooms } from "@/server/services/item.service";
 import { LinkButton } from "./link-button";
-import { SortSelect } from "./sort-select";
 
 export const metadata: Metadata = { title: t.items.title };
 
@@ -27,6 +26,8 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 const FIELD = "h-11";
+
+const SORT_COLUMNS: ItemSort[] = ["code", "name", "room", "note", "location", "quantity"];
 
 export default async function ItemsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser();
@@ -39,7 +40,10 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
   const archived = first(params.archived) === "1";
   const dueSoon = first(params.dueSoon) === "1";
   const sortParam = first(params.sort);
-  const sort = sortParam === "name" || sortParam === "quantity" ? sortParam : undefined;
+  const sort: ItemSort | undefined = SORT_COLUMNS.includes(sortParam as ItemSort)
+    ? (sortParam as ItemSort)
+    : undefined;
+  const dir = first(params.dir) === "desc" ? "desc" : "asc";
 
   const [items, rooms] = await Promise.all([
     listItems({
@@ -51,9 +55,59 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       dueSoon,
       archived,
       sort,
+      dir,
     }),
     listRooms(),
   ]);
+
+  /** Header link that toggles asc/desc, keeping every active filter. */
+  function sortHref(col: ItemSort) {
+    const nextDir = sort === col && dir === "asc" ? "desc" : "asc";
+    const sp = new URLSearchParams({ sort: col, dir: nextDir });
+    if (q) sp.set("q", q);
+    if (location) sp.set("location", location);
+    if (room) sp.set("room", room);
+    if (damaged) sp.set("damaged", "1");
+    if (needsSterilization) sp.set("needsSterilization", "1");
+    if (dueSoon) sp.set("dueSoon", "1");
+    if (archived) sp.set("archived", "1");
+    return `/items?${sp.toString()}`;
+  }
+
+  function SortableHeader({
+    label,
+    col,
+    align = "left",
+  }: {
+    label: string;
+    col: ItemSort;
+    align?: "left" | "right";
+  }) {
+    const active = sort === col;
+    const Icon = !active ? ArrowUpDown : dir === "desc" ? ArrowDown : ArrowUp;
+    return (
+      <th
+        className={cn("px-4 py-3 font-medium", align === "right" && "text-right")}
+        aria-sort={active ? (dir === "desc" ? "descending" : "ascending") : undefined}
+      >
+        <Link
+          href={sortHref(col)}
+          className={cn(
+            "group inline-flex items-center gap-1.5 transition-colors hover:text-foreground",
+            align === "right" && "flex-row-reverse",
+          )}
+        >
+          {label}
+          <Icon
+            className={cn(
+              "size-3.5 transition-colors",
+              active ? "text-brand-600" : "text-muted-foreground group-hover:text-ink-600",
+            )}
+          />
+        </Link>
+      </th>
+    );
+  }
 
   const checks: { name: string; label: string; checked: boolean }[] = [
     { name: "damaged", label: t.items.list.damagedOnly, checked: damaged },
@@ -84,8 +138,8 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
           <CardTitle>{t.items.list.filter}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action="/items" className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-2 sm:col-span-3">
+          <form action="/items" className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="q">{t.items.list.search}</Label>
               <Input
                 id="q"
@@ -115,16 +169,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                 ))}
               </NativeSelect>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sort">{t.items.list.sort}</Label>
-              <SortSelect id="sort" name="sort" defaultValue={sort ?? ""} className={FIELD}>
-                <option value="">{t.items.list.sortDefault}</option>
-                <option value="code">{t.items.list.sortCode}</option>
-                <option value="name">{t.items.list.sortName}</option>
-                <option value="quantity">{t.items.list.sortQuantity}</option>
-              </SortSelect>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:col-span-3">
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
               {checks.map((c) => (
                 <label
                   key={c.name}
@@ -141,7 +186,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                 </label>
               ))}
             </div>
-            <div className="flex gap-2 sm:col-span-3">
+            <div className="flex gap-2 sm:col-span-2">
               <Button type="submit" className={FIELD}>
                 {t.items.list.apply}
               </Button>
@@ -161,56 +206,71 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
           <CardContent className="p-6 text-sm text-muted-foreground">{t.items.empty}</CardContent>
         </Card>
       ) : (
-        <ul className="space-y-3">
-          {items.map((item) => (
-            <li key={item.id}>
-              <Link href={`/items/${item.code}`} className="block">
-                <Card className="p-4 transition-colors hover:border-primary/50">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span className="font-mono text-sm text-muted-foreground">{item.code}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{item.name}</p>
-                      {item.room && <p className="text-sm text-muted-foreground">{item.room}</p>}
-                    </div>
-                    <Badge
-                      className={cn(
-                        "border-transparent",
-                        item.location === "CSSD"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-brand-50 text-brand-700",
-                      )}
+        <div className="overflow-x-auto rounded-xl border border-ink-200 bg-card">
+          <table className="w-full min-w-[44rem] text-sm">
+            <thead>
+              <tr className="border-b border-ink-200 text-left text-muted-foreground">
+                <SortableHeader label={t.items.list.table.code} col="code" />
+                <SortableHeader label={t.items.list.table.name} col="name" />
+                <SortableHeader label={t.items.list.table.room} col="room" />
+                <SortableHeader label={t.items.list.table.note} col="note" />
+                <SortableHeader label={t.items.list.table.location} col="location" />
+                <SortableHeader label={t.items.list.table.quantity} col="quantity" align="right" />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr
+                  key={item.id}
+                  className="group relative border-b border-ink-100 transition-colors last:border-b-0 hover:bg-muted/40"
+                >
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/items/${item.code}`}
+                      className="font-mono text-brand-700 after:absolute after:inset-0"
                     >
-                      {t.items.locations[item.location]}
-                    </Badge>
+                      {item.code}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-semibold">{item.name}</span>
                     {item.needsSterilization && (
-                      <Badge className="border-transparent bg-orange-50 text-orange-700">
+                      <Badge className="ml-2 h-5 border-transparent bg-orange-50 px-1.5 text-[0.7rem] text-orange-700">
                         {t.dashboard.cards.needsSterilization}
                       </Badge>
                     )}
-                    {item.damagedQuantity > 0 && (
-                      <Badge className="border-transparent bg-danger-50 text-danger-700">
-                        {t.dashboard.cards.damaged}
-                      </Badge>
-                    )}
                     {item.isArchived && (
-                      <Badge className="border-transparent bg-ink-100 text-ink-600">
+                      <Badge className="ml-2 h-5 border-transparent bg-ink-100 px-1.5 text-[0.7rem] text-ink-600">
                         {t.items.archivedBadge}
                       </Badge>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{item.room || "—"}</td>
+                  <td className="max-w-56 truncate px-4 py-3 text-muted-foreground">
+                    {item.description || "—"}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
                       className={cn(
-                        "text-lg font-bold tabular-nums",
-                        item.damagedQuantity > 0 ? "text-danger-600" : "text-ink-900",
+                        item.location === "CSSD" ? "font-medium text-amber-700" : "text-ink-800",
                       )}
                     >
-                      {t.items.list.quantity(item.quantity, item.damagedQuantity)}
+                      {t.items.locations[item.location]}
                     </span>
-                  </div>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  </td>
+                  <td
+                    className={cn(
+                      "px-4 py-3 text-right font-semibold tabular-nums",
+                      item.damagedQuantity > 0 && "text-danger-600",
+                    )}
+                  >
+                    {t.items.list.quantity(item.quantity, item.damagedQuantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
