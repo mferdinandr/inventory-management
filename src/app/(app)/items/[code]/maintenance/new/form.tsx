@@ -68,7 +68,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
   };
 
   return (
-    <form action={action} onSubmit={rememberActor} className="max-w-xl space-y-4">
+    <form action={action} onSubmit={rememberActor} className="space-y-4">
       {state?.error && <Notice tone="error">{state.error}</Notice>}
 
       <Field name="type" label={t.maintenance.type}>
