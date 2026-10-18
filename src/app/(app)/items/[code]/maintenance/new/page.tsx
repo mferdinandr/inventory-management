@@ -1,9 +1,10 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { t } from "@/lib/strings";
 import { requireAction } from "@/server/auth/session";
 import { findItemForMaintenance } from "@/server/services/maintenance.service";
+import { LinkButton } from "../../../link-button";
 import { MaintenanceForm } from "./form";
 
 export const metadata: Metadata = { title: t.maintenance.newTitle };
@@ -25,18 +26,27 @@ export default async function NewMaintenancePage({
 
   return (
     <section className="space-y-4">
-      <Link href={back} className="inline-block py-2 text-teal-800 underline">
+      <LinkButton href={back} variant="ghost" className="-ml-3 text-muted-foreground">
+        <ArrowLeft className="size-4" />
         {t.maintenance.back}
-      </Link>
-      <h1 className="text-2xl font-bold">
-        {t.maintenance.newTitle}: {item.name}
-      </h1>
-      <MaintenanceForm
-        code={item.code}
-        today={today}
-        quantity={item.quantity}
-        damaged={item.damagedQuantity}
-      />
+      </LinkButton>
+
+      <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
+        <div className="px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-8">
+          <div className="mb-8">
+            <p className="font-mono text-sm text-muted-foreground">{item.code}</p>
+            <h1 className="mt-1 text-xl font-bold tracking-tight text-ink-900">
+              {t.maintenance.newTitle}: {item.name}
+            </h1>
+          </div>
+          <MaintenanceForm
+            code={item.code}
+            today={today}
+            quantity={item.quantity}
+            damaged={item.damagedQuantity}
+          />
+        </div>
+      </div>
     </section>
   );
 }

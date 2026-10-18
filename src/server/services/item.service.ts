@@ -22,6 +22,9 @@ export type ItemChange = { name: string; field: string; from: unknown; to: unkno
 
 type Tx = Prisma.TransactionClient;
 
+export type ItemSort = "code" | "name" | "room" | "note" | "location" | "quantity" | "damaged";
+export type ItemSortDir = "asc" | "desc";
+
 export type ItemFilters = {
   q?: string;
   location?: "OPERASI" | "CSSD";
@@ -33,6 +36,20 @@ export type ItemFilters = {
   dueSoon?: boolean;
   /** true lists only archived items; the default lists only active ones. */
   archived?: boolean;
+  /** Sort column; defaults to `code`. */
+  sort?: ItemSort;
+  /** Sort direction; defaults to `asc`. */
+  dir?: ItemSortDir;
+};
+
+const SORT_FIELDS: Record<ItemSort, keyof Prisma.ItemOrderByWithRelationInput> = {
+  code: "code",
+  name: "name",
+  room: "room",
+  note: "description",
+  location: "location",
+  quantity: "quantity",
+  damaged: "damagedQuantity",
 };
 
 const LIST_LIMIT = 500;
@@ -83,14 +100,20 @@ export async function listItems(filters: ItemFilters = {}) {
       })),
     }),
   };
+  const orderBy: Prisma.ItemOrderByWithRelationInput[] = [
+    { [SORT_FIELDS[filters.sort ?? "code"]]: filters.dir === "desc" ? "desc" : "asc" },
+    { code: "asc" },
+  ];
+
   return db.item.findMany({
     where,
-    orderBy: { code: "asc" },
+    orderBy,
     take: LIST_LIMIT,
     select: {
       id: true,
       code: true,
       name: true,
+      description: true,
       room: true,
       needsSterilization: true,
       location: true,

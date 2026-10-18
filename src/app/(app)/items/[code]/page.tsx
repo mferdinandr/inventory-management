@@ -1,3 +1,4 @@
+import { Pencil, Printer, Undo2 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MaintenanceButton } from "@/components/maintenance-button";
@@ -62,11 +63,13 @@ export default async function ItemPage({ params }: { params: Params }) {
         <div className="flex flex-wrap gap-2">
           {canEdit && (
             <LinkButton href={`/items/${item.code}/edit`} variant="outline">
+              <Pencil className="size-4" />
               {t.items.edit}
             </LinkButton>
           )}
           {can(user.role, "label.print", state) && (
             <LinkButton href={`/print/label/${item.code}`} variant="outline">
+              <Printer className="size-4" />
               {t.items.printLabel}
             </LinkButton>
           )}
@@ -80,6 +83,7 @@ export default async function ItemPage({ params }: { params: Params }) {
             )}
           {!item.isArchived && item.location === "CSSD" && can(user.role, "item.return", state) && (
             <LinkButton href={`/items/${encodeURIComponent(item.code)}/return`}>
+              <Undo2 className="size-4" />
               {t.flow.return}
             </LinkButton>
           )}
