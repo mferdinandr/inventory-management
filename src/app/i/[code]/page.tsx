@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: t.public.title };
 
 import { ContentsList } from "@/app/(app)/items/contents-list";
 import { formatAge, formatDate, formatDateTime, formatRupiah } from "@/app/(app)/items/format";
+import { History } from "@/app/(app)/items/history";
 import { MaintenanceList } from "@/components/maintenance-list";
 import { t } from "@/lib/strings";
 import { getCurrentUser } from "@/server/auth/session";
@@ -147,6 +148,11 @@ export default async function PublicItemPage({ params }: { params: Promise<{ cod
           </p>
         )}
         <MaintenanceList records={maintenance.records} />
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold">{d.history}</h2>
+        <History logs={item.logs} />
       </section>
     </main>
   );

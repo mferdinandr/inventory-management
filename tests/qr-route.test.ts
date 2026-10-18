@@ -43,7 +43,16 @@ const item = {
   fundingSource: "APBD",
   warrantyUntil: new Date("2027-01-01"),
   contents: [],
-  logs: [],
+  logs: [
+    {
+      id: "l1",
+      action: "REGISTER",
+      actorName: "Admin RS",
+      note: null,
+      changes: [],
+      createdAt: new Date("2025-06-01"),
+    },
+  ],
   duplicateSerialCodes: [],
 };
 
@@ -90,6 +99,8 @@ describe("GET /i/[code] (public page)", () => {
     expect(html).toContain("SN-1");
     expect(html).toContain("10.000.000");
     expect(html).toContain("Meja bedah");
+    expect(html).toContain("Admin RS");
+    expect(html).toContain("Didaftarkan");
     expect(html).toContain("Halaman publik");
   });
 
