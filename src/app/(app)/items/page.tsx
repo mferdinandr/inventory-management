@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -67,7 +67,10 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t.items.title}</h1>
         {roleAllows(user.role, "item.create") && (
-          <LinkButton href="/items/new">{t.items.add}</LinkButton>
+          <LinkButton href="/items/new">
+            <Plus className="size-4" />
+            {t.items.add}
+          </LinkButton>
         )}
       </div>
 
