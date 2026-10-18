@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
 import { listItems, listRooms } from "@/server/services/item.service";
 import { LinkButton } from "./link-button";
+import { SortSelect } from "./sort-select";
 
 export const metadata: Metadata = { title: t.items.title };
 
@@ -116,12 +117,12 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
             </div>
             <div className="space-y-2">
               <Label htmlFor="sort">{t.items.list.sort}</Label>
-              <NativeSelect id="sort" name="sort" defaultValue={sort ?? ""} className={FIELD}>
+              <SortSelect id="sort" name="sort" defaultValue={sort ?? ""} className={FIELD}>
                 <option value="">{t.items.list.sortDefault}</option>
                 <option value="code">{t.items.list.sortCode}</option>
                 <option value="name">{t.items.list.sortName}</option>
                 <option value="quantity">{t.items.list.sortQuantity}</option>
-              </NativeSelect>
+              </SortSelect>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:col-span-3">
               {checks.map((c) => (
