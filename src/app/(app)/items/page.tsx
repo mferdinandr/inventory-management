@@ -1,3 +1,4 @@
+import { RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -128,7 +129,8 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
               <Button type="submit" className={FIELD}>
                 {t.items.list.apply}
               </Button>
-              <LinkButton href="/items" variant="outline" className={FIELD}>
+              <LinkButton href="/items" variant="ghost" className={cn(FIELD, "px-4")}>
+                <RotateCcw className="size-4" />
                 {t.items.list.reset}
               </LinkButton>
             </div>

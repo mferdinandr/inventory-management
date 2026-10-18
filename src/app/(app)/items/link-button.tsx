@@ -7,6 +7,6 @@ import { cn } from "@/lib/utils";
 export function LinkButton({
   variant = "default",
   ...props
-}: ComponentProps<typeof Link> & { variant?: "default" | "outline" }) {
+}: ComponentProps<typeof Link> & { variant?: "default" | "outline" | "ghost" }) {
   return <Link className={cn(buttonVariants({ variant }), "gap-2")} {...props} />;
 }
