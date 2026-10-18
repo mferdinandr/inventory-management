@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUser = vi.fn();
@@ -5,9 +6,49 @@ vi.mock("@/server/auth/session", () => ({ getCurrentUser }));
 vi.mock("@/server/services/item-lookup", () => ({
   findItemByCode: async (code: string) => (code === "BRG-0001" ? { code } : null),
 }));
+vi.mock("@/server/services/item.service", () => ({
+  getItemByCode: async (code: string) => (code === "BRG-0001" ? item : null),
+}));
+vi.mock("@/server/services/maintenance.service", () => ({
+  listMaintenance: async () => ({ records: [], nextCursor: null }),
+  getNextDue: async () => null,
+}));
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`REDIRECT:${url}`);
+  },
+  notFound: () => {
+    throw new Error("NOT_FOUND");
+  },
+}));
+
+const item = {
+  id: "i1",
+  code: "BRG-0001",
+  name: "Meja Operasi",
+  needsSterilization: true,
+  location: "OPERASI",
+  locationSince: new Date("2026-01-01"),
+  room: "OK 1",
+  quantity: 2,
+  damagedQuantity: 1,
+  brand: "Skytron",
+  model: "X2",
+  serialNumber: "SN-1",
+  createdAt: new Date("2025-01-01"),
+  description: "Meja bedah",
+  purchaseDate: new Date("2025-01-01"),
+  purchasePrice: BigInt("10000000"),
+  supplier: "PT Alkes",
+  fundingSource: "APBD",
+  warrantyUntil: new Date("2027-01-01"),
+  contents: [],
+  logs: [],
+  duplicateSerialCodes: [],
+};
 
 const { GET: qr } = await import("@/app/api/qr/[code]/route");
-const { GET: scanTarget } = await import("@/app/i/[code]/route");
+const PublicItemPage = (await import("@/app/i/[code]/page")).default;
 
 const ctx = (code: string) => ({ params: Promise.resolve({ code }) });
 const user = { id: "u", role: "ALKES", mustChangePassword: false };
@@ -36,18 +77,24 @@ describe("GET /api/qr/[code]", () => {
   });
 });
 
-describe("GET /i/[code]", () => {
-  it("sends signed-in users to the item", async () => {
+describe("GET /i/[code] (public page)", () => {
+  it("redirects signed-in users to the item", async () => {
     getCurrentUser.mockResolvedValue(user);
-    const res = await scanTarget(new Request("http://x/i/BRG-0001"), ctx("BRG-0001"));
-    expect(new URL(res.headers.get("location") ?? "").pathname).toBe("/items/BRG-0001");
+    await expect(PublicItemPage(ctx("BRG-0001"))).rejects.toThrow("REDIRECT:/items/BRG-0001");
   });
 
-  it("sends signed-out users to login with next", async () => {
+  it("shows the full item info to signed-out visitors", async () => {
     getCurrentUser.mockResolvedValue(null);
-    const res = await scanTarget(new Request("http://x/i/BRG-0001"), ctx("BRG-0001"));
-    const location = new URL(res.headers.get("location") ?? "");
-    expect(location.pathname).toBe("/login");
-    expect(location.searchParams.get("next")).toBe("/items/BRG-0001");
+    const html = renderToStaticMarkup(await PublicItemPage(ctx("BRG-0001")));
+    expect(html).toContain("Meja Operasi");
+    expect(html).toContain("SN-1");
+    expect(html).toContain("10.000.000");
+    expect(html).toContain("Meja bedah");
+    expect(html).toContain("Halaman publik");
+  });
+
+  it("404s for an unknown code", async () => {
+    getCurrentUser.mockResolvedValue(null);
+    await expect(PublicItemPage(ctx("BRG-9999"))).rejects.toThrow("NOT_FOUND");
   });
 });

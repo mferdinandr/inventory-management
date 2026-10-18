@@ -102,6 +102,11 @@ export const t = {
     noCodes: "Tidak ada kode barang. Gunakan ?codes=BRG-0001,BRG-0002.",
     missing: (codes: string) => `Barang tidak ditemukan: ${codes}`,
   },
+  public: {
+    title: "Informasi Barang",
+    note: "Halaman publik yang bisa dibuka siapa saja lewat barcode. Untuk mengubah data, perlu masuk akun.",
+    signIn: "Masuk untuk mengelola",
+  },
   maintenance: {
     title: "Maintenance",
     add: "Catat maintenance",
