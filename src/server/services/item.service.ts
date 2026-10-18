@@ -22,7 +22,7 @@ export type ItemChange = { name: string; field: string; from: unknown; to: unkno
 
 type Tx = Prisma.TransactionClient;
 
-export type ItemSort = "code" | "name" | "room" | "note" | "location" | "quantity";
+export type ItemSort = "code" | "name" | "room" | "note" | "location" | "quantity" | "damaged";
 export type ItemSortDir = "asc" | "desc";
 
 export type ItemFilters = {
@@ -49,6 +49,7 @@ const SORT_FIELDS: Record<ItemSort, keyof Prisma.ItemOrderByWithRelationInput> =
   note: "description",
   location: "location",
   quantity: "quantity",
+  damaged: "damagedQuantity",
 };
 
 const LIST_LIMIT = 500;

@@ -172,6 +172,7 @@ export const t = {
         note: "Catatan",
         location: "Lokasi",
         quantity: "Jumlah",
+        damaged: "Rusak",
       },
       damagedOnly: "Hanya yang rusak",
       archivedOnly: "Hanya arsip",

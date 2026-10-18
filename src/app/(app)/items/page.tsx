@@ -27,7 +27,15 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 
 const FIELD = "h-11";
 
-const SORT_COLUMNS: ItemSort[] = ["code", "name", "room", "note", "location", "quantity"];
+const SORT_COLUMNS: ItemSort[] = [
+  "code",
+  "name",
+  "room",
+  "note",
+  "location",
+  "quantity",
+  "damaged",
+];
 
 export default async function ItemsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser();
@@ -216,6 +224,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                 <SortableHeader label={t.items.list.table.note} col="note" />
                 <SortableHeader label={t.items.list.table.location} col="location" />
                 <SortableHeader label={t.items.list.table.quantity} col="quantity" align="right" />
+                <SortableHeader label={t.items.list.table.damaged} col="damaged" align="right" />
               </tr>
             </thead>
             <tbody>
@@ -264,7 +273,17 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
                       item.damagedQuantity > 0 && "text-danger-600",
                     )}
                   >
-                    {t.items.list.quantity(item.quantity, item.damagedQuantity)}
+                    {item.quantity}
+                  </td>
+                  <td
+                    className={cn(
+                      "px-4 py-3 text-right tabular-nums",
+                      item.damagedQuantity > 0
+                        ? "font-semibold text-danger-600"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {item.damagedQuantity > 0 ? item.damagedQuantity : "—"}
                   </td>
                 </tr>
               ))}
