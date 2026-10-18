@@ -28,10 +28,10 @@ export function LabelSizePicker({ children }: { children: React.ReactNode }) {
         {`@page { size: ${w}mm ${h}mm; margin: 0 } @media print { body { background: #fff } }`}
       </style>
 
-      <div className="mb-6 flex flex-wrap items-end gap-5 rounded-2xl border border-ink-200 bg-card p-4 shadow-sm print:hidden">
-        <div>
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-ink-200 bg-card p-4 shadow-sm print:hidden sm:flex-row sm:flex-wrap sm:items-end sm:gap-5">
+        <div className="w-full sm:w-auto">
           <p className="mb-2 text-sm font-medium text-muted-foreground">{t.print.labelSize}</p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <button
                 key={`${p.w}-${p.h}`}
@@ -52,7 +52,7 @@ export function LabelSizePicker({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:flex">
           <div className="space-y-1">
             <Label htmlFor="label-width">{t.print.width}</Label>
             <Input
@@ -63,7 +63,7 @@ export function LabelSizePicker({ children }: { children: React.ReactNode }) {
               inputMode="numeric"
               value={w}
               onChange={(e) => setW(clamp(Number(e.target.value)))}
-              className="h-9 w-24"
+              className="h-9 w-full sm:w-24"
             />
           </div>
           <div className="space-y-1">
@@ -76,21 +76,23 @@ export function LabelSizePicker({ children }: { children: React.ReactNode }) {
               inputMode="numeric"
               value={h}
               onChange={(e) => setH(clamp(Number(e.target.value)))}
-              className="h-9 w-24"
+              className="h-9 w-full sm:w-24"
             />
           </div>
         </div>
 
-        <div className="ml-auto">
-          <PrintButton />
+        <div className="w-full sm:ml-auto sm:w-auto">
+          <PrintButton className="w-full sm:w-auto" />
         </div>
       </div>
 
-      <div
-        style={{ width: `${w}mm`, height: `${h}mm` }}
-        className="border border-dashed border-slate-300 print:border-0"
-      >
-        {children}
+      <div className="overflow-x-auto pb-2">
+        <div
+          style={{ width: `${w}mm`, height: `${h}mm` }}
+          className="mx-auto shrink-0 border border-dashed border-slate-300 print:border-0"
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
