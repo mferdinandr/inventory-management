@@ -44,7 +44,7 @@ export async function ItemLabel({
 
   const textBlock = (
     <div
-      className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : ""} ${
+      className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : "flex-1"} ${
         textPosition === "left" ? "text-right" : ""
       }`}
     >
