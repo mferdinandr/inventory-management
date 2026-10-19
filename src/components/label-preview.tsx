@@ -21,11 +21,10 @@ export function LabelPreview({
   textPosition = "right",
   textScale = 1,
 }: Props) {
-  const stacked = textPosition === "top" || textPosition === "bottom";
-  const qrFirst = textPosition === "right" || textPosition === "bottom";
+  const qrFirst = textPosition !== "left";
 
   const qrBox = (
-    <div className={`relative shrink-0 ${stacked ? "h-[62%] w-full" : "h-full w-[55%]"}`}>
+    <div className="relative h-full w-[55%] shrink-0">
       {/* biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise */}
       <img
         src={qrSrc}
@@ -37,7 +36,7 @@ export function LabelPreview({
   );
 
   const textBlock = (
-    <div className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : "flex-1"}`}>
+    <div className={`min-w-0 flex-1 ${textPosition === "center" ? "text-center" : ""}`}>
       <p className="font-bold leading-tight" style={{ fontSize: `${11 * textScale}pt` }}>
         {code}
       </p>
@@ -49,9 +48,7 @@ export function LabelPreview({
 
   return (
     <div
-      className={`item-label flex h-full w-full overflow-hidden bg-white p-[2mm] text-black ${
-        stacked ? "flex-col" : "flex-row"
-      }`}
+      className="item-label flex h-full w-full flex-row items-center overflow-hidden bg-white p-[2mm] text-black"
       style={{ gap: "1.5mm" }}
     >
       {qrFirst ? qrBox : null}

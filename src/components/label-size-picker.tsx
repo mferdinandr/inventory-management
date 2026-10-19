@@ -98,10 +98,6 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
               />
             </div>
           </div>
-
-          <div className="w-full sm:ml-auto sm:w-auto">
-            <PrintButton className="w-full sm:w-auto" />
-          </div>
         </div>
 
         <hr className="border-ink-100" />
@@ -117,12 +113,13 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
             {t.print.showText}
           </label>
 
-          <div className="sm:w-36">
+          <div className="space-y-1.5 sm:w-36">
             <Label htmlFor="label-position">{t.print.textPosition}</Label>
             <NativeSelect
               id="label-position"
               value={position}
               onChange={(e) => setPosition(e.target.value as LabelTextPosition)}
+              disabled={!showText}
             >
               {(Object.keys(t.print.positions) as LabelTextPosition[]).map((p) => (
                 <option key={p} value={p}>
@@ -132,12 +129,13 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
             </NativeSelect>
           </div>
 
-          <div className="sm:w-36">
+          <div className="space-y-1.5 sm:w-36">
             <Label htmlFor="label-font">{t.print.fontSize}</Label>
             <NativeSelect
               id="label-font"
               value={fontScale}
               onChange={(e) => setFontScale(Number(e.target.value))}
+              disabled={!showText}
             >
               {FONT_SIZES.map((f) => (
                 <option key={f.scale} value={f.scale}>
@@ -147,6 +145,8 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
             </NativeSelect>
           </div>
         </div>
+
+        <PrintButton className="w-full" />
       </div>
 
       <div className="overflow-x-auto pb-2">

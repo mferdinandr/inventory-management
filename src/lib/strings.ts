@@ -101,7 +101,7 @@ export const t = {
     height: "Tinggi (mm)",
     showText: "Tampilkan teks (kode & nama)",
     textPosition: "Posisi teks",
-    positions: { top: "Atas", right: "Kanan", left: "Kiri", bottom: "Bawah" },
+    positions: { right: "Kanan", left: "Kiri", center: "Tengah" },
     fontSize: "Ukuran huruf",
     noCodes: "Tidak ada kode barang. Gunakan ?codes=BRG-0001,BRG-0002.",
     missing: (codes: string) => `Barang tidak ditemukan: ${codes}`,
