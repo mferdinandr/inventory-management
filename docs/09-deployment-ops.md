@@ -77,25 +77,6 @@ docker compose up -d
 docker compose exec app pnpm prisma migrate deploy
 docker compose exec app pnpm user:create   # buat SUPERADMIN pertama
 # lalu login dan buat akun OPERASI, STERIL, ALKES dari halaman Pengguna
-<<<<<<< HEAD
-# data awal (sekali): docker compose exec app pnpm import:csv --items items.csv --contents contents.csv
-```
-
-Setelah migrasi: cabut `UPDATE`/`DELETE` pada `item_logs` untuk peran basis data aplikasi
-(termasuk di skrip migrasi agar ikut otomatis).
-
-## 5. Cadangan
-
-Harian, lewat cron di host:
-
-```sh
-docker compose exec -T db pg_dump -U simaset simaset | gzip > /backups/simaset-$(date +%F).sql.gz
-# salin ke luar server (rclone/scp); simpan 30 hari
-```
-
-Uji pemulihan ke basis data kosong **sebelum** data sungguhan masuk, dan ulangi tiap
-beberapa bulan.
-=======
 # data awal (sekali): lihat [14 — Impor CSV](14-impor-csv.md); selalu mulai dengan --dry-run
 ```
 
@@ -142,7 +123,6 @@ jadi aman dipasang di cron mingguan. Di mesin dev:
 aplikasi (`docker compose stop app`), `DROP DATABASE simaset; CREATE DATABASE simaset;`, lalu
 `gunzip -c backups/simaset-….sql.gz | docker compose exec -T db psql -U simaset simaset`, dan
 nyalakan lagi aplikasinya.
->>>>>>> origin/main
 
 ## 6. Pemantauan
 
@@ -152,31 +132,18 @@ nyalakan lagi aplikasinya.
 
 ## 7. Pembaruan
 
-<<<<<<< HEAD
-Push ke `main` → GitHub Actions: lint, tes, build image, SSH ke server, `docker compose pull
-&& up -d`, `prisma migrate deploy`. Migrasi harus kompatibel mundur satu versi.
-=======
 Push ke `main` → CI (lint, tipe, tes, build) → bila lulus, workflow **Deploy** masuk ke server
 lewat SSH dan menjalankan `scripts/deploy.sh`: cadangan, tarik `main`, build image di server,
 `prisma migrate deploy`, `docker compose up -d`, lalu cek `/api/health`. Tanpa registry image.
 Langkah penyiapan dan secret ada di [15 — Panduan VPS](15-panduan-vps.md). Migrasi harus
 kompatibel mundur satu versi.
->>>>>>> origin/main
 
 ## 8. Daftar periksa go-live
 
 - [ ] HTTPS aktif, kamera memindai di ponsel sungguhan
 - [ ] SUPERADMIN dibuat, 3 akun lain dibuat lewat UI, kata sandi awal sudah diganti
-<<<<<<< HEAD
-- [ ] Hak `UPDATE/DELETE` pada `item_logs` dicabut (diuji)
-- [ ] Cadangan berjalan **dan** pemulihan teruji
-- [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
-- [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan
-- [ ] Impor data awal diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber
-=======
 - [ ] Trigger append-only pada `item_logs` dan `maintenance_records` aktif (uji: UPDATE/DELETE ditolak)
 - [ ] Cadangan berjalan **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
 - [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan
 - [ ] Impor data awal ([14](14-impor-csv.md)) diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber
->>>>>>> origin/main
