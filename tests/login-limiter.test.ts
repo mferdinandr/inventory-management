@@ -6,7 +6,7 @@ import {
 } from "@/server/auth/login-limiter";
 
 describe("login limiter", () => {
-  it("blocks after 5 failures within 10 minutes", () => {
+  it("blocks after 5 failures within 2 minutes", () => {
     const key = "a|1.1.1.1";
     const t0 = 1_000_000;
     for (let i = 0; i < 4; i++) recordLoginFailure(key, t0 + i);
@@ -15,12 +15,12 @@ describe("login limiter", () => {
     expect(isLoginBlocked(key, t0 + 10)).toBe(true);
   });
 
-  it("forgets failures older than 10 minutes", () => {
+  it("forgets failures older than 2 minutes", () => {
     const key = "b|2.2.2.2";
     const t0 = 5_000_000;
     for (let i = 0; i < 5; i++) recordLoginFailure(key, t0);
-    expect(isLoginBlocked(key, t0 + 9 * 60_000)).toBe(true);
-    expect(isLoginBlocked(key, t0 + 10 * 60_000 + 1)).toBe(false);
+    expect(isLoginBlocked(key, t0 + 1 * 60_000)).toBe(true);
+    expect(isLoginBlocked(key, t0 + 2 * 60_000 + 1)).toBe(false);
   });
 
   it("clears on success", () => {

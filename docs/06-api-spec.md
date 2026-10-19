@@ -25,9 +25,10 @@ Semua endpoint butuh sesi, kecuali `/api/auth/*`. Format JSON. Peran per endpoin
 
 ## 2. Barang
 
-### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false`
+### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false&sort=code|name|room|note|location|quantity&dir=asc|desc`
 Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
 `code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
+Urutan default `code` naik; `sort` memilih kolom (default `code`), `dir` arahnya (default `asc`).
 
 ### `POST /api/items` — OPERASI, SUPERADMIN
 ```json
@@ -132,6 +133,12 @@ Semua peran.
 { "operasi": 120, "cssd": 5, "damaged": 2, "dueSoon": 4 }
 ```
 (tidak menghitung barang terarsip; `dueSoon` = `next_due` ≤ 30 hari ke depan).
+
+Kartu Beranda lain memakai fungsi internal `summary.service`:
+- `listDueSoon` — barang jatuh tempo beserta `next_due` terdekat dan jenisnya
+  (PEMELIHARAAN/KALIBRASI), diurutkan dari yang paling mendesak.
+- `listNeedsSterilization` — barang aktif berstatus `needsSterilization`,
+  terlama di lokasi lebih dulu.
 
 ## 6. QR
 

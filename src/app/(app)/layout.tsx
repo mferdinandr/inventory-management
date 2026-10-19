@@ -1,6 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui";
+import { AppHeader } from "@/components/app-header";
 import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { signOut } from "@/server/auth/config";
@@ -15,41 +14,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     await signOut({ redirectTo: "/login" });
   }
 
+  const navItems = [
+    { href: "/", label: t.nav.home },
+    { href: "/items", label: t.nav.items },
+    { href: "/scan", label: t.nav.scan },
+    ...(roleAllows(user.role, "user.manage") ? [{ href: "/users", label: t.nav.users }] : []),
+  ];
+
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/" className="text-lg font-bold text-teal-800">
-            {t.appName}
-          </Link>
-          <nav className="flex gap-4 text-base">
-            <Link href="/" className="py-2 hover:underline">
-              {t.nav.home}
-            </Link>
-            <Link href="/items" className="py-2 hover:underline">
-              {t.nav.items}
-            </Link>
-            <Link href="/scan" className="py-2 hover:underline">
-              {t.nav.scan}
-            </Link>
-            {roleAllows(user.role, "user.manage") && (
-              <Link href="/users" className="py-2 hover:underline">
-                {t.nav.users}
-              </Link>
-            )}
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm text-slate-600">
-            <span>
-              {user.name} · {t.roles[user.role]}
-            </span>
-            <form action={logout}>
-              <Button type="submit" variant="secondary">
-                {t.nav.logout}
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AppHeader items={navItems} userName={user.name} role={user.role} logout={logout} />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   );

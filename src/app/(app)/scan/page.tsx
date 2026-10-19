@@ -10,7 +10,11 @@ export default async function ScanPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-bold">{t.scan.title}</h1>
-      <Scanner />
+      <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card shadow-2xl shadow-brand-900/10">
+        <div className="px-6 pt-8 pb-7 sm:px-10 sm:pt-10 sm:pb-8">
+          <Scanner />
+        </div>
+      </div>
     </div>
   );
 }

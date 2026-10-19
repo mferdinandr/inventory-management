@@ -4,6 +4,7 @@ import { listItems } from "@/server/services/item.service";
 import {
   dueSoonItemIds,
   getSummary,
+  listDueSoon,
   listRecentActivity,
   listRecentItems,
 } from "@/server/services/summary.service";
@@ -62,7 +63,13 @@ beforeEach(async () => {
 
 describe("getSummary", () => {
   it("is all zeros with no items", async () => {
-    expect(await getSummary(NOW)).toEqual({ operasi: 0, cssd: 0, damaged: 0, dueSoon: 0 });
+    expect(await getSummary(NOW)).toEqual({
+      operasi: 0,
+      cssd: 0,
+      damaged: 0,
+      dueSoon: 0,
+      needsSterilization: 0,
+    });
   });
 
   it("counts by location and ignores archived items", async () => {
@@ -71,7 +78,13 @@ describe("getSummary", () => {
     await makeItem({ needsSterilization: true, location: "CSSD" });
     await makeItem({ isArchived: true, damagedQuantity: 1 });
     await makeItem({ isArchived: true, needsSterilization: true, location: "CSSD" });
-    expect(await getSummary(NOW)).toEqual({ operasi: 2, cssd: 1, damaged: 0, dueSoon: 0 });
+    expect(await getSummary(NOW)).toEqual({
+      operasi: 2,
+      cssd: 1,
+      damaged: 0,
+      dueSoon: 0,
+      needsSterilization: 1,
+    });
   });
 
   it("counts damaged by the item or by any content row, once per item", async () => {
@@ -130,6 +143,44 @@ describe("due soon", () => {
     const a = await makeItem({ isArchived: true });
     await record(a.id, "KALIBRASI", "2025-01-01", "2026-01-01");
     expect((await getSummary(NOW)).dueSoon).toBe(0);
+  });
+});
+
+describe("listDueSoon", () => {
+  it("returns items due within 30 days with their earliest next due, ordered by it", async () => {
+    const pemeliharaan = await makeItem({ name: "Pemeliharaan" });
+    const kalibrasi = await makeItem({ name: "Kalibrasi" });
+    const none = await makeItem({ name: "Tanpa jadwal" });
+    await record(pemeliharaan.id, "PEMELIHARAAN", "2026-10-01", "2026-11-10");
+    await record(kalibrasi.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    await record(none.id, "PERBAIKAN", "2026-10-01", null);
+    const rows = await listDueSoon(NOW);
+    expect(rows.map((r) => r.name)).toEqual(["Kalibrasi", "Pemeliharaan"]);
+    expect(rows.map((r) => r.nextDue.toISOString().slice(0, 10))).toEqual([
+      "2026-11-01",
+      "2026-11-10",
+    ]);
+    expect(await listDueSoon(NOW, 1)).toHaveLength(1);
+  });
+
+  it("picks the earliest of the latest record of each type", async () => {
+    const mixed = await makeItem({ name: "Campuran" });
+    await record(mixed.id, "PEMELIHARAAN", "2026-10-01", "2027-04-01");
+    await record(mixed.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    const rows = await listDueSoon(NOW);
+    expect(rows.map((r) => r.name)).toEqual(["Campuran"]);
+    expect(rows[0]?.nextDue.toISOString().slice(0, 10)).toBe("2026-11-01");
+    expect(rows[0]?.type).toBe("KALIBRASI");
+  });
+
+  it("reports the winning type when only one schedule exists", async () => {
+    const p = await makeItem({ name: "Hanya pemeliharaan" });
+    await record(p.id, "PEMELIHARAAN", "2026-10-01", "2026-11-01");
+    const k = await makeItem({ name: "Hanya kalibrasi" });
+    await record(k.id, "KALIBRASI", "2026-10-01", "2026-11-01");
+    const rows = await listDueSoon(NOW);
+    expect(rows.find((r) => r.name === "Hanya pemeliharaan")?.type).toBe("PEMELIHARAAN");
+    expect(rows.find((r) => r.name === "Hanya kalibrasi")?.type).toBe("KALIBRASI");
   });
 });
 

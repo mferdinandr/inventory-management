@@ -9,7 +9,10 @@
 | `ALKES` | Kantor Alkes | Hanya melihat (plus maintenance, seperti semua peran) |
 | `SUPERADMIN` | Pengelola sistem | Akses penuh + kelola pengguna |
 
-Peran hanya dapat diubah oleh SUPERADMIN.
+Peran hanya dapat diubah oleh SUPERADMIN. **Akun SUPERADMIN hanya dapat diubah oleh pemiliknya
+sendiri:** SUPERADMIN lain tidak bisa mengubah nama, peran, status aktif, atau mereset kata sandinya
+(ditolak 403 di server; tombolnya juga disembunyikan). Pemilik tetap bisa mengganti kata
+sandinya sendiri.
 
 ## 2. Matriks izin
 
