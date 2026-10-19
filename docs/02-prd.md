@@ -10,7 +10,11 @@ Peran: **O** = OPERASI, **S** = STERIL, **A** = ALKES, **SA** = SUPERADMIN (SA d
   **SA membuat pengguna baru dari UI** (lihat F10).
 
 **Acceptance:**
+<<<<<<< HEAD
+- Salah kata sandi 5 kali dalam 10 menit → ditolak sementara.
+=======
 - Salah kata sandi 5 kali dalam 2 menit → ditolak sementara.
+>>>>>>> origin/main
 - Tanpa sesi, semua halaman selain `/login` mengalihkan ke login.
 
 ## F2. Barang (alat besar / wadah)
@@ -119,8 +123,13 @@ Dibuat otomatis, tidak bisa diubah/dihapus: `REGISTER`, `EDIT`, `SEND`, `RETURN`
 catatan, dan perubahan jumlah bila ada.
 
 **Acceptance:** tidak ada endpoint maupun tombol untuk mengubah atau menghapus riwayat;
+<<<<<<< HEAD
+peran basis data aplikasi tidak punya hak `UPDATE`/`DELETE` pada `item_logs` dan
+`maintenance_records`.
+=======
 trigger basis data menolak `UPDATE`, `DELETE`, dan `TRUNCATE` pada `item_logs` dan
 `maintenance_records`, bahkan untuk pemilik tabel.
+>>>>>>> origin/main
 
 ## F7. QR dan label
 
@@ -135,12 +144,16 @@ trigger basis data menolak `UPDATE`, `DELETE`, dan `TRUNCATE` pada `item_logs` d
 
 ## F9. Beranda (semua peran)
 
+<<<<<<< HEAD
+- Hitungan: di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
+=======
 - **Grup Jumlah barang**: kartu **Semua barang** (toska solid, total Operasi + CSSD) lalu
   hitungan di **Operasi**, di **CSSD**, **Ada yang rusak**, **Jatuh tempo ≤ 30 hari**.
 - **Grup Aktivitas**: tiga kartu sejajar — **Barang terbaru berubah**, **Perlu sterilisasi**
   (barang berstatus `needsSterilization`, terlama di lokasi lebih dulu), dan **Jatuh tempo ≤ 30 hari**
   (jenis perawatan + sisa hari, merah bila terlambat) — di atas **Aktivitas terbaru**
   (timeline ikon per aksi + inisial petugas, 10 entri).
+>>>>>>> origin/main
 - Daftar barang dengan filter lokasi/kamar/rusak/jatuh tempo + pencarian. Baris: kode, nama,
   kamar, lokasi, jumlah (rusak), sudah berapa lama di lokasi itu.
 - Detail barang: identitas, pembelian, isi, riwayat, maintenance. Tombol aksi hanya

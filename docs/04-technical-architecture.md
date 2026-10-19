@@ -105,10 +105,15 @@ flowchart LR
 ## 5. Alur Teknis Kunci
 
 ### 5.1 Pindai QR
+<<<<<<< HEAD
+`GET /i/BRG-0001` → bila belum login, alihkan ke `/login?next=/items/BRG-0001` → setelah
+login, halaman barang terbuka.
+=======
 `GET /i/BRG-0001` → halaman publik read-only berisi seluruh informasi barang (identitas,
 pembelian, isi, maintenance) yang bisa dibuka siapa saja tanpa login. Bila pengguna sudah
 login, langsung dialihkan ke `/items/BRG-0001` untuk mengelola barang. Semua aksi (ubah,
 kirim, return, maintenance, arsip) tetap butuh login.
+>>>>>>> origin/main
 
 ### 5.2 Kembalikan ke Operasi (dari CSSD)
 

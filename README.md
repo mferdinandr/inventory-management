@@ -4,7 +4,11 @@ Aplikasi web sederhana untuk melacak barang besar dan wadah perlengkapan (set in
 yang berpindah antara **Ruang Operasi** dan **CSSD/Steril** (khusus yang perlu sterilisasi).
 **Kantor Alkes** memantau; semua peran dapat mencatat maintenance.
 
+<<<<<<< HEAD
+> **Status: perencanaan selesai (v3.0), belum ada kode.** Dokumen ada di [`docs/`](docs/).
+=======
 > **Status: seluruh fitur M0–M6 sudah di `main`** (login 4 peran, barang & isi, QR/label/pindai, kirim & kembalikan, maintenance, beranda, impor CSV, backup). Tersisa uji lapangan (kamera, cetak, label di sterilisasi), pemuatan data awal, dan penyebaran ke server. Dokumen ada di [`docs/`](docs/).
+>>>>>>> origin/main
 
 ## Gambaran singkat
 

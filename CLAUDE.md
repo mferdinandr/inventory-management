@@ -23,6 +23,8 @@ sebaiknya bisa dijelaskan dalam satu kalimat dan membangun/lulus tes sendiri.
 - Jangan menunggu diminta; commit adalah bagian dari menyelesaikan setiap langkah.
 - Bekerja di branch, bukan langsung di `main`.
 
+<<<<<<< HEAD
+=======
 ## Kerja paralel
 
 Beberapa agen bisa bekerja bersamaan, masing-masing di worktree sendiri. Aturan lengkap ada
@@ -44,13 +46,17 @@ jangan hanya menulis pertanyaan di teks. Gabungkan beberapa pertanyaan terkait d
 panggilan. Jangan bertanya untuk hal yang bisa diputuskan dengan default yang wajar;
 sebutkan default itu di laporan.
 
+>>>>>>> origin/main
 ## Bahasa
 
 Kode dan commit dalam bahasa Inggris; antarmuka dan dokumentasi dalam bahasa Indonesia.
 
 ## Dokumen
 
+<<<<<<< HEAD
+=======
 Perintah `pnpm lint` diarahkan hook ke eslint; pakai `node_modules/.bin/biome check .` langsung.
 
+>>>>>>> origin/main
 Dokumen perencanaan ada di `docs/` (mulai dari `docs/00-README.md`). Bila perilaku produk
 berubah, perbarui dokumen terkait di commit yang sama atau commit tepat sebelumnya.

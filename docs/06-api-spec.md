@@ -25,10 +25,16 @@ Semua endpoint butuh sesi, kecuali `/api/auth/*`. Format JSON. Peran per endpoin
 
 ## 2. Barang
 
+<<<<<<< HEAD
+### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false`
+Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
+`code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
+=======
 ### `GET /api/items?q=&location=&room=&damaged=&dueSoon=&archived=false&sort=code|name|room|note|location|quantity&dir=asc|desc`
 Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
 `code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
 Urutan default `code` naik; `sort` memilih kolom (default `code`), `dir` arahnya (default `asc`).
+>>>>>>> origin/main
 
 ### `POST /api/items` — OPERASI, SUPERADMIN
 ```json
@@ -134,6 +140,15 @@ Semua peran.
 ```
 (tidak menghitung barang terarsip; `dueSoon` = `next_due` ≤ 30 hari ke depan).
 
+<<<<<<< HEAD
+## 6. QR
+
+### `GET /api/qr/{code}?format=svg&size=512`
+Semua peran. SVG QR berisi `https://{DOMAIN}/i/{code}`.
+
+## 7. Pengguna — SUPERADMIN saja
+
+=======
 Kartu Beranda lain memakai fungsi internal `summary.service`:
 - `listDueSoon` — barang jatuh tempo beserta `next_due` terdekat dan jenisnya
   (PEMELIHARAAN/KALIBRASI), diurutkan dari yang paling mendesak.
@@ -147,6 +162,7 @@ Semua peran. SVG QR berisi `https://{DOMAIN}/i/{code}`.
 
 ## 7. Pengguna — SUPERADMIN saja
 
+>>>>>>> origin/main
 | Endpoint | Fungsi |
 |---|---|
 | `GET /api/users` | Daftar pengguna |
