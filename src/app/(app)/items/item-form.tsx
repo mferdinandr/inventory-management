@@ -284,7 +284,7 @@ export function ItemForm({
 
       <div aria-live="polite">{state?.error && <Notice tone="error">{state.error}</Notice>}</div>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="h-11">
           {pending ? t.items.saving : submitLabel}
         </Button>
         <a
