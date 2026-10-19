@@ -29,7 +29,7 @@ export async function ItemLabel({
   const qrBox = (
     <div
       className={`relative shrink-0 ${
-        hideText ? "h-full w-full" : stacked ? "h-[62%] w-full" : "h-full w-[55%]"
+        hideText ? "h-full w-full" : stacked ? "h-[62%] w-full" : "h-[86%] aspect-square"
       }`}
     >
       {/* biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise */}
@@ -44,7 +44,7 @@ export async function ItemLabel({
 
   const textBlock = (
     <div
-      className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : "flex-1"} ${
+      className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : ""} ${
         textPosition === "left" ? "text-right" : ""
       }`}
     >
@@ -59,7 +59,7 @@ export async function ItemLabel({
 
   return (
     <div
-      className={`item-label flex h-full w-full items-center overflow-hidden bg-white p-[2mm] text-black ${
+      className={`item-label flex h-full w-full items-center justify-center overflow-hidden bg-white p-[2mm] text-black ${
         stacked ? "flex-col" : "flex-row"
       }`}
       style={{ gap: "1.5mm" }}
