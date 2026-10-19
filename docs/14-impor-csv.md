@@ -113,10 +113,10 @@ Minta berkas Excel asli, bukan PDF ([12](12-data-contoh.md)). Lalu, di salinan b
 5. Mulai kecil: pendataan bertahap (beberapa set dan satu kamar), jalankan sebulan, lalu lanjut.
 
 Ke database produksi, jalankan dari laptop dengan `DATABASE_URL` menunjuk ke VPS (aplikasi di
-Vercel tidak punya shell; [15 §7](15-panduan-vps.md)). Cadangkan dulu, lalu:
+Vercel tidak punya shell). Cadangkan dulu, lalu:
 
 ```bash
-export DATABASE_URL='postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=require'
+export DATABASE_URL='postgresql://simaset:<sandi>@<host-vps>:<port-publik>/<db>?sslmode=require&uselibpqcompat=true'
 pnpm import:csv --items items.csv --contents contents.csv --as admin --dry-run
 pnpm import:csv --items items.csv --contents contents.csv --as admin
 # import-map.csv ditulis di folder kerja

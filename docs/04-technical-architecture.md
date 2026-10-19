@@ -12,7 +12,7 @@
 | Validasi | **Zod** | Satu skema untuk form dan server |
 | QR | `qrcode` (SVG, server) + `@zxing/browser` (pemindai) | Andal di peramban ponsel |
 | Hosting aplikasi | **Vercel** | HTTPS otomatis, deploy dari `main` |
-| Hosting database | **Docker Compose di VPS** | Satu kontainer PostgreSQL, TLS wajib |
+| Hosting database | **PostgreSQL via Coolify di VPS** | SSL, port publik, cadangan ke S3 |
 | Runtime / tooling | Node 22 LTS, pnpm, Biome | |
 | Pengujian | Vitest, Playwright | |
 | CI/CD | GitHub Actions + Vercel | CI: lint, tes, build; Vercel: migrasi + deploy |
@@ -28,7 +28,7 @@ Tidak ada backend terpisah: route handler Next.js sudah cukup.
 ```mermaid
 flowchart LR
     HP["Ponsel / PC<br/>Operasi, Steril, Alkes, Superadmin"] -->|HTTPS| APP["Next.js di Vercel<br/>web + API"]
-    APP -->|"PostgreSQL + TLS"| PG[("PostgreSQL 16<br/>di VPS")]
+    APP -->|"PostgreSQL + TLS"| PG[("PostgreSQL 16<br/>di VPS (Coolify)")]
     BACKUP["Cadangan harian<br/>pg_dump"] --> PG
 ```
 
@@ -79,8 +79,7 @@ flowchart LR
 │   ├── permissions.test.ts
 │   └── e2e/
 ├── .github/workflows/ci.yml
-├── docker-compose.yml          # hanya PostgreSQL untuk VPS
-├── deploy/pg_hba.conf          # hanya hostssl dari luar
+├── docker-compose.dev.yml      # PostgreSQL untuk pengembangan
 ├── vercel.json
 ├── biome.json
 └── .env.example

@@ -20,7 +20,7 @@
 | D8 | Login wajib; tidak ada halaman publik |
 | D9 | Barang diarsipkan, tidak pernah dihapus |
 | D10 | Setiap kirim/kembali mencatat nama petugas |
-| D11 | Aplikasi di Vercel, PostgreSQL di Docker Compose di VPS (TLS wajib); kode Inggris, UI Indonesia |
+| D11 | Aplikasi di Vercel, PostgreSQL di VPS yang dikelola Coolify (SSL); kode Inggris, UI Indonesia |
 
 ## B. Asumsi yang perlu dikonfirmasi
 
