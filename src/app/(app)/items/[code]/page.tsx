@@ -162,14 +162,7 @@ export default async function ItemPage({ params }: { params: Params }) {
           </p>
         )}
         <MaintenanceList records={maintenance.records} />
-        <div className="flex flex-wrap gap-2">
-          {!item.isArchived && <MaintenanceButton code={item.code} />}
-          {maintenance.nextCursor && (
-            <LinkButton href={`/items/${item.code}/maintenance`} variant="outline">
-              {t.items.detail.allMaintenance}
-            </LinkButton>
-          )}
-        </div>
+        {!item.isArchived && <MaintenanceButton code={item.code} />}
       </Card>
 
       <Card title={d.history}>

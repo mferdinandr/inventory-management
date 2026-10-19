@@ -53,24 +53,24 @@ export function MaintenanceList({ records }: { records: MaintenanceEntry[] }) {
             </span>
             {r.cost !== null && <span className="ml-auto text-sm">{rupiah(r.cost)}</span>}
           </div>
-          <dl className="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[10rem_1fr]">
+          <dl className="mt-2 space-y-1 text-sm">
             {lines(r).map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="text-slate-500">{label}</dt>
+              <div key={label} className="flex gap-1.5">
+                <dt className="shrink-0 text-slate-500">{label}:</dt>
                 <dd>{value}</dd>
               </div>
             ))}
             {r.nextDue && (
-              <>
-                <dt className="text-slate-500">{t.maintenance.nextDue}</dt>
+              <div className="flex gap-1.5">
+                <dt className="shrink-0 text-slate-500">{t.maintenance.nextDue}:</dt>
                 <dd>{day(r.nextDue)}</dd>
-              </>
+              </div>
             )}
             {r.note && (
-              <>
-                <dt className="text-slate-500">{t.maintenance.note}</dt>
+              <div className="flex gap-1.5">
+                <dt className="shrink-0 text-slate-500">{t.maintenance.note}:</dt>
                 <dd>{r.note}</dd>
-              </>
+              </div>
             )}
           </dl>
         </li>

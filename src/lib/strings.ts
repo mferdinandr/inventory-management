@@ -115,10 +115,9 @@ export const t = {
     title: "Maintenance",
     add: "Catat maintenance",
     newTitle: "Catat maintenance",
-    back: "Kembali ke daftar maintenance",
+    back: "Kembali ke barang",
     empty: "Belum ada catatan maintenance.",
     nextDue: "Jatuh tempo berikutnya",
-    loadMore: "Lihat lebih lama",
     type: "Jenis",
     types: {
       PERBAIKAN: "Perbaikan",
@@ -200,7 +199,6 @@ export const t = {
       equipment: "Detail alat",
       purchase: "Pembelian",
       contents: "Isi",
-      allMaintenance: "Lihat semua maintenance",
     },
     fields: {
       code: "Kode",
@@ -232,7 +230,6 @@ export const t = {
       identity: "Identitas",
       purchase: "Pembelian",
       contents: "Isi",
-      allMaintenance: "Lihat semua maintenance",
       history: "Riwayat",
       empty: "-",
       goodQuantity: (n: number) => `${n} baik`,

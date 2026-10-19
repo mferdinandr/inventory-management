@@ -18,7 +18,7 @@ export default async function NewMaintenancePage({
   const code = decodeURIComponent((await params).code);
   const item = await findItemForMaintenance(code);
   if (!item) notFound();
-  const back = `/items/${encodeURIComponent(item.code)}/maintenance`;
+  const back = `/items/${encodeURIComponent(item.code)}`;
   if (item.isArchived) redirect(back);
 
   // Today's date where the hospital is, whatever timezone the server runs in.
