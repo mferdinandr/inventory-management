@@ -34,6 +34,7 @@ export default async function MaintenancePage({ params, searchParams }: Props) {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">
+          <span className="font-mono text-lg text-slate-600">[{item.code}]</span>{" "}
           {t.maintenance.title}: {item.name}
         </h1>
         <div className="ml-auto">
