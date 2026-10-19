@@ -1,41 +1,37 @@
-# Production stack: app + PostgreSQL + Caddy (HTTPS). See docs/09-deployment-ops.md.
+# Production database on the VPS (the app itself runs on Vercel). See docs/09-deployment-ops.md.
+# TLS is mandatory: deploy/pg_hba.conf only accepts hostssl connections from outside.
 services:
-  app:
-    build: .
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://simaset:${DB_PASSWORD}@db:5432/simaset
-      AUTH_TRUST_HOST: "true"
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: simaset
       POSTGRES_USER: simaset
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/fullchain.pem
+      - -c
+      - ssl_key_file=/certs/privkey.pem
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - max_connections=60
+    ports:
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./deploy/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./certs:/certs:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U simaset"]
       interval: 10s
       retries: 10
-    restart: unless-stopped
-
-  caddy:
-    image: caddy:2
-    ports: ["80:80", "443:443"]
-    environment:
-      DOMAIN: ${DOMAIN}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-    depends_on: [app]
-    restart: unless-stopped
 
 volumes:
   pgdata:
-  caddy_data:
