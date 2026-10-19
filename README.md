@@ -4,7 +4,7 @@ Aplikasi web sederhana untuk melacak barang besar dan wadah perlengkapan (set in
 yang berpindah antara **Ruang Operasi** dan **CSSD/Steril** (khusus yang perlu sterilisasi).
 **Kantor Alkes** memantau; semua peran dapat mencatat maintenance.
 
-> **Status: seluruh fitur M0–M6 sudah di `main`** (login 4 peran, barang & isi, QR/label/pindai, kirim & kembalikan, maintenance, beranda, impor CSV, backup). Tersisa uji lapangan (kamera, cetak, label di sterilisasi), pemuatan data awal, dan penyebaran ke server. Dokumen ada di [`docs/`](docs/).
+> **Status: seluruh fitur M0–M6 sudah di `main`** (login 4 peran, barang & isi, QR/label/pindai, kirim & kembalikan, maintenance, beranda, impor CSV, backup). Tersisa uji lapangan (kamera, cetak, label di sterilisasi), pemuatan data awal, dan penyebaran (Vercel + database di VPS, [panduan](docs/15-panduan-vps.md)). Dokumen ada di [`docs/`](docs/).
 
 ## Gambaran singkat
 
@@ -39,6 +39,6 @@ Baca [`docs/00-README.md`](docs/00-README.md). Mulai coding: [PRD](docs/02-prd.m
 
 ## Stack
 
-Next.js 15 · TypeScript · PostgreSQL 16 · Prisma · Auth.js · Caddy · Docker Compose
+Next.js 15 · TypeScript · PostgreSQL 16 · Prisma · Auth.js · Vercel (aplikasi) · Docker Compose di VPS (database)
 
 Node 22 LTS · pnpm · Biome · Vitest · Playwright · GitHub Actions

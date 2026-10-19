@@ -11,11 +11,11 @@
 | Autentikasi | **Auth.js v5**, provider kredensial | Cukup untuk 4 peran |
 | Validasi | **Zod** | Satu skema untuk form dan server |
 | QR | `qrcode` (SVG, server) + `@zxing/browser` (pemindai) | Andal di peramban ponsel |
-| Reverse proxy | **Caddy** | HTTPS otomatis |
-| Orkestrasi | **Docker Compose** | Tiga kontainer |
+| Hosting aplikasi | **Vercel** | HTTPS otomatis, deploy dari `main` |
+| Hosting database | **Docker Compose di VPS** | Satu kontainer PostgreSQL, TLS wajib |
 | Runtime / tooling | Node 22 LTS, pnpm, Biome | |
 | Pengujian | Vitest, Playwright | |
-| CI/CD | GitHub Actions | Lint, tes, deploy |
+| CI/CD | GitHub Actions + Vercel | CI: lint, tes, build; Vercel: migrasi + deploy |
 | Log | Pino ke stdout | |
 
 **Dibuang dari versi sebelumnya:** Cloudflare R2/MinIO, pg-boss, Nodemailer, RLS, PWA
@@ -27,9 +27,8 @@ Tidak ada backend terpisah: route handler Next.js sudah cukup.
 
 ```mermaid
 flowchart LR
-    HP["Ponsel / PC<br/>Operasi, Steril, Alkes, Superadmin"] --> CADDY["Caddy<br/>HTTPS"]
-    CADDY --> APP["Next.js<br/>web + API"]
-    APP --> PG[("PostgreSQL 16")]
+    HP["Ponsel / PC<br/>Operasi, Steril, Alkes, Superadmin"] -->|HTTPS| APP["Next.js di Vercel<br/>web + API"]
+    APP -->|"PostgreSQL + TLS"| PG[("PostgreSQL 16<br/>di VPS")]
     BACKUP["Cadangan harian<br/>pg_dump"] --> PG
 ```
 
@@ -79,9 +78,10 @@ flowchart LR
 │   ├── flow.test.ts                # kirim/kembali, konflik, atomik
 │   ├── permissions.test.ts
 │   └── e2e/
-├── .github/workflows/{ci,deploy}.yml
-├── docker-compose.yml
-├── Caddyfile
+├── .github/workflows/ci.yml
+├── docker-compose.yml          # hanya PostgreSQL untuk VPS
+├── deploy/pg_hba.conf          # hanya hostssl dari luar
+├── vercel.json
 ├── biome.json
 └── .env.example
 ```

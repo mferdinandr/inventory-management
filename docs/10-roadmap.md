@@ -52,7 +52,7 @@ melihat halaman sesuai perannya.
 ## M6 — Data Awal, Penyebaran & Uji Lapangan (± 4 hari)
 
 - `pnpm import:csv`; uji dengan data contoh ([12](12-data-contoh.md))
-- Server, Caddy, HTTPS, cadangan + uji pemulihan
+- Vercel (aplikasi) + PostgreSQL di VPS dengan TLS, cadangan + uji pemulihan
 - Uji label di sterilisasi sungguhan
 - Uji coba alur set, pengeditan alat besar, tampilan Alkes, dan maintenance dengan petugas Operasi, Steril, Alkes
 

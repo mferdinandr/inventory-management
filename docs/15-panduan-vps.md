@@ -1,102 +1,128 @@
-# 15 — Panduan Menyiapkan VPS
+# 15 — Panduan Vercel + VPS
 
-Langkah dari server kosong sampai SIMASET berjalan di HTTPS dan ter-deploy otomatis dari
-`main`. Ringkasan arsitektur ada di [09](09-deployment-ops.md).
+Langkah dari nol sampai aplikasi berjalan: **aplikasi Next.js di Vercel, PostgreSQL di VPS**.
+Arsitektur dan alasannya ada di [09](09-deployment-ops.md). Ganti `contoh.sch.id` dengan domain Anda.
 
 ## 1. Yang disiapkan
 
-- VPS Ubuntu 24.04 (1 vCPU, 2 GB RAM, 20 GB disk cukup), dengan IP publik tetap.
-- **Domain** dan akses ke pengaturan DNS-nya. Domain tertulis di QR, jadi putuskan sebelum cetak label.
-- Port 80 dan 443 terbuka ke internet (Caddy memakai keduanya untuk sertifikat HTTPS).
+- VPS Ubuntu 24.04 (1 vCPU, 1–2 GB RAM, 20 GB disk), IP publik tetap, lokasi dekat Indonesia.
+- **Domain** dan akses DNS-nya. Domain aplikasi tertulis di QR, jadi putuskan sebelum cetak label.
+- Akun Vercel dan akses ke repo GitHub. Paket Hobby hanya untuk non-komersial.
 
-## 2. DNS
+Dua nama yang dipakai:
 
-Buat rekaman **A** `simaset.contoh.sch.id` → IP VPS. Tunggu sampai `dig +short <domain>`
-mengembalikan IP itu sebelum menyalakan Caddy.
+| Nama | Menuju | Untuk |
+|---|---|---|
+| `simaset.contoh.sch.id` | Vercel | aplikasi (dan isi QR) |
+| `db.contoh.sch.id` | IP VPS | database + sertifikat TLS |
 
-## 3. Server
+## 2. DNS database
+
+Rekaman **A** `db.contoh.sch.id` → IP VPS. Tunggu sampai `dig +short db.contoh.sch.id`
+mengembalikan IP itu. (Rekaman untuk `simaset.` dibuat di langkah 6 sesuai petunjuk Vercel.)
+
+## 3. VPS
 
 ```sh
 # sebagai root, sekali saja
 apt update && apt -y upgrade
 curl -fsSL https://get.docker.com | sh
+apt -y install certbot rclone
 adduser --disabled-password --gecos "" deploy && usermod -aG docker deploy
-ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw --force enable
+ufw allow OpenSSH && ufw allow 80 && ufw allow 5432 && ufw --force enable
 mkdir -p /opt/simaset && chown deploy:deploy /opt/simaset
 ```
 
-Matikan login kata sandi SSH (`PasswordAuthentication no` di `/etc/ssh/sshd_config`) setelah
-kunci SSH berfungsi.
+Port 80 hanya dipakai certbot untuk memperbarui sertifikat. Setelah kunci SSH berfungsi,
+matikan login kata sandi (`PasswordAuthentication no` di `/etc/ssh/sshd_config`).
 
-## 4. Kunci deploy
-
-Di laptop, buat kunci khusus deploy (tanpa passphrase karena dipakai GitHub Actions):
-
-```sh
-ssh-keygen -t ed25519 -f simaset-deploy -C "simaset-deploy" -N ""
-ssh-copy-id -i simaset-deploy.pub deploy@<IP-VPS>
-ssh-keyscan -t ed25519 <IP-VPS>      # simpan keluarannya untuk DEPLOY_KNOWN_HOSTS
-```
-
-Jangan commit `simaset-deploy`; hapus dari laptop setelah dimasukkan ke GitHub.
-
-## 5. Pertama kali di server
+## 4. Sertifikat TLS database
 
 ```sh
 # sebagai deploy
 cd /opt/simaset
 git clone https://github.com/mferdinandr/inventory-management.git .
-cp .env.example .env
+
+# sebagai root
+certbot certonly --standalone -d db.contoh.sch.id \
+  --deploy-hook /opt/simaset/scripts/pg-cert-hook.sh
 ```
 
-Isi `.env`:
+Hook menyalin sertifikat ke `/opt/simaset/certs`, memberi PostgreSQL (uid 999) hak atas
+kuncinya, lalu memuat ulang database. Hook yang sama berjalan otomatis tiap pembaruan.
+Uji dengan `certbot renew --dry-run`.
 
-| Variabel | Nilai |
-|---|---|
-| `APP_URL` | `https://<domain>` |
-| `DOMAIN` | `<domain>` |
-| `DB_PASSWORD` | `openssl rand -base64 24` |
-| `AUTH_SECRET` | `openssl rand -base64 32` |
-| `DATABASE_URL` | dapat diabaikan; compose menyusunnya dari `DB_PASSWORD` |
+## 5. Menyalakan database
 
 ```sh
-docker compose up -d --build
-docker compose exec app node_modules/.bin/prisma migrate deploy
-docker compose exec app pnpm user:create     # SUPERADMIN pertama
-curl -s https://<domain>/api/health          # {"ok":true}
+# sebagai deploy, di /opt/simaset
+echo "DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')" > .env
+docker compose up -d
+docker compose ps        # tunggu status healthy
 ```
 
-## 6. Deploy otomatis
-
-Di GitHub: **Settings → Secrets and variables → Actions**.
-
-| Jenis | Nama | Isi |
-|---|---|---|
-| Secret | `DEPLOY_HOST` | IP atau domain VPS |
-| Secret | `DEPLOY_USER` | `deploy` |
-| Secret | `DEPLOY_SSH_KEY` | isi `simaset-deploy` (kunci privat) |
-| Secret | `DEPLOY_KNOWN_HOSTS` | keluaran `ssh-keyscan` |
-| Secret | `DEPLOY_PATH` | `/opt/simaset` (boleh kosong) |
-| Variable | `DEPLOY_URL` | `https://<domain>` (untuk cek kesehatan setelah deploy) |
-
-Selama secret belum diisi, workflow **Deploy** melewati langkahnya dan tetap hijau. Setelah
-diisi, setiap push ke `main` yang lolos CI menjalankan `scripts/deploy.sh` di server:
-cadangan, `git reset --hard origin/main`, build image, `prisma migrate deploy`, restart.
-Bisa juga dijalankan manual lewat **Actions → Deploy → Run workflow**.
-
-## 7. Cadangan dan pemantauan
-
-- Pasang cron cadangan harian dan salinan ke luar server ([09 §5](09-deployment-ops.md)); jalankan `scripts/restore-check.sh` sekali sebelum data sungguhan masuk.
-- Daftarkan `https://<domain>/api/health` ke uptime-checker gratis (mis. UptimeRobot).
-- Cek disk berkala: `df -h /` dan `docker system df`.
-
-## 8. Pemulihan cepat bila deploy gagal
+Catat nilai `DB_PASSWORD` (`cat .env`) untuk Vercel. Uji dari laptop:
 
 ```sh
-cd /opt/simaset
-git log --oneline -5                    # cari commit yang baik
-git reset --hard <sha> && docker compose up -d --build
+# TLS harus diterima:
+psql "postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=require" -c "select 1"
+# tanpa TLS harus ditolak ("no encryption"):
+psql "postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=disable" -c "select 1"
 ```
 
-Migrasi harus kompatibel mundur satu versi, jadi kembali ke commit sebelumnya aman. Untuk
-mengembalikan data, pakai cadangan ([09 §5](09-deployment-ops.md)).
+## 6. Vercel
+
+1. **Add New → Project**, impor repo `mferdinandr/inventory-management`. Framework terdeteksi
+   Next.js; build mengikuti `vercel.json` (region `sin1`, `scripts/vercel-build.sh`).
+2. **Settings → Environment Variables**, hanya lingkungan **Production**
+   ([09 §3](09-deployment-ops.md)):
+
+   | Variabel | Isi |
+   |---|---|
+   | `DATABASE_URL` | `postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=require` |
+   | `AUTH_SECRET` | `openssl rand -base64 32` |
+   | `APP_URL` | `https://simaset.contoh.sch.id` |
+   | `DB_POOL_MAX` | `3` |
+
+   Biarkan Preview dan Development kosong.
+3. **Settings → Domains**, tambah `simaset.contoh.sch.id` dan buat rekaman DNS yang diminta Vercel.
+4. **Deploy**. Build produksi pertama menjalankan `prisma migrate deploy` lalu `next build`
+   (lihat log: "Applying database migrations").
+5. Buka `https://simaset.contoh.sch.id/api/health`, harus `{"ok":true}`.
+
+Pesan `SECURITY WARNING: The SSL modes 'prefer', 'require'…` di log hanya peringatan versi;
+`require` pada driver `pg` tetap memverifikasi sertifikat.
+
+## 7. Akun pertama dan data awal
+
+Dari laptop (repo sudah ter-clone dan `pnpm install` berjalan), arahkan sementara ke database
+produksi untuk satu perintah:
+
+```sh
+DATABASE_URL='postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=require' \
+  pnpm user:create          # SUPERADMIN pertama
+```
+
+Login di aplikasi, lalu buat akun OPERASI, STERIL, ALKES dari halaman **Pengguna**. Data awal
+lewat [14 — Impor CSV](14-impor-csv.md) dengan cara yang sama (mulai dengan `--dry-run`).
+
+## 8. Cadangan dan pemantauan
+
+```sh
+# sebagai deploy: crontab -e
+0 2 * * * cd /opt/simaset && RCLONE_REMOTE=gdrive:simaset-backups scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+Atur `rclone config` untuk tujuan di luar server, jalankan `scripts/restore-check.sh` sekali
+sebelum data sungguhan masuk ([09 §6](09-deployment-ops.md)), dan daftarkan
+`https://simaset.contoh.sch.id/api/health` ke uptime-checker gratis.
+
+## 9. Pembaruan dan pemulihan
+
+- Setiap push ke `main` yang lolos CI dibangun Vercel, migrasi diterapkan sebelum versi baru
+  aktif. Tidak ada langkah di VPS.
+- Kode bermasalah: **Vercel → Deployments → ⋯ → Instant Rollback**. Migrasi kompatibel mundur
+  satu versi, jadi rollback satu versi aman. Jangan rollback melewati migrasi yang menghapus
+  kolom; pulihkan dari cadangan.
+- Ganti kata sandi database: `docker compose exec db psql -U simaset -c "ALTER USER simaset PASSWORD '…'"`,
+  ubah `DB_PASSWORD` di `.env` VPS dan `DATABASE_URL` di Vercel, lalu *Redeploy*.

@@ -112,14 +112,14 @@ Minta berkas Excel asli, bukan PDF ([12](12-data-contoh.md)). Lalu, di salinan b
 4. **Impor sungguhan**; ringkasan dan `import-map.csv` dicetak.
 5. Mulai kecil: pendataan bertahap (beberapa set dan satu kamar), jalankan sebulan, lalu lanjut.
 
-Di server produksi berkas harus ada di dalam kontainer:
+Ke database produksi, jalankan dari laptop dengan `DATABASE_URL` menunjuk ke VPS (aplikasi di
+Vercel tidak punya shell; [15 §7](15-panduan-vps.md)). Cadangkan dulu, lalu:
 
 ```bash
-docker compose cp items.csv app:/app/items.csv
-docker compose cp contents.csv app:/app/contents.csv
-docker compose exec app pnpm import:csv --items items.csv --contents contents.csv --as admin --dry-run
-docker compose exec app pnpm import:csv --items items.csv --contents contents.csv --as admin
-docker compose cp app:/app/import-map.csv ./import-map.csv
+export DATABASE_URL='postgresql://simaset:<DB_PASSWORD>@db.contoh.sch.id:5432/simaset?sslmode=require'
+pnpm import:csv --items items.csv --contents contents.csv --as admin --dry-run
+pnpm import:csv --items items.csv --contents contents.csv --as admin
+# import-map.csv ditulis di folder kerja
 ```
 
 ### Ringkasan dan pemetaan
