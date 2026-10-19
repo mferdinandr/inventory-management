@@ -18,6 +18,7 @@ export function Scanner() {
   const [codeError, setCodeError] = useState(false);
 
   useEffect(() => {
+    let stream: MediaStream | undefined;
     let controls: IScannerControls | undefined;
     let cancelled = false;
 
@@ -29,21 +30,24 @@ export function Scanner() {
       try {
         // Loaded on demand: the decoder is large and only this page needs it.
         const { BrowserQRCodeReader } = await import("@zxing/browser");
-        const started = await new BrowserQRCodeReader().decodeFromConstraints(
-          { video: { facingMode: "environment" } },
-          video.current,
-          (result) => {
-            if (!result) return;
-            const code = codeFromScan(result.getText());
-            if (code) router.push(`/items/${encodeURIComponent(code)}`);
-            else setUnrecognized(true);
-          },
-        );
-        if (cancelled) started.stop();
-        else {
-          controls = started;
-          setCamera("active");
-        }
+        const reader = new BrowserQRCodeReader();
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        if (cancelled || !video.current) return;
+        video.current.srcObject = stream;
+        try {
+          await video.current.play();
+        } catch {}
+        // decodeFromVideoElement only reads frames; the stream above is ours
+        // so stopping one instance never kills a sibling's camera in dev.
+        controls = await reader.decodeFromVideoElement(video.current, (result) => {
+          if (!result) return;
+          const code = codeFromScan(result.getText());
+          if (code) router.push(`/items/${encodeURIComponent(code)}`);
+          else setUnrecognized(true);
+        });
+        if (!cancelled) setCamera("active");
       } catch (e) {
         const denied = e instanceof DOMException && /^(NotAllowed|Security)Error$/.test(e.name);
         if (!cancelled) setCamera(denied ? "denied" : "unavailable");
@@ -54,6 +58,7 @@ export function Scanner() {
     return () => {
       cancelled = true;
       controls?.stop();
+      for (const track of stream?.getTracks() ?? []) track.stop();
     };
   }, [router]);
 
@@ -70,7 +75,7 @@ export function Scanner() {
       {unrecognized && <Notice tone="error">{t.scan.unrecognized}</Notice>}
       <div className={camera === "denied" || camera === "unavailable" ? "hidden" : "space-y-2"}>
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-ink-950">
-          <video ref={video} muted playsInline className="size-full object-cover" />
+          <video ref={video} autoPlay muted playsInline className="size-full object-cover" />
           <span className="pointer-events-none absolute top-3 left-3 size-10 rounded-tl-xl border-t-4 border-l-4 border-white/80" />
           <span className="pointer-events-none absolute top-3 right-3 size-10 rounded-tr-xl border-t-4 border-r-4 border-white/80" />
           <span className="pointer-events-none absolute bottom-3 left-3 size-10 rounded-bl-xl border-b-4 border-l-4 border-white/80" />
