@@ -1,6 +1,6 @@
 # 03 — ERD & Skema Data
 
-Lima tabel. Tidak ada `organization_id`, tidak ada tabel lampiran/gambar.
+Lima tabel inti (diagram di bawah) ditambah `login_failures` (`key`, `created_at`) untuk pembatas percobaan login. Tidak ada `organization_id`, tidak ada tabel lampiran/gambar.
 
 ```mermaid
 erDiagram

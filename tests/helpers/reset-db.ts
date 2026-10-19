@@ -10,7 +10,7 @@ export async function resetDatabase() {
     db.$executeRawUnsafe("ALTER TABLE item_logs DISABLE TRIGGER USER"),
     db.$executeRawUnsafe("ALTER TABLE maintenance_records DISABLE TRIGGER USER"),
     db.$executeRawUnsafe(
-      "TRUNCATE item_logs, maintenance_records, item_contents, items, users CASCADE",
+      "TRUNCATE item_logs, maintenance_records, item_contents, items, users, login_failures CASCADE",
     ),
     db.$executeRawUnsafe("ALTER TABLE item_logs ENABLE TRIGGER USER"),
     db.$executeRawUnsafe("ALTER TABLE maintenance_records ENABLE TRIGGER USER"),

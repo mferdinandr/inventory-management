@@ -24,15 +24,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
         const key = loginKey(username, ip);
-        if (isLoginBlocked(key)) return null;
+        if (await isLoginBlocked(key)) return null;
 
         const user = await db.user.findUnique({ where: { username } });
         const ok = user?.isActive && (await verifyPassword(user.passwordHash, password));
         if (!user || !ok) {
-          recordLoginFailure(key);
+          await recordLoginFailure(key);
           return null;
         }
-        clearLoginFailures(key);
+        await clearLoginFailures(key);
         return { id: user.id, name: user.name };
       },
     }),

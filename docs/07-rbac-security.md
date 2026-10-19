@@ -38,7 +38,8 @@ per peran × lokasi.
 
 - Username + kata sandi (argon2id), minimal 8 karakter.
 - Sesi 30 hari, cookie `HttpOnly`, `Secure`, `SameSite=Lax`.
-- Batas percobaan: 5 gagal / 10 menit per username + IP.
+- Batas percobaan: 5 gagal / 2 menit per username + IP, disimpan di tabel `login_failures` (bukan
+  di memori) agar tetap berlaku di Vercel yang melayani permintaan dari banyak instance.
 - SUPERADMIN pertama dibuat lewat CLI; sisanya oleh SUPERADMIN dari UI. Kata sandi awal
   wajib diganti saat login pertama.
 - Pengguna tidak dihapus, hanya dinonaktifkan. Selalu tersisa ≥ 1 SUPERADMIN aktif.
