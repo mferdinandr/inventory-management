@@ -107,18 +107,22 @@ export function ItemForm({
         </>
       )}
 
+      <p className="text-sm text-muted-foreground">
+        <span className="font-semibold text-destructive">*</span> {t.items.required}
+      </p>
+
       {canEditDetails && (
         <>
           <Group title={t.items.groups.identity}>
             <div className="sm:col-span-2">
               <Label htmlFor="name">
-                {f.name} ({t.items.required})
+                {f.name} <span className="font-semibold text-destructive">*</span>
               </Label>
               <Input id="name" name="name" defaultValue={values.name} required maxLength={120} />
             </div>
             <fieldset className="sm:col-span-2">
               <legend className="mb-1 text-sm font-medium text-slate-700">
-                {f.needsSterilization} ({t.items.required})
+                {f.needsSterilization} <span className="font-semibold text-destructive">*</span>
               </legend>
               <div className="space-y-1">
                 {(
