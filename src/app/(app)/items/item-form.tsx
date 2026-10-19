@@ -60,10 +60,10 @@ type Props = {
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
-      <legend className="px-1 text-lg font-semibold">{title}</legend>
-      {children}
-    </fieldset>
+    <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="grid gap-3 [&>div]:space-y-2 sm:grid-cols-2">{children}</div>
+    </section>
   );
 }
 
@@ -272,7 +272,7 @@ export function ItemForm({
       </section>
 
       {edit && (
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="note">{f.note}</Label>
           <Input id="note" name="note" maxLength={300} />
         </div>
