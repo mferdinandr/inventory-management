@@ -223,16 +223,10 @@ isian "jadwal berikutnya" (pemeliharaan). `damaged_after` mengubah `items.damage
 
 ## Aturan integritas
 
-<<<<<<< HEAD
-1. **Riwayat append-only.** Peran basis data aplikasi hanya diberi `INSERT, SELECT` pada
-   `item_logs` dan `maintenance_records`; `UPDATE` dan `DELETE` dicabut. Salah isi maintenance
-   dikoreksi dengan catatan baru.
-=======
 1. **Riwayat append-only.** Trigger `BEFORE UPDATE OR DELETE` dan `BEFORE TRUNCATE` pada
    `item_logs` dan `maintenance_records` melempar galat, jadi berlaku untuk semua peran basis
    data termasuk pemilik tabel (lebih kuat daripada mencabut hak, dan teruji tanpa peran
    khusus). Salah isi maintenance dikoreksi dengan catatan baru.
->>>>>>> origin/main
 2. **Perpindahan lokasi bersyarat.** Hanya barang `needs_sterilization`.
    - Kirim (OPERASI): `UPDATE items SET location='CSSD', version=version+1
      WHERE id=$1 AND location='OPERASI' AND needs_sterilization`.
