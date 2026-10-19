@@ -1,149 +1,70 @@
 # 09 — Deployment & Operasional
 
-## 1. Kebutuhan server
+## 1. Arsitektur
 
-Aplikasi kecil: 1 vCPU, 2 GB RAM, 20 GB disk sudah lebih dari cukup (tanpa foto, hanya
-teks). VPS yang sudah diputuskan sebelumnya tetap bisa dipakai; server di RS juga bisa,
-asalkan HTTPS tersedia.
-
-HTTPS **wajib** di produksi — kamera peramban tidak berjalan di HTTP. Di lokal,
-`localhost` dikecualikan.
-
-## 2. Docker Compose
-
-```yaml
-# docker-compose.yml
-services:
-  app:
-    image: simaset-app:latest
-    env_file: .env
-    depends_on:
-      db: { condition: service_healthy }
-    restart: unless-stopped
-
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: simaset
-      POSTGRES_USER: simaset
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U simaset"]
-      interval: 10s
-    restart: unless-stopped
-
-  caddy:
-    image: caddy:2
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-    depends_on: [app]
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  caddy_data:
+```mermaid
+flowchart LR
+    HP["Ponsel / PC"] -->|HTTPS| V["Vercel<br/>Next.js (region sin1)"]
+    V -->|"PostgreSQL + TLS<br/>(port publik)"| PG[("PostgreSQL 16<br/>di VPS, dikelola Coolify")]
+    COOLIFY["Coolify<br/>cadangan terjadwal ke S3"] --> PG
 ```
 
-```
-# Caddyfile
-{$DOMAIN} {
-  encode zstd gzip
-  reverse_proxy app:3000
-}
-```
+- **Vercel** menjalankan seluruh aplikasi Next.js (halaman, server actions, API).
+- **VPS dengan Coolify** hanya menjalankan resource **PostgreSQL 16**: SSL, port publik, dan
+  cadangan diatur dari dashboard Coolify. Datanya (harga beli, riwayat) tetap di server sendiri.
+- Domain aplikasi (`simaset.<domain>`) menunjuk ke Vercel dan tertulis di QR, jadi harus tetap.
 
-## 3. Variabel lingkungan
+## 2. Variabel lingkungan (Vercel, hanya lingkungan *Production*)
 
 | Variabel | Isi |
 |---|---|
-| `APP_URL` | `https://{DOMAIN}` — dipakai di QR |
-| `DATABASE_URL` | Koneksi ke `db` |
-| `DB_PASSWORD` | Kata sandi basis data |
-| `AUTH_SECRET` | Acak, ≥ 32 byte |
-| `DOMAIN` | Untuk Caddy |
+| `DATABASE_URL` | `postgresql://<user>:<sandi>@<host-vps>:<port-publik>/<db>?sslmode=require&uselibpqcompat=true` |
+| `AUTH_SECRET` | Acak, ≥ 32 byte (`openssl rand -base64 32`) |
+| `APP_URL` | `https://simaset.<domain>`, dipakai di QR |
+| `DB_POOL_MAX` | `3` (setiap instance serverless memegang kolam kecil) |
 
-Tidak ada kunci penyimpanan objek, SMTP, atau tenant.
+`uselibpqcompat=true` membuat `sslmode=require` berarti "terenkripsi tanpa memeriksa CA", cocok
+dengan sertifikat bawaan Coolify yang bukan dari CA publik. Preview dan Development **dibiarkan
+kosong**: `scripts/vercel-build.sh` hanya menjalankan migrasi bila `VERCEL_ENV=production` dan
+memakai URL tiruan untuk build lain, jadi preview tidak pernah menyentuh database.
 
-## 4. Penyiapan awal
+## 3. Pembaruan
 
-```bash
-git clone … && cd simaset
-cp .env.example .env            # isi nilai
-docker compose up -d
-docker compose exec app pnpm prisma migrate deploy
-docker compose exec app pnpm user:create   # buat SUPERADMIN pertama
-# lalu login dan buat akun OPERASI, STERIL, ALKES dari halaman Pengguna
-# data awal (sekali): lihat [14 — Impor CSV](14-impor-csv.md); selalu mulai dengan --dry-run
-```
+Push ke `main` → CI → Vercel membangun dari `vercel.json`: `scripts/vercel-build.sh` menjalankan
+`prisma migrate deploy` (hanya Production) lalu `next build`. Migrasi berjalan **sebelum** versi
+baru menerima lalu lintas, jadi migrasi harus kompatibel mundur satu versi (*Instant Rollback* di
+Vercel lalu aman).
 
-Aturan append-only (trigger) dan constraint CHECK sudah bagian dari migrasi, tidak ada langkah
-tambahan.
+## 4. Cadangan
 
-## 5. Cadangan
+Harian, lewat **Coolify**: buka resource PostgreSQL → **Backups** → tambah jadwal (mis. `0 2 * * *`),
+simpan ke S3 (Cloudflare R2, Backblaze B2, dan sejenisnya) agar salinan ada di luar server. Uji
+pemulihan sekali sebelum data sungguhan masuk, lalu tiap beberapa bulan.
 
-Harian, lewat cron di host (jalankan dari folder proyek):
+`scripts/backup.sh` dan `scripts/restore-check.sh` tetap ada untuk database dev
+(`COMPOSE_FILE=docker-compose.dev.yml`): `pg_dump` ke `./backups/` dan uji pemulihan ke basis
+data sementara.
 
-```sh
-# crontab -e   (setiap hari 02:00)
-0 2 * * * cd /opt/simaset && RCLONE_REMOTE=gdrive:simaset-backups scripts/backup.sh >> backups/backup.log 2>&1
-```
+## 5. Pemantauan
 
-`scripts/backup.sh` menjalankan `pg_dump` lewat `docker compose exec -T db`, menulis
-`./backups/simaset-YYYY-MM-DD.sql.gz` (berkas `./backups/` tidak masuk git), menghapus dump
-yang lebih tua dari 30 hari, dan, bila `RCLONE_REMOTE` diisi, menyalinnya ke luar server.
-Tanpa `RCLONE_REMOTE` cadangan hanya ada di server yang sama: **atur salinan ke luar server**
-sebelum go-live.
+- `GET https://simaset.<domain>/api/health` memeriksa koneksi DB; pasang di uptime-checker gratis.
+  503 berarti Vercel hidup tetapi database tidak terjangkau.
+- Log aplikasi: Vercel → Logs. Log dan disk database: dashboard Coolify.
 
-| Variabel | Bawaan | Fungsi |
-|---|---|---|
-| `COMPOSE_FILE` | `docker-compose.yml` | Berkas compose; `docker-compose.dev.yml` untuk basis data dev |
-| `DB_SERVICE` / `DB_USER` / `DB_NAME` | `db` / `simaset` / `simaset` | Layanan, pengguna, dan nama basis data |
-| `BACKUP_DIR` | `./backups` | Folder hasil |
-| `KEEP_DAYS` | `30` | Lama simpan |
-| `RCLONE_REMOTE` | kosong | Tujuan `rclone copy`, mis. `gdrive:simaset-backups` |
+## 6. Keamanan database yang terbuka
 
-**Uji pemulihan** (sebelum data sungguhan masuk, lalu tiap beberapa bulan):
+Alamat IP Vercel tidak tetap, jadi database dapat dijangkau dari internet: pakai kata sandi
+panjang acak, aktifkan SSL di Coolify, dan hanya buka satu port publik untuk database itu.
+Opsional: paket Vercel dengan *Static IPs* memungkinkan firewall VPS membatasi port tersebut.
 
-```sh
-scripts/restore-check.sh              # dump terbaru di ./backups
-scripts/restore-check.sh path/ke/simaset-2026-10-15.sql.gz
-```
+## 7. Daftar periksa go-live
 
-Skrip memulihkan dump ke basis data sementara, memeriksa tabel `users`, `items`,
-`item_contents`, `item_logs`, `maintenance_records` serta trigger append-only, mencetak
-jumlah barisnya, lalu menghapus basis data sementara. Kode keluar bukan 0 bila ada yang gagal,
-jadi aman dipasang di cron mingguan. Di mesin dev:
-`COMPOSE_FILE=docker-compose.dev.yml DB_NAME=simaset_<branch> scripts/backup.sh`.
-
-**Memulihkan sungguhan** (mis. membatalkan impor yang salah, [14](14-impor-csv.md)): hentikan
-aplikasi (`docker compose stop app`), `DROP DATABASE simaset; CREATE DATABASE simaset;`, lalu
-`gunzip -c backups/simaset-….sql.gz | docker compose exec -T db psql -U simaset simaset`, dan
-nyalakan lagi aplikasinya.
-
-## 6. Pemantauan
-
-- Titik cek `GET /api/health` (memeriksa koneksi DB), dipantau uptime-checker gratis.
-- Peringatan bila disk > 80%.
-- Log aplikasi lewat `docker compose logs`.
-
-## 7. Pembaruan
-
-Push ke `main` → CI (lint, tipe, tes, build) → bila lulus, workflow **Deploy** masuk ke server
-lewat SSH dan menjalankan `scripts/deploy.sh`: cadangan, tarik `main`, build image di server,
-`prisma migrate deploy`, `docker compose up -d`, lalu cek `/api/health`. Tanpa registry image.
-Langkah penyiapan dan secret ada di [15 — Panduan VPS](15-panduan-vps.md). Migrasi harus
-kompatibel mundur satu versi.
-
-## 8. Daftar periksa go-live
-
-- [ ] HTTPS aktif, kamera memindai di ponsel sungguhan
+- [ ] HTTPS aktif di domain aplikasi, kamera memindai di ponsel sungguhan
+- [ ] Database menolak koneksi tanpa SSL; Preview/Development di Vercel tidak punya `DATABASE_URL`
+- [ ] Deploy produksi pertama menerapkan migrasi; `/api/health` menjawab `{"ok":true}`
 - [ ] SUPERADMIN dibuat, 3 akun lain dibuat lewat UI, kata sandi awal sudah diganti
 - [ ] Trigger append-only pada `item_logs` dan `maintenance_records` aktif (uji: UPDATE/DELETE ditolak)
-- [ ] Cadangan berjalan **dan** pemulihan teruji
+- [ ] Cadangan Coolify berjalan ke S3 **dan** pemulihan teruji
 - [ ] Satu label lolos satu siklus sterilisasi dan masih terbaca
 - [ ] Alur set (Operasi → CSSD → Operasi), pengeditan alat besar oleh Operasi, tampilan Alkes, dan satu catatan maintenance dicoba oleh petugas sungguhan
 - [ ] Impor data awal ([14](14-impor-csv.md)) diuji pada salinan basis data dan hasilnya dicocokkan dengan daftar sumber

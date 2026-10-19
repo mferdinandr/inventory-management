@@ -18,13 +18,12 @@ Status: **Dirombak dari SaaS multi-tenant menjadi aplikasi satu rumah sakit yang
 | 06 | [Spesifikasi API](06-api-spec.md) | Endpoint dan kode error |
 | 07 | [RBAC & Keamanan](07-rbac-security.md) | Peran, matriks izin |
 | 08 | [QR & Label](08-qr-labeling.md) | Isi QR, label, penempelan |
-| 09 | [Deployment](09-deployment-ops.md) | Docker Compose, cadangan |
+| 09 | [Deployment](09-deployment-ops.md) | Vercel + database di VPS (Coolify), cadangan |
 | 10 | [Roadmap](10-roadmap.md) | Milestone |
 | 11 | [Keputusan & Pertanyaan Terbuka](11-open-questions.md) | Keputusan final dan yang perlu dikonfirmasi |
 | 12 | [Data Contoh](12-data-contoh.md) | Analisis dua daftar inventaris RS ([`contoh/`](contoh/)) |
 | 13 | [Kerja Paralel](13-kerja-paralel.md) | Worktree, pembagian milestone antar agen, aturan anti-bentrok |
 | 14 | [Impor CSV](14-impor-csv.md) | Memuat data awal dari CSV, cadangan sebelum impor, rollback |
-| 15 | [Panduan VPS](15-panduan-vps.md) | Menyiapkan server, DNS, HTTPS, deploy otomatis |
 
 ## Keputusan yang mengikat
 
