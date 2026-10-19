@@ -48,16 +48,9 @@ export function MaintenanceList({ records }: { records: MaintenanceEntry[] }) {
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-semibold">{t.maintenance.types[r.type]}</span>
             <span className="text-sm text-slate-600">{day(r.performedOn)}</span>
-            <span className="text-sm text-slate-600">
-              {r.performer} · {r.actorName}
-            </span>
             {r.cost !== null && <span className="ml-auto text-sm">{rupiah(r.cost)}</span>}
           </div>
           <dl className="mt-2 space-y-1 text-sm">
-            <div className="flex gap-1.5">
-              <dt className="shrink-0 text-slate-500">{t.maintenance.type}:</dt>
-              <dd>{t.maintenance.types[r.type]}</dd>
-            </div>
             <div className="flex gap-1.5">
               <dt className="shrink-0 text-slate-500">{t.maintenance.performer}:</dt>
               <dd>{r.performer}</dd>
