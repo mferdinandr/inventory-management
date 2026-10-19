@@ -21,16 +21,21 @@ function Field({
   name,
   label,
   hint,
+  required,
   children,
 }: {
   name: string;
   label: string;
   hint?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name}>
+        {label}
+        {required && <span className="font-semibold text-destructive">*</span>}
+      </Label>
       {children}
       {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
     </div>
@@ -71,6 +76,10 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
     <form action={action} onSubmit={rememberActor} className="space-y-4">
       {state?.error && <Notice tone="error">{state.error}</Notice>}
 
+      <p className="text-sm text-muted-foreground">
+        <span className="font-semibold text-destructive">*</span> {t.items.required}
+      </p>
+
       <Field name="type" label={t.maintenance.type}>
         <NativeSelect
           id="type"
@@ -88,7 +97,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field name="performedOn" label={t.maintenance.performedOn}>
+        <Field name="performedOn" label={t.maintenance.performedOn} required>
           <Input
             id="performedOn"
             name="performedOn"
@@ -98,7 +107,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
             className={FIELD}
           />
         </Field>
-        <Field name="performer" label={t.maintenance.performer}>
+        <Field name="performer" label={t.maintenance.performer} required>
           <Input
             id="performer"
             name="performer"
@@ -112,7 +121,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
 
       {type === "PERBAIKAN" && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field name="complaint" label={t.maintenance.complaint}>
+          <Field name="complaint" label={t.maintenance.complaint} required>
             <Input
               id="complaint"
               name="complaint"
@@ -141,7 +150,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
 
       {type === "PEMELIHARAAN" && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field name="activities" label={t.maintenance.activities}>
+          <Field name="activities" label={t.maintenance.activities} required>
             <Input
               id="activities"
               name="activities"
@@ -167,7 +176,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
 
       {type === "KALIBRASI" && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field name="institution" label={t.maintenance.institution}>
+          <Field name="institution" label={t.maintenance.institution} required>
             <Input
               id="institution"
               name="institution"
@@ -200,7 +209,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
               <option value="TIDAK_LULUS">{t.maintenance.results.TIDAK_LULUS}</option>
             </NativeSelect>
           </Field>
-          <Field name="validUntil" label={t.maintenance.validUntil}>
+          <Field name="validUntil" label={t.maintenance.validUntil} required>
             <Input
               id="validUntil"
               name="validUntil"
@@ -230,6 +239,7 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
           name="damagedAfter"
           label={t.maintenance.damagedAfter}
           hint={t.maintenance.damagedHint(quantity, damaged)}
+          required
         >
           <Input
             id="damagedAfter"
@@ -249,7 +259,12 @@ export function MaintenanceForm({ code, today, quantity, damaged }: Props) {
       <Field name="note" label={t.maintenance.note}>
         <Input id="note" name="note" maxLength={1000} defaultValue={v.note} className={FIELD} />
       </Field>
-      <Field name="actorName" label={t.maintenance.actorName} hint={t.maintenance.actorHint}>
+      <Field
+        name="actorName"
+        label={t.maintenance.actorName}
+        hint={t.maintenance.actorHint}
+        required
+      >
         <Input
           id="actorName"
           name="actorName"

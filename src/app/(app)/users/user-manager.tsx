@@ -164,7 +164,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
           <form action={action} className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="intent" value="create" />
             <div className="space-y-2">
-              <Label htmlFor="new-username">{t.users.username}</Label>
+              <Label htmlFor="new-username">
+                {t.users.username} <span className="font-semibold text-destructive">*</span>
+              </Label>
               <Input
                 id="new-username"
                 name="username"
@@ -174,7 +176,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-name">{t.users.name}</Label>
+              <Label htmlFor="new-name">
+                {t.users.name} <span className="font-semibold text-destructive">*</span>
+              </Label>
               <Input id="new-name" name="name" required className={FIELD} />
             </div>
             <div className="space-y-2">
@@ -188,7 +192,9 @@ export function UserManager({ users, meId }: { users: Row[]; meId: string }) {
               </NativeSelect>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-password">{t.users.password}</Label>
+              <Label htmlFor="new-password">
+                {t.users.password} <span className="font-semibold text-destructive">*</span>
+              </Label>
               <PasswordInput
                 id="new-password"
                 name="password"

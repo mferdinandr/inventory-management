@@ -19,7 +19,9 @@ export function FlowFields({ notePlaceholder }: { notePlaceholder?: string }) {
   return (
     <>
       <div>
-        <Label htmlFor="actorName">{t.flow.actorName}</Label>
+        <Label htmlFor="actorName">
+          {t.flow.actorName} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <Input
           id="actorName"
           name="actorName"

@@ -39,7 +39,9 @@ export function ChangePasswordForm() {
   return (
     <form action={action} onSubmit={handleSubmit} noValidate className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="current">{t.changePassword.current}</Label>
+        <Label htmlFor="current">
+          {t.changePassword.current} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <PasswordInput
           id="current"
           name="current"
@@ -49,7 +51,9 @@ export function ChangePasswordForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="next">{t.changePassword.next}</Label>
+        <Label htmlFor="next">
+          {t.changePassword.next} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <PasswordInput
           id="next"
           name="next"
@@ -61,7 +65,9 @@ export function ChangePasswordForm() {
         <p className="text-sm text-muted-foreground">{t.changePassword.hint}</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="confirm">{t.changePassword.confirm}</Label>
+        <Label htmlFor="confirm">
+          {t.changePassword.confirm} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <PasswordInput
           id="confirm"
           name="confirm"

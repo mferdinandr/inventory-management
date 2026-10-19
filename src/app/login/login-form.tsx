@@ -55,7 +55,9 @@ export function LoginForm({ next }: { next?: string }) {
       {next && <input type="hidden" name="next" value={next} />}
 
       <div className="space-y-2">
-        <Label htmlFor="username">{t.login.username}</Label>
+        <Label htmlFor="username">
+          {t.login.username} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <div className="relative">
           <User className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -83,7 +85,9 @@ export function LoginForm({ next }: { next?: string }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">{t.login.password}</Label>
+        <Label htmlFor="password">
+          {t.login.password} <span className="font-semibold text-destructive">*</span>
+        </Label>
         <PasswordInput
           id="password"
           name="password"
