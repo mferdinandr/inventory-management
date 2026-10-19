@@ -140,3 +140,14 @@ model ItemLog {
   @@index([itemId, createdAt(sort: Desc)])
   @@map("item_logs")
 }
+
+/// Failed sign-in attempts per "username|ip", kept in the database so the limit holds across
+/// serverless instances. Old rows are pruned as new failures are recorded.
+model LoginFailure {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([key, createdAt])
+  @@map("login_failures")
+}

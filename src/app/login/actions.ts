@@ -16,7 +16,7 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
   const next = safeNext(String(form.get("next") ?? "")) ?? "/";
 
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (isLoginBlocked(loginKey(username, ip))) return { error: "blocked" };
+  if (await isLoginBlocked(loginKey(username, ip))) return { error: "blocked" };
 
   try {
     const url = await signIn("credentials", {
