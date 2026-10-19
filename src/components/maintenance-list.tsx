@@ -55,6 +55,10 @@ export function MaintenanceList({ records }: { records: MaintenanceEntry[] }) {
               <dt className="shrink-0 text-slate-500">{t.maintenance.performer}:</dt>
               <dd>{r.performer}</dd>
             </div>
+            <div className="flex gap-1.5">
+              <dt className="shrink-0 text-slate-500">{t.maintenance.actorName}:</dt>
+              <dd>{r.actorName}</dd>
+            </div>
             {lines(r).map(([label, value]) => (
               <div key={label} className="flex gap-1.5">
                 <dt className="shrink-0 text-slate-500">{label}:</dt>
