@@ -43,7 +43,11 @@ export async function ItemLabel({
   );
 
   const textBlock = (
-    <div className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : "flex-1"}`}>
+    <div
+      className={`min-w-0 ${stacked ? "w-full flex-1 text-center" : "flex-1"} ${
+        textPosition === "left" ? "text-right" : ""
+      }`}
+    >
       <p className="font-bold leading-tight" style={{ fontSize: `${11 * textScale}pt` }}>
         {code}
       </p>
