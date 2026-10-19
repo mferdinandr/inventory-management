@@ -148,6 +148,7 @@ export function listRecentActivity(limit = RECENT_ACTIVITY) {
       changes: true,
       createdAt: true,
       item: { select: { code: true, name: true } },
+      user: { select: { role: true } },
     },
   });
 }

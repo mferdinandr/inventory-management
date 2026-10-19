@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatDateTime } from "@/app/(app)/items/format";
 import { describeChange } from "@/app/(app)/items/history";
 import { Card, CardContent } from "@/components/ui";
+import type { Role } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export type ActivityEntry = {
   id: string;
   action: "REGISTER" | "EDIT" | "SEND" | "RETURN" | "MAINTENANCE" | "ARCHIVE" | "RESTORE";
   actorName: string;
+  role: Role;
   note: string | null;
   changes: unknown;
   createdAt: Date;
@@ -56,19 +58,23 @@ export function ActivityTimeline({ entries }: { entries: ActivityEntry[] }) {
                 </span>
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="text-sm">
-                    <span className="font-medium">{t.items.history[entry.action]}</span>{" "}
                     <Link
                       href={`/items/${entry.item.code}`}
-                      className="inline-block py-1 text-primary hover:underline"
+                      className="inline-block py-1 font-medium text-ink-900 hover:underline"
                     >
                       <span className="font-mono text-sm">{entry.item.code}</span> {entry.item.name}
-                    </Link>
+                    </Link>{" "}
+                    <span className="text-muted-foreground">{t.items.history[entry.action]}</span>
                   </p>
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ink-100 text-[10px] font-semibold text-ink-600">
                       {entry.actorName.slice(0, 1).toUpperCase()}
                     </span>
-                    {entry.actorName} · {formatDateTime(entry.createdAt)}
+                    {entry.actorName}{" "}
+                    <span className="rounded bg-ink-100 px-1 py-0.5 text-[10px] font-semibold text-ink-600">
+                      {t.roles[entry.role]}
+                    </span>{" "}
+                    · {formatDateTime(entry.createdAt)}
                   </p>
                   {entry.note && <p className="text-sm">{entry.note}</p>}
                   {changes.length > 0 && (

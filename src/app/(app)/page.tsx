@@ -27,6 +27,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const user = await requireUser();
   const [summary, activity] = await Promise.all([getSummary(), listRecentActivity(10)]);
+  const entries = activity.map((e) => ({ ...e, role: e.user.role }));
   const c = t.dashboard.cards;
 
   const cards = [
@@ -148,7 +149,7 @@ export default async function HomePage() {
       {activity.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">{t.dashboard.groupActivity}</h2>
-          <ActivityTimeline entries={activity} />
+          <ActivityTimeline entries={entries} />
         </section>
       )}
     </div>
