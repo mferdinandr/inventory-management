@@ -9,7 +9,11 @@ Setiap langkah di bawah dikerjakan dengan **commit kecil dan langsung di-push** 
 ## M0 — Fondasi (± 3 hari)
 
 - Repo, Next.js, Biome, Prisma, Docker Compose lokal, CI
+<<<<<<< HEAD
 - Skema 5 tabel + migrasi + pencabutan hak `item_logs` dan `maintenance_records`
+=======
+- Skema 5 tabel + migrasi + trigger append-only untuk `item_logs` dan `maintenance_records`
+>>>>>>> origin/main
 - Auth.js, 4 peran, `permissions.ts`, `pnpm user:create` (SUPERADMIN pertama)
 - Halaman Pengguna: tambah, ubah peran, nonaktifkan, reset, ganti kata sandi awal
 - Login dan kerangka layout

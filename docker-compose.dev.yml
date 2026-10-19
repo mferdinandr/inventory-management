@@ -1,0 +1,22 @@
+# Local development database only. Production uses docker-compose.yml.
+name: simaset-dev  # one shared project for every worktree, so they reuse the same container
+
+services:
+  db:
+    image: postgres:16
+    container_name: simaset-dev-db
+    environment:
+      POSTGRES_DB: simaset
+      POSTGRES_USER: simaset
+      POSTGRES_PASSWORD: simaset
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simaset"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata_dev:

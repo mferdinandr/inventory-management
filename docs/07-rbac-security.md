@@ -9,7 +9,14 @@
 | `ALKES` | Kantor Alkes | Hanya melihat (plus maintenance, seperti semua peran) |
 | `SUPERADMIN` | Pengelola sistem | Akses penuh + kelola pengguna |
 
+<<<<<<< HEAD
 Peran hanya dapat diubah oleh SUPERADMIN.
+=======
+Peran hanya dapat diubah oleh SUPERADMIN. **Akun SUPERADMIN hanya dapat diubah oleh pemiliknya
+sendiri:** SUPERADMIN lain tidak bisa mengubah nama, peran, status aktif, atau mereset kata sandinya
+(ditolak 403 di server; tombolnya juga disembunyikan). Pemilik tetap bisa mengganti kata
+sandinya sendiri.
+>>>>>>> origin/main
 
 ## 2. Matriks izin
 
@@ -54,7 +61,11 @@ setiap **kirim**, **kembalikan**, dan **maintenance** mewajibkan **nama petugas*
 | Tebak kata sandi | Argon2id, pembatasan percobaan |
 | Peran melampaui wewenang | Pemeriksaan peran **dan lokasi barang** di server |
 | Akun SUPERADMIN disalahgunakan | Hanya segelintir orang; aksinya tetap tercatat; kata sandi kuat |
+<<<<<<< HEAD
 | Riwayat/maintenance diubah | Hak `UPDATE/DELETE` dicabut dari peran basis data aplikasi |
+=======
+| Riwayat/maintenance diubah | Trigger basis data menolak UPDATE/DELETE/TRUNCATE pada tabel riwayat |
+>>>>>>> origin/main
 | Perubahan jumlah saling menimpa | Kolom `version` + transaksi |
 | Injeksi SQL | Prisma berparameter |
 | Kebocoran rahasia | `.env` di luar git; `AUTH_SECRET` panjang acak |

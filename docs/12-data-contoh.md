@@ -60,6 +60,8 @@ linen, kursi, box container.
 
 Total >1.300 baris. Mengetik ulang lewat formulir tidak realistis.
 
+- Untuk pengembangan, `pnpm seed` membuat data contoh kecil (set sterilisasi, alat besar,
+  maintenance, log aktivitas) yang aman dijalankan ulang — barang dengan nama sama dilewati.
 - Sediakan **skrip impor CSV sekali pakai** (`pnpm import:csv`) yang dijalankan
   SUPERADMIN/pengembang, bukan fitur UI. Format: satu CSV barang, satu CSV isi.
 - Minta **berkas Excel asli** (bukan PDF) dari rumah sakit; PDF ini ekspor dan sulit diurai
