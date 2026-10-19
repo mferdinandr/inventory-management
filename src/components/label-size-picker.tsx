@@ -42,7 +42,7 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
   return (
     <div className="p-4 print:p-0">
       <style>
-        {`@page { size: ${w}mm ${h}mm; margin: 0 } @media print { body { background: #fff } }`}
+        {`@page { size: ${(w + 0.4).toFixed(1)}mm ${(h + 0.4).toFixed(1)}mm; margin: 0 } @media print { body { background: #fff } }`}
       </style>
 
       <div className="mb-6 space-y-4 rounded-2xl border border-ink-200 bg-card p-4 shadow-sm print:hidden">
@@ -149,10 +149,10 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
         <PrintButton className="w-full" />
       </div>
 
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto pb-2 print:p-0">
         <div
           style={{ width: `${w}mm`, height: `${h}mm` }}
-          className="mx-auto shrink-0 border border-dashed border-slate-300 print:border-0"
+          className="mx-auto shrink-0 border border-dashed border-slate-300 print:mx-0 print:border-0"
         >
           <LabelPreview
             code={code}
