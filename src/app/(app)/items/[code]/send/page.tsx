@@ -1,10 +1,11 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { can } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { requireUser } from "@/server/auth/session";
 import { getItemByCode } from "@/server/services/item.service";
+import { LinkButton } from "../../link-button";
 import { SendForm } from "./form";
 
 export const metadata: Metadata = { title: t.flow.sendTitle };
@@ -23,9 +24,10 @@ export default async function SendPage({ params }: { params: Promise<{ code: str
 
   return (
     <section className="space-y-4">
-      <Link href={back} className="inline-block py-2 text-teal-800 underline">
+      <LinkButton href={back} variant="ghost" className="-ml-3 text-muted-foreground">
+        <ArrowLeft className="size-4" />
         {t.flow.back}
-      </Link>
+      </LinkButton>
       <h1 className="text-2xl font-bold">
         {t.flow.sendTitle}: {item.name}
       </h1>

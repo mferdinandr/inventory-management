@@ -18,7 +18,7 @@ export function FlowFields({ notePlaceholder }: { notePlaceholder?: string }) {
 
   return (
     <>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="actorName">
           {t.flow.actorName} <span className="font-semibold text-destructive">*</span>
         </Label>
@@ -34,12 +34,19 @@ export function FlowFields({ notePlaceholder }: { notePlaceholder?: string }) {
               localStorage.setItem(ACTOR_KEY, actorName.trim());
             } catch {}
           }}
+          className="h-11"
         />
-        <p className="mt-1 text-sm text-slate-600">{t.flow.actorHint}</p>
+        <p className="text-sm text-muted-foreground">{t.flow.actorHint}</p>
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="note">{t.flow.note}</Label>
-        <Input id="note" name="note" maxLength={300} placeholder={notePlaceholder} />
+        <Input
+          id="note"
+          name="note"
+          maxLength={300}
+          placeholder={notePlaceholder}
+          className="h-11"
+        />
       </div>
     </>
   );
