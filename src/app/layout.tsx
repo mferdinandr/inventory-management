@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="id" className={cn("font-sans", geist.variable)}>
       <body>
         {children}
-        <Toaster position="top-center" richColors duration={6000} />
+        <Toaster position="top-center" richColors duration={3000} />
       </body>
     </html>
   );
