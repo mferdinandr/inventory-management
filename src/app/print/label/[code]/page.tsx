@@ -1,4 +1,6 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LabelSizePicker } from "@/components/label-size-picker";
 import { normalizeItemCode } from "@/lib/item-code";
@@ -21,6 +23,15 @@ export default async function LabelPage({ params }: { params: Promise<{ code: st
   return (
     <>
       {/* The browser prints exactly one label: no margins, no app chrome. */}
+      <div className="p-4 pb-0 print:hidden">
+        <Link
+          href={`/items/${encodeURIComponent(item.code)}`}
+          className="-ml-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {t.print.back}
+        </Link>
+      </div>
       <LabelSizePicker code={item.code} name={item.name} qrSrc={qrSrc} />
     </>
   );
