@@ -50,6 +50,13 @@ export const t = {
     soon: "Daftar barang akan tersedia di tahap berikutnya.",
     toItems: "Lihat daftar barang",
   },
+  errorPage: {
+    title: "Terjadi kesalahan",
+    body: "Halaman tidak dapat ditampilkan. Coba lagi; bila terus terjadi, beri tahu pengelola sistem.",
+    reference: "Kode rujukan",
+    retry: "Coba lagi",
+    home: "Ke beranda",
+  },
   users: {
     title: "Pengguna",
     add: "Tambah pengguna",
