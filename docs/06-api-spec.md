@@ -30,6 +30,17 @@ Semua peran. `q` mencari kode, nama, merek, nomor seri, kamar. Mengembalikan
 `code, name, room, needsSterilization, location, locationSince, quantity, damagedQuantity, nextDue`.
 Urutan default `code` naik; `sort` memilih kolom (default `code`), `dir` arahnya (default `asc`).
 
+### `GET /api/items/export?type=items|contents&{filter daftar}`
+Semua peran (sesi login). Mengunduh CSV dengan filter dan urutan yang sama seperti daftar, **tanpa
+batas baris**. `type=items` (bawaan): satu baris per barang, kolom `code, name, room, location,
+needs_sterilization, quantity, damaged_quantity, good_quantity, brand, model, serial_number,
+purchase_date, purchase_price, supplier, funding_source, warranty_until, next_due, description,
+archived`. `type=contents`: satu baris per isi wadah, kolom `item_code, item_name, name, brand,
+quantity, damaged_quantity, good_quantity, note`. Format: UTF-8 dengan BOM, pemisah `;`, tanggal
+`YYYY-MM-DD`, harga angka rupiah polos; sel teks berawalan `= + - @` diberi apostrof di depan agar
+tidak dijalankan sebagai rumus. Nama berkas `simaset-barang-YYYY-MM-DD.csv` atau
+`simaset-isi-wadah-YYYY-MM-DD.csv`. 401 bila belum login.
+
 ### `POST /api/items` — OPERASI, SUPERADMIN
 ```json
 {

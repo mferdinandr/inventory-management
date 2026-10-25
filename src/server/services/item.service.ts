@@ -75,7 +75,8 @@ const stateOf = (item: ItemState): ItemState => ({
 // Reads
 // ---------------------------------------------------------------------------
 
-export async function listItems(filters: ItemFilters = {}) {
+/** The where/orderBy shared by the list screen and the CSV export, so both show the same rows. */
+export async function buildItemQuery(filters: ItemFilters = {}) {
   const q = filters.q?.trim();
   const where: Prisma.ItemWhereInput = {
     isArchived: filters.archived ?? false,
@@ -104,6 +105,12 @@ export async function listItems(filters: ItemFilters = {}) {
     { [SORT_FIELDS[filters.sort ?? "code"]]: filters.dir === "desc" ? "desc" : "asc" },
     { code: "asc" },
   ];
+
+  return { where, orderBy };
+}
+
+export async function listItems(filters: ItemFilters = {}) {
+  const { where, orderBy } = await buildItemQuery(filters);
 
   return db.item.findMany({
     where,

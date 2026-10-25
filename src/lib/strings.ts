@@ -185,6 +185,8 @@ export const t = {
         quantity: "Jumlah",
         damaged: "Rusak",
       },
+      exportItems: "Ekspor barang (CSV)",
+      exportContents: "Ekspor isi wadah (CSV)",
       damagedOnly: "Hanya yang rusak",
       archivedOnly: "Hanya arsip",
       apply: "Cari",

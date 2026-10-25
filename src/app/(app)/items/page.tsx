@@ -1,9 +1,10 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, Plus, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Badge,
   Button,
+  buttonVariants,
   Card,
   CardContent,
   CardHeader,
@@ -16,6 +17,7 @@ import { roleAllows } from "@/lib/permissions";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
+import { parseItemFilters } from "@/server/item-filters";
 import { type ItemSort, listItems, listRooms } from "@/server/services/item.service";
 import { LinkButton } from "./link-button";
 
@@ -27,46 +29,23 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 
 const FIELD = "h-11";
 
-const SORT_COLUMNS: ItemSort[] = [
-  "code",
-  "name",
-  "room",
-  "note",
-  "location",
-  "quantity",
-  "damaged",
-];
-
 export default async function ItemsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser();
   const params = await searchParams;
-  const q = first(params.q);
-  const location = first(params.location);
-  const room = first(params.room);
-  const damaged = first(params.damaged) === "1";
-  const needsSterilization = first(params.needsSterilization) === "1";
-  const archived = first(params.archived) === "1";
-  const dueSoon = first(params.dueSoon) === "1";
-  const sortParam = first(params.sort);
-  const sort: ItemSort | undefined = SORT_COLUMNS.includes(sortParam as ItemSort)
-    ? (sortParam as ItemSort)
-    : undefined;
-  const dir = first(params.dir) === "desc" ? "desc" : "asc";
+  const filters = parseItemFilters((key) => first(params[key]));
+  const {
+    q = "",
+    room = "",
+    damaged = false,
+    needsSterilization = false,
+    archived = false,
+    dueSoon = false,
+    sort,
+    dir = "asc",
+  } = filters;
+  const location = filters.location ?? "";
 
-  const [items, rooms] = await Promise.all([
-    listItems({
-      q,
-      location: location === "OPERASI" || location === "CSSD" ? location : undefined,
-      room: room || undefined,
-      damaged,
-      needsSterilization,
-      dueSoon,
-      archived,
-      sort,
-      dir,
-    }),
-    listRooms(),
-  ]);
+  const [items, rooms] = await Promise.all([listItems(filters), listRooms()]);
 
   /** Header link that toggles asc/desc, keeping every active filter. */
   function sortHref(col: ItemSort) {
@@ -80,6 +59,21 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
     if (dueSoon) sp.set("dueSoon", "1");
     if (archived) sp.set("archived", "1");
     return `/items?${sp.toString()}`;
+  }
+
+  /** Download link for the CSV export, carrying the filters and sort currently on screen. */
+  function exportHref(type: "items" | "contents") {
+    const sp = new URLSearchParams({ type });
+    if (q) sp.set("q", q);
+    if (location) sp.set("location", location);
+    if (room) sp.set("room", room);
+    if (damaged) sp.set("damaged", "1");
+    if (needsSterilization) sp.set("needsSterilization", "1");
+    if (dueSoon) sp.set("dueSoon", "1");
+    if (archived) sp.set("archived", "1");
+    if (sort) sp.set("sort", sort);
+    sp.set("dir", dir);
+    return `/api/items/export?${sp.toString()}`;
   }
 
   function SortableHeader({
@@ -129,12 +123,25 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t.items.title}</h1>
-        {roleAllows(user.role, "item.create") && (
-          <LinkButton href="/items/new">
-            <Plus className="size-4" />
-            {t.items.add}
-          </LinkButton>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {(["items", "contents"] as const).map((type) => (
+            <a
+              key={type}
+              href={exportHref(type)}
+              download
+              className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+            >
+              <Download className="size-4" />
+              {type === "items" ? t.items.list.exportItems : t.items.list.exportContents}
+            </a>
+          ))}
+          {roleAllows(user.role, "item.create") && (
+            <LinkButton href="/items/new">
+              <Plus className="size-4" />
+              {t.items.add}
+            </LinkButton>
+          )}
+        </div>
       </div>
 
       {/* A plain GET form: filters live in the URL, so a filtered list can be shared or reloaded. */}
