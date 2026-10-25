@@ -68,7 +68,7 @@ sebaiknya dimulai sejak M2.
 
 ## Setelah rilis (hanya bila terbukti perlu)
 
-Ekspor CSV/Excel, peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (menandai
+Peringatan barang terlalu lama di CSSD, standar jumlah isi wadah (menandai
 kekurangan otomatis), notifikasi jatuh tempo, work order maintenance.
 
 ## Risiko jadwal
