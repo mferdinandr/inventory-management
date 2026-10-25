@@ -50,6 +50,12 @@ data sementara.
 - `GET https://simaset.<domain>/api/health` memeriksa koneksi DB; pasang di uptime-checker gratis.
   503 berarti Vercel hidup tetapi database tidak terjangkau.
 - Log aplikasi: Vercel → Logs. Log dan disk database: dashboard Coolify.
+- **Galat tak terduga** dilaporkan ke Sentry bila `NEXT_PUBLIC_SENTRY_DSN` terisi di Vercel
+  (hanya Production). Yang dikirim: pesan galat dan jejak tumpukannya; tidak ada cookie, header,
+  isi form (kata sandi), query pencarian, atau data pengguna. Galat yang disengaja (validasi,
+  409, izin) bukan galat tak terduga dan tidak dikirim. Kosong = tidak mengirim apa pun.
+- Layar galat berbahasa Indonesia dengan tombol "Coba lagi" dan kode rujukan menggantikan halaman
+  galat bawaan Next.
 
 ## 6. Keamanan database yang terbuka
 
