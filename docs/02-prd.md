@@ -27,9 +27,7 @@ pendataan tidak tertahan.
 | | Keterangan | teks bebas |
 | **Jumlah** | Jumlah | default 1. **Lebih dari 1 hanya untuk barang sejenis tanpa nomor seri** (meja stainless 4, tempat sampah 2). Alat bernomor seri didaftarkan satu per satu |
 | | Jumlah rusak | default 0 |
-| **Detail alat** | Merek, Model/tipe, Nomor seri | |
-| **Pembelian** | Tanggal pembelian, Harga (Rp), Supplier/penyedia, Sumber dana | |
-| | Garansi sampai | |
+| **Detail alat** | Merek, Model/tipe, Nomor seri, Tanggal pembelian | |
 | **Isi** | Daftar isi | lihat F3; untuk wadah/set |
 
 Sistem otomatis mengisi: lokasi awal `OPERASI`, `location_since`, versi.

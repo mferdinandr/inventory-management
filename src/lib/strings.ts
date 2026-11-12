@@ -206,7 +206,6 @@ export const t = {
       identity: "Identitas",
       quantity: "Jumlah",
       equipment: "Detail alat",
-      purchase: "Pembelian",
       contents: "Isi",
     },
     fields: {

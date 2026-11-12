@@ -41,10 +41,6 @@ export default async function EditItemPage({ params }: { params: Promise<{ code:
           model: item.model ?? "",
           serialNumber: item.serialNumber ?? "",
           purchaseDate: toDateInput(item.purchaseDate),
-          purchasePrice: item.purchasePrice === null ? "" : String(item.purchasePrice),
-          supplier: item.supplier ?? "",
-          fundingSource: item.fundingSource ?? "",
-          warrantyUntil: toDateInput(item.warrantyUntil),
         }}
         contents={item.contents.map((c) => ({
           id: c.id,

@@ -18,10 +18,6 @@ export type ItemValues = {
   model: string;
   serialNumber: string;
   purchaseDate: string;
-  purchasePrice: string;
-  supplier: string;
-  fundingSource: string;
-  warrantyUntil: string;
 };
 
 export const emptyValues: ItemValues = {
@@ -35,10 +31,6 @@ export const emptyValues: ItemValues = {
   model: "",
   serialNumber: "",
   purchaseDate: "",
-  purchasePrice: "",
-  supplier: "",
-  fundingSource: "",
-  warrantyUntil: "",
 };
 
 type Props = {
@@ -221,9 +213,6 @@ export function ItemForm({
               />
               <p className="mt-1 text-xs text-slate-500">{f.serialHint}</p>
             </div>
-          </Group>
-
-          <Group title={t.items.groups.purchase}>
             <div>
               <Label htmlFor="purchaseDate">{f.purchaseDate}</Label>
               <Input
@@ -231,39 +220,6 @@ export function ItemForm({
                 name="purchaseDate"
                 type="date"
                 defaultValue={values.purchaseDate}
-              />
-            </div>
-            <div>
-              <Label htmlFor="purchasePrice">{f.purchasePrice}</Label>
-              <Input
-                id="purchasePrice"
-                name="purchasePrice"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                defaultValue={values.purchasePrice}
-              />
-            </div>
-            <div>
-              <Label htmlFor="supplier">{f.supplier}</Label>
-              <Input id="supplier" name="supplier" defaultValue={values.supplier} maxLength={120} />
-            </div>
-            <div>
-              <Label htmlFor="fundingSource">{f.fundingSource}</Label>
-              <Input
-                id="fundingSource"
-                name="fundingSource"
-                defaultValue={values.fundingSource}
-                maxLength={120}
-              />
-            </div>
-            <div>
-              <Label htmlFor="warrantyUntil">{f.warrantyUntil}</Label>
-              <Input
-                id="warrantyUntil"
-                name="warrantyUntil"
-                type="date"
-                defaultValue={values.warrantyUntil}
               />
             </div>
           </Group>
