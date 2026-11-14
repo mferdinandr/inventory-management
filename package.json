@@ -26,6 +26,7 @@
     "@zxing/library": "^0.23.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.57.0",
     "next": "15.5.27",
     "next-auth": "5.0.0-beta.32",
