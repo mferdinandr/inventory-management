@@ -4,6 +4,7 @@ import { requireAction } from "@/server/auth/session";
 import { listRooms } from "@/server/services/item.service";
 import { createItemAction } from "../actions";
 import { emptyValues, ItemForm } from "../item-form";
+import { ExcelImport } from "./excel-import";
 
 export const metadata: Metadata = { title: t.items.newItem.title };
 
@@ -13,6 +14,7 @@ export default async function NewItemPage() {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-bold">{t.items.newItem.title}</h1>
+      <ExcelImport />
       <ItemForm
         action={createItemAction}
         values={emptyValues}

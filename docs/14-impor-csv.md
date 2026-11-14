@@ -151,3 +151,28 @@ Cara membatalkan impor yang salah adalah **memulihkan cadangan** yang dibuat seb
 cadangan sebelum impor wajib, dan impor dilakukan saat belum ada petugas yang mengubah data.
 Bila hanya beberapa barang yang salah, arsipkan lewat aplikasi lalu impor ulang dengan nama
 atau ruang yang benar.
+
+## 7. Impor Excel dari halaman Tambah barang
+
+Selain skrip CSV, berkas `.xlsx` daftar inventaris (format MINOR, MAYOR, SARAF, UROLOGI, dst.)
+dapat diunggah langsung di **Tambah barang** (`/items/new`) oleh peran yang boleh mendaftarkan
+barang (`item.create`: OPERASI dan SUPERADMIN). Logikanya ada di `src/server/import/xlsx.ts`
+dan `xlsx-run.ts`.
+
+- Tautan **Unduh template impor** (`/api/items/import-template`) memberi berkas `.xlsx` kosong
+  dengan header yang benar dan sheet PETUNJUK.
+- Tabel **Pemetaan kolom** (kolom Excel ke kolom di web) tampil di kartu impor, di bawah
+  pemilih berkas.
+- Tombol **Impor** (sejajar dengan pemilih berkas) membuka popup pratinjau: jumlah barang dan
+  isi yang akan dibuat, yang dilewati, galat bila ada, dan daftar barang yang akan dibuat
+  (klik satu barang untuk melihat isinya). Data baru ditulis setelah menekan **Proses**; popup lalu menutup, muncul toast berhasil, dan halaman pindah ke daftar barang (`/items`).
+- **Pemetaan** sama dengan bagian 3: tiap nilai kolom `ID item` (atau `Column 1`) pada satu sheet
+  menjadi satu barang (perlu sterilisasi, jumlah 1); tiap barisnya menjadi satu baris isi.
+  NAMA ITEM → nama, MEREK → merek, JUMLAH → jumlah (kosong = 1), Catatan → catatan, KONDISI
+  yang memuat "rusak" → jumlah rusak = jumlah. Status dan TANGGAL VERIVIKASI tidak diimpor.
+- **Kolom dicari dari header**, jadi kolom `NO` tambahan (UROLOGI) dan urutan yang tertukar
+  (THT) tidak masalah. Sheet tanpa header `NAMA ITEM` (mis. AESCULAP NEW) dilewati dan
+  disebutkan di hasil.
+- **Satu galat membatalkan seluruh berkas** (tidak ada yang ditulis); semua galat ditampilkan
+  dengan nama sheet dan nomor baris. Barang bernama sama (tanpa ruang) yang sudah ada dilewati.
+- Ukuran berkas maksimal 4 MB. Log `REGISTER` memakai nama pengguna yang mengunggah.
