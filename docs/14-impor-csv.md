@@ -160,7 +160,8 @@ barang (`item.create`: OPERASI dan SUPERADMIN). Logikanya ada di `src/server/imp
 dan `xlsx-run.ts`.
 
 - Tombol **Impor** (sejajar dengan pemilih berkas) membuka popup pratinjau: jumlah barang dan
-  isi yang akan dibuat, yang dilewati, dan galat bila ada. Data baru ditulis setelah menekan
+  isi yang akan dibuat, yang dilewati, dan galat bila ada, ditambah tabel pemetaan kolom Excel
+  ke kolom di web dan daftar barang yang akan dibuat (klik satu barang untuk melihat isinya). Data baru ditulis setelah menekan
   **Proses** di popup.
 - **Pemetaan** sama dengan bagian 3: tiap nilai kolom `ID item` (atau `Column 1`) pada satu sheet
   menjadi satu barang (perlu sterilisasi, jumlah 1); tiap barisnya menjadi satu baris isi.

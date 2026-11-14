@@ -2,6 +2,20 @@ import { db } from "@/server/db";
 import { type Actor, registerItem } from "@/server/services/item.service";
 import { parseWorkbook, type SheetIssue } from "./xlsx";
 
+/** What will be (or was) created, shown in the preview. */
+export type PreviewSet = {
+  sheet: string;
+  row: number;
+  name: string;
+  contents: {
+    name: string;
+    brand: string | null;
+    quantity: number;
+    damagedQuantity: number;
+    note: string | null;
+  }[];
+};
+
 export type ExcelReport = {
   dryRun: boolean;
   /** True when nothing was written because the file has errors. */
@@ -13,6 +27,8 @@ export type ExcelReport = {
   /** Already in the database (same name, no room), or repeated in the file. */
   skippedDuplicate: { sheet: string; row: number; name: string; reason: string }[];
   skippedSheets: { sheet: string; reason: string }[];
+  /** Sets that are created, in file order. */
+  preview: PreviewSet[];
   issues: SheetIssue[];
 };
 
@@ -37,6 +53,7 @@ export async function importExcel(
     contentsCreated: 0,
     skippedDuplicate: [],
     skippedSheets: parsed.skippedSheets,
+    preview: [],
     issues: parsed.issues,
   };
   if (report.blocked) return report;
@@ -69,6 +86,18 @@ export async function importExcel(
       }
     }
     report.created++;
+    report.preview.push({
+      sheet: c.sheet,
+      row: c.row,
+      name: c.input.name,
+      contents: (c.input.contents ?? []).map((x) => ({
+        name: x.name,
+        brand: x.brand || null,
+        quantity: x.quantity,
+        damagedQuantity: x.damagedQuantity ?? 0,
+        note: x.note || null,
+      })),
+    });
     report.contentsCreated += c.input.contents?.length ?? 0;
   }
   return report;

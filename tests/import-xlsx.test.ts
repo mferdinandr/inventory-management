@@ -130,6 +130,7 @@ describe("importExcel", () => {
   it("writes nothing on a dry run", async () => {
     const r = await importExcel(actor, await file(), true);
     expect([r.created, r.contentsCreated]).toEqual([1, 2]);
+    expect(r.preview.map((p) => [p.name, p.contents.length])).toEqual([["MINOR 1", 2]]);
     expect(await db.item.count()).toBe(0);
   });
 

@@ -13,6 +13,7 @@ import {
   Label,
   Notice,
 } from "@/components/ui";
+import { t } from "@/lib/strings";
 import type { ImportState } from "../import-actions";
 import { importExcelAction } from "../import-actions";
 
@@ -62,7 +63,7 @@ export function ExcelImport() {
       {state?.error && !open && <Notice tone="error">{state.error}</Notice>}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{done ? "Impor selesai" : "Pratinjau impor"}</DialogTitle>
             <DialogDescription>
@@ -93,6 +94,7 @@ export function ExcelImport() {
                 {done ? "dibuat" : "akan dibuat"}.
               </Notice>
             )}
+            {report && !report.blocked && <PreviewTables report={report} />}
             {report && report.skippedDuplicate.length > 0 && (
               <div>
                 <p className="font-medium">Dilewati ({report.skippedDuplicate.length}):</p>
@@ -126,5 +128,92 @@ export function ExcelImport() {
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+const f = t.items.fields;
+const c = t.items.contents;
+
+/** Excel column -> field in the web form, so the preview reads in the app's own labels. */
+const MAPPING: [string, string][] = [
+  ["ID item / Column 1", `${f.name} (barang)`],
+  ["NAMA ITEM", `${c.name} (isi)`],
+  ["MEREK", c.brand],
+  ["JUMLAH", `${c.quantity} (kosong = 1)`],
+  ['KONDISI berisi "rusak"', `${c.damaged} (= ${c.quantity})`],
+  ["Catatan", c.note],
+  ["Status, TANGGAL VERIVIKASI", "tidak diimpor"],
+];
+
+function PreviewTables({ report }: { report: NonNullable<ImportState>["report"] & object }) {
+  if (report.preview.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <table className="w-full border-collapse text-left text-xs">
+        <caption className="pb-1 text-left font-medium">Pemetaan kolom</caption>
+        <thead>
+          <tr className="border-b bg-slate-50">
+            <th className="px-2 py-1">Kolom di Excel</th>
+            <th className="px-2 py-1">Kolom di web</th>
+          </tr>
+        </thead>
+        <tbody>
+          {MAPPING.map(([from, to]) => (
+            <tr key={from} className="border-b">
+              <td className="px-2 py-1">{from}</td>
+              <td className="px-2 py-1">{to}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div>
+        <p className="pb-1 font-medium">
+          Yang akan diimpor ({report.preview.length} barang; klik untuk melihat isinya)
+        </p>
+        <div className="grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 border-b bg-slate-50 px-2 py-1 text-xs font-medium">
+          <span>{f.name}</span>
+          <span>{f.needsSterilization}</span>
+          <span>Baris isi</span>
+          <span>{c.damaged}</span>
+          <span>Sheet</span>
+        </div>
+        <div className="max-h-72 overflow-y-auto">
+          {report.preview.map((s) => (
+            <details key={`${s.sheet}-${s.row}`} className="border-b text-xs">
+              <summary className="grid cursor-pointer grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-2 py-1">
+                <span className="font-medium">{s.name}</span>
+                <span>Ya</span>
+                <span>{s.contents.length}</span>
+                <span>{s.contents.reduce((n, x) => n + x.damagedQuantity, 0)}</span>
+                <span>{s.sheet}</span>
+              </summary>
+              <table className="mb-2 w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-y bg-slate-50">
+                    <th className="px-2 py-1">{c.name}</th>
+                    <th className="px-2 py-1">{c.brand}</th>
+                    <th className="px-2 py-1">{c.quantity}</th>
+                    <th className="px-2 py-1">{c.damaged}</th>
+                    <th className="px-2 py-1">{c.note}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.contents.map((x) => (
+                    <tr key={x.name} className="border-b">
+                      <td className="px-2 py-1">{x.name}</td>
+                      <td className="px-2 py-1">{x.brand ?? "-"}</td>
+                      <td className="px-2 py-1">{x.quantity}</td>
+                      <td className="px-2 py-1">{x.damagedQuantity}</td>
+                      <td className="px-2 py-1">{x.note ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
