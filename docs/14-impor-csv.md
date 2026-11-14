@@ -165,7 +165,7 @@ dan `xlsx-run.ts`.
   pemilih berkas.
 - Tombol **Impor** (sejajar dengan pemilih berkas) membuka popup pratinjau: jumlah barang dan
   isi yang akan dibuat, yang dilewati, galat bila ada, dan daftar barang yang akan dibuat
-  (klik satu barang untuk melihat isinya). Data baru ditulis setelah menekan **Proses** di popup.
+  (klik satu barang untuk melihat isinya). Data baru ditulis setelah menekan **Proses**; popup lalu menutup dan muncul toast berhasil.
 - **Pemetaan** sama dengan bagian 3: tiap nilai kolom `ID item` (atau `Column 1`) pada satu sheet
   menjadi satu barang (perlu sterilisasi, jumlah 1); tiap barisnya menjadi satu baris isi.
   NAMA ITEM → nama, MEREK → merek, JUMLAH → jumlah (kosong = 1), Catatan → catatan, KONDISI

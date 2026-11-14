@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { type FormEvent, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
   Badge,
   Button,
@@ -31,7 +32,18 @@ export function ExcelImport() {
     const data = new FormData(formRef.current);
     data.set("intent", intent);
     startTransition(async () => {
-      setState(await importExcelAction(undefined, data));
+      const result = await importExcelAction(undefined, data);
+      const r = result?.report;
+      if (intent === "import" && r && !r.blocked) {
+        setOpen(false);
+        setState(undefined);
+        formRef.current?.reset();
+        toast.success(
+          `Impor berhasil: ${r.created} barang dan ${r.contentsCreated} baris isi dibuat.`,
+        );
+        return;
+      }
+      setState(result);
       setOpen(true);
     });
   };
@@ -42,7 +54,6 @@ export function ExcelImport() {
   };
 
   const report = state?.report;
-  const done = !!report && !report.dryRun && !report.blocked;
   const canProcess = !!report && report.dryRun && !report.blocked && report.created > 0;
 
   return (
@@ -69,10 +80,8 @@ export function ExcelImport() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{done ? "Impor selesai" : "Pratinjau impor"}</DialogTitle>
-            <DialogDescription>
-              {done ? "Data sudah disimpan." : "Periksa dulu; belum ada yang disimpan."}
-            </DialogDescription>
+            <DialogTitle>Pratinjau impor</DialogTitle>
+            <DialogDescription>Periksa dulu; belum ada yang disimpan.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 text-sm">
@@ -94,8 +103,7 @@ export function ExcelImport() {
             )}
             {report && !report.blocked && (
               <Notice tone="success">
-                {report.created} barang dan {report.contentsCreated} baris isi{" "}
-                {done ? "dibuat" : "akan dibuat"}.
+                {report.created} barang dan {report.contentsCreated} baris isi akan dibuat.
               </Notice>
             )}
             {report && !report.blocked && <PreviewTables report={report} />}
@@ -115,7 +123,7 @@ export function ExcelImport() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-              {done ? "Tutup" : "Batal"}
+              Batal
             </Button>
             {canProcess && (
               <Button onClick={() => run("import")} disabled={pending}>
