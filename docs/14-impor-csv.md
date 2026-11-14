@@ -162,7 +162,7 @@ dan `xlsx-run.ts`.
 - Tautan **Unduh template impor** (`/api/items/import-template`) memberi berkas `.xlsx` kosong
   dengan header yang benar dan sheet PETUNJUK.
 - Tombol **Impor** (sejajar dengan pemilih berkas) membuka popup pratinjau: jumlah barang dan
-  isi yang akan dibuat, yang dilewati, dan galat bila ada, ditambah tabel pemetaan kolom Excel
+  isi yang akan dibuat, yang dilewati, dan galat bila ada, dan tabel pemetaan kolom Excel
   ke kolom di web dan daftar barang yang akan dibuat (klik satu barang untuk melihat isinya). Data baru ditulis setelah menekan
   **Proses** di popup.
 - **Pemetaan** sama dengan bagian 3: tiap nilai kolom `ID item` (atau `Column 1`) pada satu sheet

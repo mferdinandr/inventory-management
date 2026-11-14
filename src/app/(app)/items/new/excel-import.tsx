@@ -63,6 +63,7 @@ export function ExcelImport() {
           </Button>
         </div>
       </form>
+      <MappingTable />
       {state?.error && !open && <Notice tone="error">{state.error}</Notice>}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -152,35 +153,39 @@ function Count({ n, damaged }: { n: number; damaged?: boolean }) {
   return <span className={damaged ? "text-muted-foreground" : undefined}>{n}</span>;
 }
 
+function MappingTable() {
+  return (
+    <section>
+      <h3 className="pb-1.5 text-sm font-medium">Pemetaan kolom</h3>
+      <div className="overflow-hidden rounded-lg border border-border">
+        <table className="w-full border-collapse text-left text-xs">
+          <thead className="bg-muted">
+            <tr>
+              <th className={TH}>Kolom di Excel</th>
+              <th className={TH}>Kolom di web</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {MAPPING.map(([from, to]) => (
+              <tr key={from}>
+                <td className="px-3 py-1.5 font-mono">{from}</td>
+                <td
+                  className={`px-3 py-1.5 ${to === "tidak diimpor" ? "text-muted-foreground" : ""}`}
+                >
+                  {to}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function PreviewTables({ report }: { report: NonNullable<ImportState>["report"] & object }) {
   return (
     <div className="space-y-4">
-      <section>
-        <h3 className="pb-1.5 text-sm font-medium">Pemetaan kolom</h3>
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead className="bg-muted">
-              <tr>
-                <th className={TH}>Kolom di Excel</th>
-                <th className={TH}>Kolom di web</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {MAPPING.map(([from, to]) => (
-                <tr key={from}>
-                  <td className="px-3 py-1.5 font-mono">{from}</td>
-                  <td
-                    className={`px-3 py-1.5 ${to === "tidak diimpor" ? "text-muted-foreground" : ""}`}
-                  >
-                    {to}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
       <section>
         <h3 className="pb-1.5 text-sm font-medium">
           Yang akan diimpor ({report.preview.length} barang)
