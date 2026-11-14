@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { type FormEvent, useRef, useState, useTransition } from "react";
 import {
   Button,
@@ -108,12 +109,6 @@ export function ExcelImport() {
                 </ul>
               </div>
             )}
-            {report && report.skippedSheets.length > 0 && (
-              <p className="text-slate-600">
-                Sheet dilewati:{" "}
-                {report.skippedSheets.map((s) => `${s.sheet} (${s.reason})`).join("; ")}
-              </p>
-            )}
           </div>
 
           <DialogFooter>
@@ -132,6 +127,7 @@ export function ExcelImport() {
   );
 }
 
+const ROW = "grid grid-cols-[minmax(10rem,1fr)_6rem_5rem_4rem_8rem] gap-2 px-2";
 const f = t.items.fields;
 const c = t.items.contents;
 
@@ -147,7 +143,6 @@ const MAPPING: [string, string][] = [
 ];
 
 function PreviewTables({ report }: { report: NonNullable<ImportState>["report"] & object }) {
-  if (report.preview.length === 0) return null;
   return (
     <div className="space-y-3">
       <table className="w-full border-collapse text-left text-xs">
@@ -172,48 +167,65 @@ function PreviewTables({ report }: { report: NonNullable<ImportState>["report"] 
         <p className="pb-1 font-medium">
           Yang akan diimpor ({report.preview.length} barang; klik untuk melihat isinya)
         </p>
-        <div className="grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 border-b bg-slate-50 px-2 py-1 text-xs font-medium">
-          <span>{f.name}</span>
-          <span>{f.needsSterilization}</span>
-          <span>Baris isi</span>
-          <span>{c.damaged}</span>
-          <span>Sheet</span>
-        </div>
-        <div className="max-h-72 overflow-y-auto">
-          {report.preview.map((s) => (
-            <details key={`${s.sheet}-${s.row}`} className="border-b text-xs">
-              <summary className="grid cursor-pointer grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-2 py-1">
-                <span className="font-medium">{s.name}</span>
-                <span>Ya</span>
-                <span>{s.contents.length}</span>
-                <span>{s.contents.reduce((n, x) => n + x.damagedQuantity, 0)}</span>
-                <span>{s.sheet}</span>
-              </summary>
-              <table className="mb-2 w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-y bg-slate-50">
-                    <th className="px-2 py-1">{c.name}</th>
-                    <th className="px-2 py-1">{c.brand}</th>
-                    <th className="px-2 py-1">{c.quantity}</th>
-                    <th className="px-2 py-1">{c.damaged}</th>
-                    <th className="px-2 py-1">{c.note}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.contents.map((x) => (
-                    <tr key={x.name} className="border-b">
-                      <td className="px-2 py-1">{x.name}</td>
-                      <td className="px-2 py-1">{x.brand ?? "-"}</td>
-                      <td className="px-2 py-1">{x.quantity}</td>
-                      <td className="px-2 py-1">{x.damagedQuantity}</td>
-                      <td className="px-2 py-1">{x.note ?? "-"}</td>
+        <div className="max-h-72 overflow-auto border">
+          <div className="min-w-[36rem]">
+            <div
+              className={`${ROW} sticky top-0 z-10 border-b bg-slate-50 py-1 pl-7 text-xs font-medium`}
+            >
+              <span>{f.name}</span>
+              <span>{f.needsSterilization}</span>
+              <span>Baris isi</span>
+              <span>{c.damaged}</span>
+              <span>Sheet</span>
+            </div>
+            {report.preview.map((s) => (
+              <details key={`${s.sheet}-${s.row}`} className="group border-b text-xs">
+                <summary
+                  className={`${ROW} cursor-pointer list-none py-1 pl-2 [&::-webkit-details-marker]:hidden`}
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    <ChevronRight
+                      aria-hidden
+                      className="size-4 shrink-0 text-slate-500 transition-transform group-open:rotate-90"
+                    />
+                    {s.name}
+                  </span>
+                  <span>Ya</span>
+                  <span>{s.contents.length}</span>
+                  <span>{s.contents.reduce((n, x) => n + x.damagedQuantity, 0)}</span>
+                  <span>{s.sheet}</span>
+                </summary>
+                <table className="mb-2 w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-y bg-slate-50">
+                      <th className="px-2 py-1">{c.name}</th>
+                      <th className="px-2 py-1">{c.brand}</th>
+                      <th className="px-2 py-1">{c.quantity}</th>
+                      <th className="px-2 py-1">{c.damaged}</th>
+                      <th className="px-2 py-1">{c.note}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
-          ))}
+                  </thead>
+                  <tbody>
+                    {s.contents.map((x) => (
+                      <tr key={x.name} className="border-b">
+                        <td className="px-2 py-1">{x.name}</td>
+                        <td className="px-2 py-1">{x.brand ?? "-"}</td>
+                        <td className="px-2 py-1">{x.quantity}</td>
+                        <td className="px-2 py-1">{x.damagedQuantity}</td>
+                        <td className="px-2 py-1">{x.note ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            ))}
+          </div>
         </div>
+        {report.skippedSheets.length > 0 && (
+          <p className="pt-1 text-slate-600">
+            Sheet dilewati: {report.skippedSheets.map((s) => `${s.sheet} (${s.reason})`).join("; ")}
+          </p>
+        )}
       </div>
     </div>
   );
