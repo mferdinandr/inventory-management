@@ -159,7 +159,9 @@ dapat diunggah langsung di **Tambah barang** (`/items/new`) oleh peran yang bole
 barang (`item.create`: OPERASI dan SUPERADMIN). Logikanya ada di `src/server/import/xlsx.ts`
 dan `xlsx-run.ts`.
 
-- **Tombol "Periksa dulu"** hanya memvalidasi dan menampilkan pratinjau; **"Impor"** menulis.
+- Tombol **Impor** (sejajar dengan pemilih berkas) membuka popup pratinjau: jumlah barang dan
+  isi yang akan dibuat, yang dilewati, dan galat bila ada. Data baru ditulis setelah menekan
+  **Proses** di popup.
 - **Pemetaan** sama dengan bagian 3: tiap nilai kolom `ID item` (atau `Column 1`) pada satu sheet
   menjadi satu barang (perlu sterilisasi, jumlah 1); tiap barisnya menjadi satu baris isi.
   NAMA ITEM → nama, MEREK → merek, JUMLAH → jumlah (kosong = 1), Catatan → catatan, KONDISI
