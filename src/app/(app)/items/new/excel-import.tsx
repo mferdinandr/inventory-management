@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { type FormEvent, useRef, useState, useTransition } from "react";
 import {
+  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ export function ExcelImport() {
   const canProcess = !!report && report.dryRun && !report.blocked && report.created > 0;
 
   return (
-    <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+    <section className="space-y-3 rounded-xl border border-border bg-card p-4">
       <h2 className="text-lg font-semibold">Impor dari Excel</h2>
       <a
         href="/api/items/import-template"
@@ -100,7 +101,7 @@ export function ExcelImport() {
             {report && report.skippedDuplicate.length > 0 && (
               <div>
                 <p className="font-medium">Dilewati ({report.skippedDuplicate.length}):</p>
-                <ul className="list-disc pl-5 text-slate-600">
+                <ul className="list-disc pl-5 text-muted-foreground">
                   {report.skippedDuplicate.map((d) => (
                     <li key={`${d.sheet}-${d.row}`}>
                       {d.name} (sheet {d.sheet} baris {d.row}): {d.reason}
@@ -127,7 +128,7 @@ export function ExcelImport() {
   );
 }
 
-const ROW = "grid grid-cols-[minmax(10rem,1fr)_6rem_5rem_4rem_8rem] gap-2 px-2";
+const ROW = "grid grid-cols-[minmax(10rem,1fr)_7rem_5rem_4rem_8rem] items-center gap-3 px-3";
 const f = t.items.fields;
 const c = t.items.contents;
 
@@ -142,91 +143,120 @@ const MAPPING: [string, string][] = [
   ["Status, TANGGAL VERIVIKASI", "tidak diimpor"],
 ];
 
+const TH = "px-3 py-2 text-xs font-medium text-muted-foreground";
+const TD = "px-3 py-2 align-top";
+
+/** A count; damaged counts above zero stand out, zero stays quiet. */
+function Count({ n, damaged }: { n: number; damaged?: boolean }) {
+  if (damaged && n > 0) return <Badge variant="destructive">{n}</Badge>;
+  return <span className={damaged ? "text-muted-foreground" : undefined}>{n}</span>;
+}
+
 function PreviewTables({ report }: { report: NonNullable<ImportState>["report"] & object }) {
   return (
-    <div className="space-y-3">
-      <table className="w-full border-collapse text-left text-xs">
-        <caption className="pb-1 text-left font-medium">Pemetaan kolom</caption>
-        <thead>
-          <tr className="border-b bg-slate-50">
-            <th className="px-2 py-1">Kolom di Excel</th>
-            <th className="px-2 py-1">Kolom di web</th>
-          </tr>
-        </thead>
-        <tbody>
-          {MAPPING.map(([from, to]) => (
-            <tr key={from} className="border-b">
-              <td className="px-2 py-1">{from}</td>
-              <td className="px-2 py-1">{to}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <section>
+        <h3 className="pb-1.5 text-sm font-medium">Pemetaan kolom</h3>
+        <div className="overflow-hidden rounded-lg border border-border">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="bg-muted">
+              <tr>
+                <th className={TH}>Kolom di Excel</th>
+                <th className={TH}>Kolom di web</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {MAPPING.map(([from, to]) => (
+                <tr key={from}>
+                  <td className="px-3 py-1.5 font-mono">{from}</td>
+                  <td
+                    className={`px-3 py-1.5 ${to === "tidak diimpor" ? "text-muted-foreground" : ""}`}
+                  >
+                    {to}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      <div>
-        <p className="pb-1 font-medium">
-          Yang akan diimpor ({report.preview.length} barang; klik untuk melihat isinya)
-        </p>
-        <div className="max-h-72 overflow-auto border">
-          <div className="min-w-[36rem]">
-            <div
-              className={`${ROW} sticky top-0 z-10 border-b bg-slate-50 py-1 pl-7 text-xs font-medium`}
-            >
-              <span>{f.name}</span>
-              <span>{f.needsSterilization}</span>
-              <span>Baris isi</span>
-              <span>{c.damaged}</span>
-              <span>Sheet</span>
+      <section>
+        <h3 className="pb-1.5 text-sm font-medium">
+          Yang akan diimpor ({report.preview.length} barang)
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            Klik barang untuk melihat isinya
+          </span>
+        </h3>
+        <div className="max-h-80 overflow-auto rounded-lg border border-border">
+          <div className="min-w-[38rem]">
+            <div className={`${ROW} sticky top-0 z-10 border-b border-border bg-muted py-2 pl-9`}>
+              {[f.name, f.needsSterilization, "Baris isi", c.damaged, "Sheet"].map((h) => (
+                <span key={h} className="text-xs font-medium text-muted-foreground">
+                  {h}
+                </span>
+              ))}
             </div>
             {report.preview.map((s) => (
-              <details key={`${s.sheet}-${s.row}`} className="group border-b text-xs">
+              <details
+                key={`${s.sheet}-${s.row}`}
+                className="group border-b border-border text-sm last:border-b-0 open:bg-muted/30"
+              >
                 <summary
-                  className={`${ROW} cursor-pointer list-none py-1 pl-2 [&::-webkit-details-marker]:hidden`}
+                  className={`${ROW} cursor-pointer list-none py-2 hover:bg-muted/50 [&::-webkit-details-marker]:hidden`}
                 >
-                  <span className="flex items-center gap-1 font-medium">
+                  <span className="flex items-center gap-2 font-medium">
                     <ChevronRight
                       aria-hidden
-                      className="size-4 shrink-0 text-slate-500 transition-transform group-open:rotate-90"
+                      className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
                     />
                     {s.name}
                   </span>
-                  <span>Ya</span>
+                  <Badge variant="secondary" className="justify-self-start">
+                    Ya
+                  </Badge>
                   <span>{s.contents.length}</span>
-                  <span>{s.contents.reduce((n, x) => n + x.damagedQuantity, 0)}</span>
-                  <span>{s.sheet}</span>
+                  <Count n={s.contents.reduce((n, x) => n + x.damagedQuantity, 0)} damaged />
+                  <Badge variant="outline" className="justify-self-start">
+                    {s.sheet}
+                  </Badge>
                 </summary>
-                <table className="mb-2 w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-y bg-slate-50">
-                      <th className="px-2 py-1">{c.name}</th>
-                      <th className="px-2 py-1">{c.brand}</th>
-                      <th className="px-2 py-1">{c.quantity}</th>
-                      <th className="px-2 py-1">{c.damaged}</th>
-                      <th className="px-2 py-1">{c.note}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.contents.map((x) => (
-                      <tr key={x.name} className="border-b">
-                        <td className="px-2 py-1">{x.name}</td>
-                        <td className="px-2 py-1">{x.brand ?? "-"}</td>
-                        <td className="px-2 py-1">{x.quantity}</td>
-                        <td className="px-2 py-1">{x.damagedQuantity}</td>
-                        <td className="px-2 py-1">{x.note ?? "-"}</td>
+                <div className="mx-3 mb-3 ml-9 overflow-hidden rounded-lg border border-border bg-card">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className={TH}>{c.name}</th>
+                        <th className={TH}>{c.brand}</th>
+                        <th className={`${TH} text-right`}>{c.quantity}</th>
+                        <th className={`${TH} text-right`}>{c.damaged}</th>
+                        <th className={TH}>{c.note}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {s.contents.map((x) => (
+                        <tr key={x.name}>
+                          <td className={`${TD} font-medium`}>{x.name}</td>
+                          <td className={`${TD} text-muted-foreground`}>{x.brand ?? "-"}</td>
+                          <td className={`${TD} text-right tabular-nums`}>{x.quantity}</td>
+                          <td className={`${TD} text-right tabular-nums`}>
+                            <Count n={x.damagedQuantity} damaged />
+                          </td>
+                          <td className={`${TD} text-muted-foreground`}>{x.note ?? "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </details>
             ))}
           </div>
         </div>
         {report.skippedSheets.length > 0 && (
-          <p className="pt-1 text-slate-600">
+          <p className="pt-1.5 text-xs text-muted-foreground">
             Sheet dilewati: {report.skippedSheets.map((s) => `${s.sheet} (${s.reason})`).join("; ")}
           </p>
         )}
-      </div>
+      </section>
     </div>
   );
 }
