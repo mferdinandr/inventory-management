@@ -10,7 +10,7 @@ import { getItemByCode } from "@/server/services/item.service";
 import { getNextDue, listMaintenance } from "@/server/services/maintenance.service";
 import { ArchiveButton } from "../archive-button";
 import { ContentsList } from "../contents-list";
-import { formatAge, formatDate, formatDateTime, formatRupiah } from "../format";
+import { formatAge, formatDate, formatDateTime } from "../format";
 import { History } from "../history";
 import { LinkButton } from "../link-button";
 
@@ -130,24 +130,11 @@ export default async function ItemPage({ params }: { params: Params }) {
           <Field label={f.brand}>{item.brand}</Field>
           <Field label={f.model}>{item.model}</Field>
           <Field label={f.serialNumber}>{item.serialNumber}</Field>
+          <Field label={f.purchaseDate}>{item.purchaseDate && formatDate(item.purchaseDate)}</Field>
           <Field label={d.createdAt}>{formatDateTime(item.createdAt)}</Field>
           <div className="sm:col-span-2">
             <Field label={f.description}>{item.description}</Field>
           </div>
-        </dl>
-      </Card>
-
-      <Card title={d.purchase}>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <Field label={f.purchaseDate}>{item.purchaseDate && formatDate(item.purchaseDate)}</Field>
-          <Field label={f.purchasePrice}>
-            {item.purchasePrice !== null && formatRupiah(item.purchasePrice)}
-          </Field>
-          <Field label={f.supplier}>{item.supplier}</Field>
-          <Field label={f.fundingSource}>{item.fundingSource}</Field>
-          <Field label={f.warrantyUntil}>
-            {item.warrantyUntil && formatDate(item.warrantyUntil)}
-          </Field>
         </dl>
       </Card>
 
