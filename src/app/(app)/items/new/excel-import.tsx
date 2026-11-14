@@ -54,6 +54,7 @@ export function ExcelImport() {
       >
         Unduh template impor (.xlsx)
       </a>
+      <MappingTable />
       <form ref={formRef} onSubmit={onSubmit} className="space-y-2">
         <Label htmlFor="excel-file">Berkas Excel</Label>
         <div className="flex gap-2">
@@ -63,7 +64,6 @@ export function ExcelImport() {
           </Button>
         </div>
       </form>
-      <MappingTable />
       {state?.error && !open && <Notice tone="error">{state.error}</Notice>}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -168,7 +168,7 @@ function MappingTable() {
           <tbody className="divide-y divide-border">
             {MAPPING.map(([from, to]) => (
               <tr key={from}>
-                <td className="px-3 py-1.5 font-mono">{from}</td>
+                <td className="px-3 py-1.5">{from}</td>
                 <td
                   className={`px-3 py-1.5 ${to === "tidak diimpor" ? "text-muted-foreground" : ""}`}
                 >
