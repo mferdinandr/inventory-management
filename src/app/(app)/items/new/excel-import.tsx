@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -22,6 +23,7 @@ import { importExcelAction } from "../import-actions";
 
 /** Upload an Excel inventory list: "Impor" opens a preview, "Proses" in the preview writes. */
 export function ExcelImport() {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<ImportState>();
@@ -41,6 +43,7 @@ export function ExcelImport() {
         toast.success(
           `Impor berhasil: ${r.created} barang dan ${r.contentsCreated} baris isi dibuat.`,
         );
+        router.push("/items");
         return;
       }
       setState(result);
