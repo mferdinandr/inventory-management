@@ -28,6 +28,44 @@ type Props = Omit<ItemLabelProps, "hideText" | "textPosition" | "textScale"> & {
   qrSrc: string;
 };
 
+/**
+ * Millimetre input that lets you type freely ("6" on the way to "60"); the value only applies
+ * while it is inside MIN..MAX and is clamped when the field loses focus.
+ */
+function SizeInput({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      id={id}
+      type="number"
+      min={MIN}
+      max={MAX}
+      inputMode="numeric"
+      value={draft ?? value}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const n = Number(e.target.value);
+        if (e.target.value !== "" && n >= MIN && n <= MAX) onChange(n);
+      }}
+      onBlur={() => {
+        const n = Number(draft);
+        if (draft !== null)
+          onChange(Math.min(MAX, Math.max(MIN, Number.isFinite(n) && draft !== "" ? n : value)));
+        setDraft(null);
+      }}
+      className="h-9 w-full sm:w-24"
+    />
+  );
+}
+
 /** Size and text controls plus the printable label preview for /print/label/[code]. */
 export function LabelSizePicker({ code, name, qrSrc }: Props) {
   const [w, setW] = useState<number>(PRESETS[0].w);
@@ -36,8 +74,6 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
   const [position, setPosition] = useState<LabelTextPosition>("right");
   const [fontScale, setFontScale] = useState(1);
   const preset = PRESETS.find((p) => p.w === w && p.h === h);
-
-  const clamp = (v: number) => Math.min(MAX, Math.max(MIN, Number.isFinite(v) ? v : MIN));
 
   return (
     <div className="p-4 print:p-0">
@@ -73,29 +109,11 @@ export function LabelSizePicker({ code, name, qrSrc }: Props) {
           <div className="grid grid-cols-2 gap-3 sm:flex">
             <div className="space-y-1">
               <Label htmlFor="label-width">{t.print.width}</Label>
-              <Input
-                id="label-width"
-                type="number"
-                min={MIN}
-                max={MAX}
-                inputMode="numeric"
-                value={w}
-                onChange={(e) => setW(clamp(Number(e.target.value)))}
-                className="h-9 w-full sm:w-24"
-              />
+              <SizeInput id="label-width" value={w} onChange={setW} />
             </div>
             <div className="space-y-1">
               <Label htmlFor="label-height">{t.print.height}</Label>
-              <Input
-                id="label-height"
-                type="number"
-                min={MIN}
-                max={MAX}
-                inputMode="numeric"
-                value={h}
-                onChange={(e) => setH(clamp(Number(e.target.value)))}
-                className="h-9 w-full sm:w-24"
-              />
+              <SizeInput id="label-height" value={h} onChange={setH} />
             </div>
           </div>
         </div>
