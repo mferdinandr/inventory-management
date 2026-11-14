@@ -46,11 +46,12 @@ export function ExcelImport() {
   return (
     <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
       <h2 className="text-lg font-semibold">Impor dari Excel</h2>
-      <p className="text-sm text-slate-600">
-        Unggah berkas .xlsx daftar inventaris. Setiap ID item (mis. MINOR 1) menjadi satu barang
-        perlu sterilisasi, dan setiap barisnya menjadi isi. Kolom yang dibaca: NAMA ITEM, MEREK,
-        KONDISI, JUMLAH, Catatan. Sheet tanpa kolom NAMA ITEM dilewati.
-      </p>
+      <a
+        href="/api/items/import-template"
+        className="inline-block text-sm text-primary underline underline-offset-4"
+      >
+        Unduh template impor (.xlsx)
+      </a>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-2">
         <Label htmlFor="excel-file">Berkas Excel</Label>
         <div className="flex gap-2">

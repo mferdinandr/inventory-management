@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { parseWorkbook } from "@/server/import/xlsx";
 import { importExcel } from "@/server/import/xlsx-run";
+import { buildImportTemplate } from "@/server/import/xlsx-template";
 import { createUser } from "@/server/services/user.service";
 import { resetDatabase } from "./helpers/reset-db";
 
@@ -97,6 +98,13 @@ describe("parseWorkbook", () => {
       ["MINOR", 3], // duplicate name is reported on the set's first row
       ["MINOR", 5],
     ]);
+  });
+
+  it("reads the downloadable template as an empty, valid list", async () => {
+    const r = await parseWorkbook(await buildImportTemplate());
+    expect(r.issues).toEqual([]);
+    expect(r.candidates).toEqual([]);
+    expect(r.skippedSheets.map((s) => s.sheet)).toEqual(["PETUNJUK"]);
   });
 
   it("rejects a file that is not xlsx", async () => {
