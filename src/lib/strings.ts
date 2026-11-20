@@ -42,7 +42,7 @@ export const t = {
     hint: "Minimal 8 karakter.",
     notMatch: "Konfirmasi kata sandi baru berbeda dengan Kata sandi baru.",
     submit: "Simpan kata sandi",
-    changed: "Kata sandi berhasil diganti.",
+    changed: "Kata sandi berhasil diganti. Silakan login kembali.",
   },
   home: {
     title: "Beranda",

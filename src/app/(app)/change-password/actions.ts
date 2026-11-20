@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { t } from "@/lib/strings";
+import { signOut } from "@/server/auth/config";
 import { getCurrentUser } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { changeOwnPassword } from "@/server/services/user.service";
@@ -21,5 +22,6 @@ export async function changePassword(_prev: FormState, form: FormData): Promise<
     if (e instanceof AppError) return { error: e.message };
     throw e;
   }
+  await signOut({ redirect: false });
   return { ok: true };
 }
