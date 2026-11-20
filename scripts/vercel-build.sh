@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Vercel build: generate the Prisma client, apply database migrations (production only), then
-# build the app. Migrating here means the new schema is in place before the new deployment takes
+# Vercel build: generate the Prisma client, apply database migrations (production and the `dev`
+# branch only), then build the app. Migrating here means the new schema is in place before the new deployment takes
 # traffic. Migrations must stay backward compatible with the previous release (docs/09).
 set -euo pipefail
 
@@ -12,11 +12,13 @@ export DATABASE_URL="${DATABASE_URL:-postgresql://build:build@localhost:5432/bui
 # postinstall hook, and src/generated is not committed, so generate explicitly every time.
 node_modules/.bin/prisma generate
 
-if [ "${VERCEL_ENV:-}" = "production" ]; then
-  echo "Applying database migrations"
+# The `dev` branch deploys as a Preview against its own database (Preview env vars scoped to
+# that branch). Every other preview has no DATABASE_URL and never touches a database.
+if [ "${VERCEL_ENV:-}" = "production" ] || { [ "${VERCEL_ENV:-}" = "preview" ] && [ "${VERCEL_GIT_COMMIT_REF:-}" = "dev" ]; }; then
+  echo "Applying database migrations (VERCEL_ENV=${VERCEL_ENV}, branch=${VERCEL_GIT_COMMIT_REF:-unset})"
   node_modules/.bin/prisma migrate deploy
 else
-  echo "Skipping migrations (VERCEL_ENV=${VERCEL_ENV:-unset}); previews never touch the database"
+  echo "Skipping migrations (VERCEL_ENV=${VERCEL_ENV:-unset}); other previews never touch the database"
 fi
 
 exec node_modules/.bin/next build

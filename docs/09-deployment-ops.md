@@ -28,6 +28,19 @@ dengan sertifikat bawaan Coolify yang bukan dari CA publik. Preview dan Developm
 kosong**: `scripts/vercel-build.sh` hanya menjalankan migrasi bila `VERCEL_ENV=production` dan
 memakai URL tiruan untuk build lain, jadi preview tidak pernah menyentuh database.
 
+### Lingkungan dev (staging)
+
+Branch `dev` dideploy sebagai **Preview** dengan database sendiri, terpisah dari produksi:
+
+- Resource PostgreSQL kedua di Coolify (nama, sandi, dan port publik berbeda dari produksi).
+- Di Vercel, variabel `DATABASE_URL`, `AUTH_SECRET` (acak baru), `APP_URL` (domain dev), dan
+  `DB_POOL_MAX` diisi untuk **Preview** dengan cakupan branch `dev`. `NEXT_PUBLIC_SENTRY_DSN`
+  dikosongkan atau memakai project Sentry terpisah.
+- Domain tetap (mis. `dev-simaset.<domain>`) dihubungkan ke branch `dev`.
+- `scripts/vercel-build.sh` menjalankan `prisma migrate deploy` untuk branch `dev` juga. Preview
+  branch lain tetap tanpa database.
+- Alur kerja: PR ke `dev` → uji di domain dev → merge `dev` ke `main` untuk rilis.
+
 ## 3. Pembaruan
 
 Push ke `main` → CI → Vercel membangun dari `vercel.json`: `scripts/vercel-build.sh` menjalankan
