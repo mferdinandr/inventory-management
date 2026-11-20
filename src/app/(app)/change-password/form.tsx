@@ -18,7 +18,7 @@ export function ChangePasswordForm() {
     if (!state) return;
     if ("ok" in state) {
       toast.success(t.changePassword.changed);
-      router.push("/");
+      router.push("/login");
       return;
     }
     toast.error(state.error ?? t.error);
